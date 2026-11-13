@@ -1,0 +1,825 @@
+{
+  "kinds": [
+    {
+      "kind": "agencies",
+      "title": "Estate agencies",
+      "singular": "Estate agency",
+      "description": "Registered agencies selling and letting property across Zimbabwe."
+    },
+    {
+      "kind": "agents",
+      "title": "Estate agents",
+      "singular": "Estate agent",
+      "description": "Individual agents, the areas they cover and the properties they are marketing."
+    },
+    {
+      "kind": "developers",
+      "title": "Property developers",
+      "singular": "Property developer",
+      "description": "Developers of estates, cluster homes, apartments and commercial projects."
+    },
+    {
+      "kind": "property-managers",
+      "title": "Landlords and property managers",
+      "singular": "Property manager",
+      "description": "Landlords and managers who let and look after residential and commercial property."
+    },
+    {
+      "kind": "hosts",
+      "title": "Hosts and venues",
+      "singular": "Host",
+      "description": "Short-stay hosts and owners of showrooms and venues for hire."
+    },
+    {
+      "kind": "service-providers",
+      "title": "Property services",
+      "singular": "Service provider",
+      "description": "Plumbers, electricians, solar installers, borehole drillers, conveyancers, valuers and movers."
+    }
+  ],
+  "tradeOrder": [
+    "Plumbing",
+    "Electrical",
+    "Solar power",
+    "Boreholes and water",
+    "Legal and conveyancing",
+    "Valuations",
+    "Removals"
+  ],
+  "profiles": [
+    {
+      "slug": "sample-estates",
+      "kind": "agencies",
+      "name": "Sample Estates",
+      "role": "Residential sales and lettings",
+      "tagline": "Homes for sale and to rent in Harare's northern suburbs.",
+      "about": "Sample Estates sells and lets houses, townhouses and apartments in Harare. The team handles viewings, offers and lease paperwork, and keeps every enquiry on record from first message to handover.",
+      "city": "Harare",
+      "areas": [
+        "Borrowdale",
+        "Avondale",
+        "Mount Pleasant",
+        "Highlands",
+        "Belgravia",
+        "Greystone Park"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings",
+        "Valuations for sale"
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2009
+    },
+    {
+      "slug": "sample-realty",
+      "kind": "agencies",
+      "name": "Sample Realty",
+      "role": "Residential sales and lettings",
+      "tagline": "Family homes and apartments in Harare and Mutare.",
+      "about": "Sample Realty markets family homes, apartments and townhouses. It works with first-time buyers as well as owners moving up, and has an office in Mutare.",
+      "city": "Harare",
+      "areas": [
+        "Glen Lorne",
+        "Avenues",
+        "Greendale",
+        "Morningside (Mutare)"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings",
+        "Buyer representation"
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2014
+    },
+    {
+      "slug": "sample-commercial",
+      "kind": "agencies",
+      "name": "Sample Commercial",
+      "role": "Commercial property",
+      "tagline": "Offices, retail and industrial space to let and for sale.",
+      "about": "Sample Commercial lets and sells offices, shops and warehouses in Harare. It advises tenants on space planning and landlords on lease terms.",
+      "city": "Harare",
+      "areas": [
+        "CBD",
+        "Eastlea",
+        "Msasa"
+      ],
+      "services": [
+        "Office lettings",
+        "Commercial sales",
+        "Lease negotiation"
+      ],
+      "verified": true,
+      "since": 2011
+    },
+    {
+      "slug": "sample-land-agents",
+      "kind": "agencies",
+      "name": "Sample Land Agents",
+      "role": "Land and stands",
+      "tagline": "Serviced stands, plots and farms with clean title.",
+      "about": "Sample Land Agents specialises in residential stands, plots and agricultural land. Every listing is checked for title, servicing and access before it is advertised.",
+      "city": "Bulawayo",
+      "areas": [
+        "Hillside",
+        "Ruwa",
+        "Murambi (Mutare)"
+      ],
+      "services": [
+        "Stand sales",
+        "Plot and farm sales",
+        "Title checks"
+      ],
+      "verified": true,
+      "since": 2016
+    },
+    {
+      "slug": "sample-homes-bulawayo",
+      "kind": "agencies",
+      "name": "Sample Homes Bulawayo",
+      "role": "Residential sales and lettings",
+      "tagline": "Houses for sale and to rent across Bulawayo.",
+      "about": "Sample Homes Bulawayo is a local agency covering the city's established suburbs. It manages sales and rentals and knows the schools, roads and water situation street by street.",
+      "city": "Bulawayo",
+      "areas": [
+        "Burnside",
+        "Suburbs",
+        "Hillside",
+        "Kumalo"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings"
+      ],
+      "verified": true,
+      "since": 2018
+    },
+    {
+      "slug": "rudo-moyo",
+      "kind": "agents",
+      "name": "Rudo Moyo",
+      "role": "Principal agent",
+      "tagline": "Leads the sales team at Sample Estates.",
+      "about": "Rudo runs Sample Estates and oversees every sale and lease the agency handles. She has worked in Harare residential property for more than fifteen years.",
+      "city": "Harare",
+      "areas": [
+        "Borrowdale",
+        "Highlands"
+      ],
+      "services": [
+        "Residential sales",
+        "Valuations for sale"
+      ],
+      "verified": true,
+      "agencySlug": "sample-estates"
+    },
+    {
+      "slug": "tendai-ncube",
+      "kind": "agents",
+      "name": "Tendai Ncube",
+      "role": "Sales and lettings agent",
+      "tagline": "Houses and apartments in Borrowdale, Avondale and Mount Pleasant.",
+      "about": "Tendai handles both sales and rentals and is usually the person showing you around. He answers enquiries the same day.",
+      "city": "Harare",
+      "areas": [
+        "Borrowdale",
+        "Avondale",
+        "Mount Pleasant"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings"
+      ],
+      "verified": true,
+      "agencySlug": "sample-estates"
+    },
+    {
+      "slug": "chipo-dube",
+      "kind": "agents",
+      "name": "Chipo Dube",
+      "role": "Sales and lettings agent",
+      "tagline": "Family homes, apartments and cottages in Harare.",
+      "about": "Chipo works with families looking for their next home and with tenants looking for cottages and apartments close to work.",
+      "city": "Harare",
+      "areas": [
+        "Highlands",
+        "Belgravia",
+        "Greystone Park"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings"
+      ],
+      "verified": true,
+      "agencySlug": "sample-estates"
+    },
+    {
+      "slug": "tatenda-mutasa",
+      "kind": "agents",
+      "name": "Tatenda Mutasa",
+      "role": "Principal agent",
+      "tagline": "Homes in Harare's eastern suburbs and in Mutare.",
+      "about": "Tatenda founded Sample Realty and still handles listings personally, from contemporary homes in Glen Lorne to family houses in Mutare.",
+      "city": "Harare",
+      "areas": [
+        "Glen Lorne",
+        "Avenues",
+        "Greendale",
+        "Morningside (Mutare)"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings"
+      ],
+      "verified": true,
+      "agencySlug": "sample-realty"
+    },
+    {
+      "slug": "farai-chikwanha",
+      "kind": "agents",
+      "name": "Farai Chikwanha",
+      "role": "Commercial agent",
+      "tagline": "Office space in and around the Harare CBD.",
+      "about": "Farai matches businesses with office space and negotiates lease terms for both tenants and landlords.",
+      "city": "Harare",
+      "areas": [
+        "CBD",
+        "Eastlea"
+      ],
+      "services": [
+        "Office lettings",
+        "Lease negotiation"
+      ],
+      "verified": true,
+      "agencySlug": "sample-commercial"
+    },
+    {
+      "slug": "nomsa-sibanda",
+      "kind": "agents",
+      "name": "Nomsa Sibanda",
+      "role": "Land specialist",
+      "tagline": "Stands and plots in Bulawayo, Ruwa and Mutare.",
+      "about": "Nomsa sells residential stands and plots and walks buyers through title, servicing and payment terms before they commit.",
+      "city": "Bulawayo",
+      "areas": [
+        "Hillside",
+        "Ruwa",
+        "Murambi (Mutare)"
+      ],
+      "services": [
+        "Stand sales",
+        "Plot and farm sales"
+      ],
+      "verified": true,
+      "agencySlug": "sample-land-agents"
+    },
+    {
+      "slug": "sipho-nkomo",
+      "kind": "agents",
+      "name": "Sipho Nkomo",
+      "role": "Sales and lettings agent",
+      "tagline": "Family houses for sale and to rent in Bulawayo.",
+      "about": "Sipho has lived in Bulawayo all his life and sells and lets houses in its older suburbs.",
+      "city": "Bulawayo",
+      "areas": [
+        "Burnside",
+        "Suburbs"
+      ],
+      "services": [
+        "Residential sales",
+        "Residential lettings"
+      ],
+      "verified": true,
+      "agencySlug": "sample-homes-bulawayo"
+    },
+    {
+      "slug": "sample-developments",
+      "kind": "developers",
+      "name": "Sample Developments",
+      "role": "Gated estates and cluster homes",
+      "tagline": "Serviced stands and cluster homes in secure estates.",
+      "about": "Sample Developments plans and builds gated residential estates around Harare, selling serviced stands and completed cluster homes with staged payment terms.",
+      "city": "Harare",
+      "areas": [
+        "Ruwa",
+        "Borrowdale West",
+        "Mount Pleasant Heights"
+      ],
+      "services": [
+        "Serviced stands",
+        "Cluster homes",
+        "Staged payment plans"
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2012
+    },
+    {
+      "slug": "sample-urban-builders",
+      "kind": "developers",
+      "name": "Sample Urban Builders",
+      "role": "Apartments and townhouses",
+      "tagline": "Mid-rise apartments and townhouse complexes in Bulawayo.",
+      "about": "Sample Urban Builders develops sectional-title apartments and small townhouse complexes close to schools and transport.",
+      "city": "Bulawayo",
+      "areas": [
+        "Suburbs",
+        "Kumalo",
+        "Hillside"
+      ],
+      "services": [
+        "Apartments",
+        "Townhouses",
+        "Sectional title"
+      ],
+      "verified": true,
+      "since": 2017
+    },
+    {
+      "slug": "sample-heights",
+      "kind": "developers",
+      "name": "Sample Heights",
+      "role": "Residential and hospitality",
+      "tagline": "Homes and lodges near the Victoria Falls.",
+      "about": "Sample Heights builds low-density homes and small hospitality projects in Victoria Falls, designed for the climate and the setting.",
+      "city": "Victoria Falls",
+      "areas": [
+        "Low Density",
+        "Aerodrome"
+      ],
+      "services": [
+        "Residential projects",
+        "Hospitality projects"
+      ],
+      "verified": true,
+      "since": 2019
+    },
+    {
+      "slug": "sample-property-management",
+      "kind": "property-managers",
+      "name": "Sample Property Management",
+      "role": "Residential and commercial management",
+      "tagline": "Rent collection, maintenance and inspections for owners.",
+      "about": "Sample Property Management looks after houses, apartment blocks and offices on behalf of their owners: finding tenants, collecting rent, arranging repairs and reporting every month.",
+      "city": "Harare",
+      "areas": [
+        "Avondale",
+        "Avenues",
+        "Eastlea",
+        "CBD"
+      ],
+      "services": [
+        "Tenant placement",
+        "Rent collection",
+        "Maintenance",
+        "Inspections"
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2010
+    },
+    {
+      "slug": "sample-rentals-bulawayo",
+      "kind": "property-managers",
+      "name": "Sample Rentals Bulawayo",
+      "role": "Residential lettings",
+      "tagline": "A landlord with houses and flats to let in Bulawayo.",
+      "about": "Sample Rentals Bulawayo owns and lets a portfolio of houses and flats, and manages them directly.",
+      "city": "Bulawayo",
+      "areas": [
+        "Burnside",
+        "Kumalo",
+        "City centre"
+      ],
+      "services": [
+        "Houses to let",
+        "Flats to let"
+      ],
+      "verified": true,
+      "since": 2015
+    },
+    {
+      "slug": "sample-falls-stays",
+      "kind": "hosts",
+      "name": "Sample Falls Stays",
+      "role": "Short stays",
+      "tagline": "Self-catering houses and cottages near the Victoria Falls.",
+      "about": "Sample Falls Stays hosts visitors in self-catering houses and garden cottages a short drive from the Falls, for a few nights or a few weeks.",
+      "city": "Victoria Falls",
+      "areas": [
+        "Low Density",
+        "Town centre"
+      ],
+      "services": [
+        "Self-catering houses",
+        "Garden cottages",
+        "Airport transfers"
+      ],
+      "verified": true,
+      "since": 2020
+    },
+    {
+      "slug": "sample-showrooms",
+      "kind": "hosts",
+      "name": "Sample Showrooms",
+      "role": "Showroom and venue hire",
+      "tagline": "Showrooms and event space to hire by the hour in Harare.",
+      "about": "Sample Showrooms lets furnished showroom and event space by the hour for launches, exhibitions and pop-up retail.",
+      "city": "Harare",
+      "areas": [
+        "Borrowdale",
+        "Msasa"
+      ],
+      "services": [
+        "Hourly showroom hire",
+        "Event space",
+        "Pop-up retail"
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2021
+    },
+    {
+      "slug": "sample-plumbers",
+      "kind": "service-providers",
+      "name": "Sample Plumbers",
+      "role": "Plumbing",
+      "category": "Plumbing",
+      "tagline": "Emergency call-outs, geysers and full bathroom plumbing.",
+      "about": "Sample Plumbers is a team of qualified plumbers working on homes, rental properties and offices across Harare. They quote before they start and leave the site clean.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Ruwa",
+        "Chitungwiza"
+      ],
+      "services": [
+        "Burst pipes and leaks",
+        "Geysers",
+        "Bathrooms and kitchens",
+        "Water tanks and pumps"
+      ],
+      "offerings": [
+        {
+          "name": "Burst pipes and leaks",
+          "description": "Same-day call-outs to find and fix leaks, burst pipes and blocked drains."
+        },
+        {
+          "name": "Geysers",
+          "description": "Supply, installation and repair of electric and solar geysers."
+        },
+        {
+          "name": "Bathrooms and kitchens",
+          "description": "First and second fix plumbing for renovations and new builds."
+        },
+        {
+          "name": "Water tanks and pumps",
+          "description": "Installing tanks, booster pumps and pressure systems for borehole or municipal water."
+        }
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2012
+    },
+    {
+      "slug": "sample-rapid-plumbing",
+      "kind": "service-providers",
+      "name": "Sample Rapid Plumbing",
+      "role": "Plumbing",
+      "category": "Plumbing",
+      "tagline": "Blocked drains, leaks and maintenance contracts for landlords.",
+      "about": "Sample Rapid Plumbing looks after houses and blocks of flats in Bulawayo, with maintenance contracts for landlords and agents who need a plumber they can rely on.",
+      "city": "Bulawayo",
+      "areas": [
+        "Bulawayo"
+      ],
+      "services": [
+        "Blocked drains",
+        "Leak detection",
+        "Landlord maintenance"
+      ],
+      "offerings": [
+        {
+          "name": "Blocked drains",
+          "description": "Rodding and jetting for sinks, toilets and sewer lines."
+        },
+        {
+          "name": "Leak detection",
+          "description": "Finding hidden leaks behind walls and under floors before they cause damage."
+        },
+        {
+          "name": "Landlord maintenance",
+          "description": "A fixed monthly arrangement for repairs across a rental portfolio."
+        }
+      ],
+      "verified": true,
+      "since": 2018
+    },
+    {
+      "slug": "sample-electricians",
+      "kind": "service-providers",
+      "name": "Sample Electricians",
+      "role": "Electrical",
+      "category": "Electrical",
+      "tagline": "Licensed electricians for homes, shops and offices.",
+      "about": "Sample Electricians carries out wiring, fault finding and compliance work. Every job is signed off by a licensed electrician.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Norton"
+      ],
+      "services": [
+        "Fault finding and repairs",
+        "Rewiring and new installations",
+        "Certificates of compliance",
+        "Backup power changeovers"
+      ],
+      "offerings": [
+        {
+          "name": "Fault finding and repairs",
+          "description": "Tripping breakers, dead circuits and burnt sockets traced and repaired."
+        },
+        {
+          "name": "Rewiring and new installations",
+          "description": "Wiring for renovations, extensions and new buildings."
+        },
+        {
+          "name": "Certificates of compliance",
+          "description": "Inspection and certification for sales, lettings and insurance."
+        },
+        {
+          "name": "Backup power changeovers",
+          "description": "Generator and inverter changeover switches fitted safely."
+        }
+      ],
+      "verified": true,
+      "since": 2010
+    },
+    {
+      "slug": "sample-sparks",
+      "kind": "service-providers",
+      "name": "Sample Sparks",
+      "role": "Electrical",
+      "category": "Electrical",
+      "tagline": "Domestic and commercial electrical work in Bulawayo.",
+      "about": "Sample Sparks is a small firm of electricians handling everything from a new plug point to a full distribution board upgrade.",
+      "city": "Bulawayo",
+      "areas": [
+        "Bulawayo",
+        "Gwanda"
+      ],
+      "services": [
+        "Distribution boards",
+        "Lighting",
+        "Electric fences and gates"
+      ],
+      "offerings": [
+        {
+          "name": "Distribution boards",
+          "description": "Upgrades, earth leakage protection and surge protection."
+        },
+        {
+          "name": "Lighting",
+          "description": "Indoor, security and garden lighting, including LED conversions."
+        },
+        {
+          "name": "Electric fences and gates",
+          "description": "Installation and repair of electric fencing and gate motors."
+        }
+      ],
+      "verified": true,
+      "since": 2016
+    },
+    {
+      "slug": "sample-solar-installers",
+      "kind": "service-providers",
+      "name": "Sample Solar Installers",
+      "role": "Solar power",
+      "category": "Solar power",
+      "tagline": "Solar systems sized for your home, with batteries and backup.",
+      "about": "Sample Solar Installers designs and fits solar power systems for homes and small businesses. They start with a load assessment, so the system matches what you actually use.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Mutare",
+        "Marondera"
+      ],
+      "services": [
+        "Home solar systems",
+        "Solar geysers",
+        "Business and farm systems",
+        "Servicing and upgrades"
+      ],
+      "offerings": [
+        {
+          "name": "Home solar systems",
+          "description": "Panels, inverter and lithium batteries sized from a load assessment."
+        },
+        {
+          "name": "Solar geysers",
+          "description": "Replacing electric geysers with solar water heating."
+        },
+        {
+          "name": "Business and farm systems",
+          "description": "Larger systems for offices, shops, boreholes and irrigation."
+        },
+        {
+          "name": "Servicing and upgrades",
+          "description": "Health checks, panel cleaning and adding batteries or panels to an existing system."
+        }
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2015
+    },
+    {
+      "slug": "sample-sun-power",
+      "kind": "service-providers",
+      "name": "Sample Sun Power",
+      "role": "Solar power",
+      "category": "Solar power",
+      "tagline": "Affordable solar kits and installations in Matabeleland.",
+      "about": "Sample Sun Power supplies and installs solar kits for lights, fridges and televisions, through to full off-grid systems for homes outside town.",
+      "city": "Bulawayo",
+      "areas": [
+        "Bulawayo",
+        "Victoria Falls",
+        "Hwange"
+      ],
+      "services": [
+        "Starter solar kits",
+        "Off-grid systems",
+        "Solar borehole pumps"
+      ],
+      "offerings": [
+        {
+          "name": "Starter solar kits",
+          "description": "Entry-level kits that keep lights, phones and a television running."
+        },
+        {
+          "name": "Off-grid systems",
+          "description": "Complete systems for homes and lodges with no mains connection."
+        },
+        {
+          "name": "Solar borehole pumps",
+          "description": "Solar-powered pumping for boreholes and tanks."
+        }
+      ],
+      "verified": true,
+      "since": 2019
+    },
+    {
+      "slug": "sample-borehole-drillers",
+      "kind": "service-providers",
+      "name": "Sample Borehole Drillers",
+      "role": "Boreholes and water",
+      "category": "Boreholes and water",
+      "tagline": "Siting, drilling and equipping boreholes.",
+      "about": "Sample Borehole Drillers surveys, drills and equips boreholes for homes, estates and farms, and services existing pumps.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Bulawayo",
+        "Mutare"
+      ],
+      "services": [
+        "Siting and drilling",
+        "Pumps and tanks",
+        "Servicing"
+      ],
+      "offerings": [
+        {
+          "name": "Siting and drilling",
+          "description": "Geophysical survey followed by drilling and casing."
+        },
+        {
+          "name": "Pumps and tanks",
+          "description": "Submersible pumps, tank stands and storage tanks installed."
+        },
+        {
+          "name": "Servicing",
+          "description": "Pump repairs, flushing and yield testing for existing boreholes."
+        }
+      ],
+      "verified": true,
+      "since": 2011
+    },
+    {
+      "slug": "sample-conveyancers",
+      "kind": "service-providers",
+      "name": "Sample Conveyancers",
+      "role": "Legal and conveyancing",
+      "category": "Legal and conveyancing",
+      "tagline": "Transfers, title deeds and agreements of sale.",
+      "about": "Sample Conveyancers handles property transfers, title deed registration, agreements of sale and lease agreements.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Bulawayo",
+        "Mutare"
+      ],
+      "services": [
+        "Property transfers",
+        "Title deed work",
+        "Agreements and leases"
+      ],
+      "offerings": [
+        {
+          "name": "Property transfers",
+          "description": "Transfer of ownership from agreement of sale to registered title."
+        },
+        {
+          "name": "Title deed work",
+          "description": "Deed searches, replacement of lost deeds and registration."
+        },
+        {
+          "name": "Agreements and leases",
+          "description": "Drafting and reviewing agreements of sale and lease agreements."
+        }
+      ],
+      "verified": true,
+      "sponsored": true,
+      "since": 2005
+    },
+    {
+      "slug": "sample-valuers",
+      "kind": "service-providers",
+      "name": "Sample Valuers",
+      "role": "Valuations",
+      "category": "Valuations",
+      "tagline": "Independent valuations for sale, finance and insurance.",
+      "about": "Sample Valuers provides independent valuations of residential, commercial and agricultural property.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Bulawayo"
+      ],
+      "services": [
+        "Market valuations",
+        "Insurance valuations",
+        "Rental assessments"
+      ],
+      "offerings": [
+        {
+          "name": "Market valuations",
+          "description": "What a property should sell or let for today."
+        },
+        {
+          "name": "Insurance valuations",
+          "description": "Replacement cost assessments for buildings insurance."
+        },
+        {
+          "name": "Rental assessments",
+          "description": "Fair market rent for landlords, tenants and disputes."
+        }
+      ],
+      "verified": true,
+      "since": 2008
+    },
+    {
+      "slug": "sample-movers",
+      "kind": "service-providers",
+      "name": "Sample Movers",
+      "role": "Removals",
+      "category": "Removals",
+      "tagline": "House and office moves within Zimbabwe and across the border.",
+      "about": "Sample Movers packs, moves and stores household and office contents, locally and to neighbouring countries.",
+      "city": "Harare",
+      "areas": [
+        "Harare",
+        "Bulawayo",
+        "Victoria Falls"
+      ],
+      "services": [
+        "House moves",
+        "Office moves",
+        "Storage",
+        "Cross-border moves"
+      ],
+      "offerings": [
+        {
+          "name": "House moves",
+          "description": "Packing, loading, transport and unpacking for local and long-distance moves."
+        },
+        {
+          "name": "Office moves",
+          "description": "After-hours and weekend moves to keep a business running."
+        },
+        {
+          "name": "Storage",
+          "description": "Secure short-term and long-term storage."
+        },
+        {
+          "name": "Cross-border moves",
+          "description": "Moves to and from neighbouring countries, including customs paperwork."
+        }
+      ],
+      "verified": true,
+      "since": 2013
+    }
+  ]
+}

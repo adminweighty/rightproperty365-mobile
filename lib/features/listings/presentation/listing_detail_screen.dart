@@ -1,5 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' show DateFormat;
+import 'package:material_ui/material_ui.dart';
 
 import '../../../app/app_scope.dart';
 import '../../../app/router.dart';
@@ -7,14 +8,23 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
+import '../../../core/widgets/brand.dart';
+import '../../directory/data/profile.dart';
+import '../../directory/presentation/widgets/profile_widgets.dart';
 import '../data/listing.dart';
 import 'widgets/listing_card.dart';
-import 'widgets/listing_media.dart';
 
 class ListingDetailScreen extends StatefulWidget {
-  const ListingDetailScreen({super.key, required this.slug});
+  const ListingDetailScreen({
+    super.key,
+    required this.slug,
+    this.heroScope = 'list',
+  });
 
   final String slug;
+
+  /// The row the listing was opened from, so its photo can fly across.
+  final String heroScope;
 
   @override
   State<ListingDetailScreen> createState() => _ListingDetailScreenState();
@@ -47,24 +57,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           );
         }
-        return _Detail(listing);
+        return _Detail(listing, widget.heroScope);
       },
     );
   }
 }
 
 class _Detail extends StatelessWidget {
-  const _Detail(this.listing);
+  const _Detail(this.listing, this.heroScope);
 
   final Listing listing;
+  final String heroScope;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final text = Theme.of(context).textTheme;
-    final contact = listing.advertiser.kind == AdvertiserKind.agency
-        ? 'agent'
-        : 'seller';
+    final isAgency = listing.advertiser.kind == AdvertiserKind.agency;
+    final profiles = AppScope.of(context).directory.profilesFor(listing);
 
     return Scaffold(
       appBar: AppBar(title: Text(listing.suburb)),
@@ -78,13 +88,17 @@ class _Detail extends StatelessWidget {
           ),
           child: FilledButton(
             onPressed: () => context.push(Routes.request(listing.slug)),
-            child: Text('Contact the $contact'),
+            child: Text('Contact the ${isAgency ? 'agent' : 'seller'}'),
           ),
         ),
       ),
       body: ListView(
         children: [
-          ListingMedia(tone: listing.tone, aspectRatio: 16 / 9),
+          ListingPhoto(
+            listing: listing,
+            aspectRatio: 16 / 10,
+            heroScope: heroScope,
+          ),
           Padding(
             padding: const EdgeInsets.all(Space.x4),
             child: Column(
@@ -118,7 +132,7 @@ class _Detail extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: Space.x5),
-                ListingPrice(listing, size: 32),
+                ListingPrice(listing, size: 30),
                 const SizedBox(height: Space.x4),
                 const Divider(),
                 const SizedBox(height: Space.x3),
@@ -126,21 +140,15 @@ class _Detail extends StatelessWidget {
                 const SizedBox(height: Space.x3),
                 const Divider(),
                 const SizedBox(height: Space.x6),
-                Semantics(
-                  header: true,
-                  child: Text('About this property', style: text.headlineSmall),
-                ),
-                const SizedBox(height: Space.x2),
+                const SectionHeading('About this property'),
+                const SizedBox(height: Space.x3),
                 Text(
                   listing.description,
                   style: text.bodyLarge?.copyWith(color: c.muted),
                 ),
                 const SizedBox(height: Space.x6),
-                Semantics(
-                  header: true,
-                  child: Text('Features', style: text.headlineSmall),
-                ),
-                const SizedBox(height: Space.x2),
+                const SectionHeading('Features'),
+                const SizedBox(height: Space.x3),
                 for (final feature in listing.features)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: Space.x1),
@@ -159,42 +167,84 @@ class _Detail extends StatelessWidget {
                     ),
                   ),
                 const SizedBox(height: Space.x6),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Space.x4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Advertised by', style: text.bodyMedium),
-                              Text(
-                                listing.advertiser.name,
-                                style: text.titleMedium,
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (listing.advertiser.verified)
-                          const AppBadge(
-                            'Verified',
-                            tone: BadgeTone.success,
-                            icon: Icons.verified_outlined,
-                          ),
-                      ],
-                    ),
-                  ),
+                SectionHeading(isAgency ? 'Listed by' : 'Sold by the owner'),
+                const SizedBox(height: Space.x3),
+                _ListedBy(
+                  name: listing.listedBy,
+                  detail: isAgency ? 'Agent' : 'Private seller',
+                  verified: !isAgency && listing.advertiser.verified,
+                  profile: profiles.agent,
                 ),
+                if (isAgency) ...[
+                  const SizedBox(height: Space.x3),
+                  _ListedBy(
+                    name: listing.advertiser.name,
+                    detail: 'Agency',
+                    verified: listing.advertiser.verified,
+                    profile: profiles.agency,
+                  ),
+                ],
                 const SizedBox(height: Space.x4),
                 Text(
-                  'Listing reference ${listing.reference}',
+                  'Listed ${DateFormat('d MMMM y').format(listing.publishedAt.toLocal())}'
+                  ' · Reference ${listing.reference}',
                   style: text.bodySmall,
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The agent, agency or owner behind a listing. Links to the directory
+/// profile when one exists. Never shows a phone number or email address.
+class _ListedBy extends StatelessWidget {
+  const _ListedBy({
+    required this.name,
+    required this.detail,
+    required this.verified,
+    required this.profile,
+  });
+
+  final String name;
+  final String detail;
+  final bool verified;
+  final Profile? profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final text = Theme.of(context).textTheme;
+    final profile = this.profile;
+    return BrandCard(
+      onTap: profile == null
+          ? null
+          : () => context.push(Routes.profile(profile)),
+      semanticLabel: profile == null ? null : '$name, $detail. View profile',
+      child: Padding(
+        padding: const EdgeInsets.all(Space.x4),
+        child: Row(
+          children: [
+            if (profile != null) ...[
+              ProfileAvatar(profile, size: 44),
+              const SizedBox(width: Space.x3),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: text.titleMedium),
+                  Text(detail, style: text.bodyMedium),
+                ],
+              ),
+            ),
+            if (verified || (profile?.verified ?? false)) const VerifiedBadge(),
+            if (profile != null) Icon(Icons.chevron_right, color: c.subtle),
+          ],
+        ),
       ),
     );
   }

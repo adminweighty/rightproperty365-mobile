@@ -1,6 +1,6 @@
 # RightProperty365 mobile
 
-The Flutter app (Android and iOS) for RightProperty365, a multi-country property marketplace launching in Zimbabwe. This first cut is the customer app foundation: browse, search, view a listing and send a property request.
+The Flutter app (Android and iOS) for RightProperty365, a multi-country property marketplace launching in Zimbabwe. It mirrors what the web app offers customers: browse and search listings, explore the directories, send enquiries, and sign in.
 
 Related repositories: the Next.js web app and design system (`rightproperty365`) and the Go API (`RightProperty365-Backend`).
 
@@ -9,6 +9,7 @@ Related repositories: the Next.js web app and design system (`rightproperty365`)
 - Flutter 3.50 (stable), Dart 3.14. On the original development machine the SDK is at `C:\Users\User\Flutter`. Add `C:\Users\User\Flutter\bin` to `PATH`, and in Android Studio set **Settings > Languages & Frameworks > Flutter > Flutter SDK path** to `C:\Users\User\Flutter`.
 - Android SDK with command-line tools and accepted licences (`flutter doctor --android-licenses`).
 - iOS builds need a Mac with Xcode. They cannot be built on Windows.
+- Node 23.6 or newer, only for `tool/sync_web_data.mjs`.
 
 Material widgets come from the `material_ui` package in this Flutter version. Import `package:material_ui/material_ui.dart`, not `package:flutter/material.dart`, which is deprecated.
 
@@ -22,7 +23,7 @@ flutter pub get
 flutter run
 ```
 
-The app calls the Go API for property requests. Start the backend (`go run ./cmd/api` in the backend repository) before sending one.
+Enquiries and sign-in call the Go API. Start the backend (`go run ./cmd/api` in the backend repository) first. Its README lists the development accounts.
 
 ### API base URL
 
@@ -55,74 +56,96 @@ flutter test
 flutter build apk --debug
 ```
 
+## Keeping in step with the web
+
+Listings, directory profiles and photos are **sample data mirrored from the web repository**. Do not edit `assets/data` or `assets/images` by hand. After the web's `src/lib/data/listings.ts`, `directory.ts` or photos change, run:
+
+```bash
+node tool/sync_web_data.mjs C:\WindowsProjects\htdocs\rightproperty365
+```
+
+Then run the tests; several assert the mirrored counts (18 listings, 29 profiles), so update them when the web data grows.
+
+Colours mirror the web's `design/tokens/tokens.json`. `lib/app/theme/tokens.dart` is a straight copy of the palette (same names and values) and `app_colors.dart` holds the semantic light and dark colours. When the web tokens change, update both to match.
+
+Launcher icons and the splash screen are generated from `assets/brand` (official logo kit v4.1):
+
+```bash
+dart run flutter_launcher_icons
+```
+
+```bash
+dart run flutter_native_splash:create
+```
+
 ## Structure
 
 ```
 lib/
   main.dart
   app/
-    app.dart                 MaterialApp, repositories wired into AppScope
-    app_scope.dart           InheritedWidget that hands repositories to screens
+    app.dart                 MaterialApp
+    bootstrap.dart           Builds the services: sample data, API repositories, auth
+    app_scope.dart           AppServices and the InheritedWidget that provides them
     router.dart              go_router routes and the Routes helpers
-    theme/
-      tokens.dart            Mirror of the web design/tokens/tokens.json
-      app_colors.dart        Semantic colours (ThemeExtension), light and dark
-      app_theme.dart         ThemeData built from the semantic colours
+    theme/                   tokens.dart, app_colors.dart, app_theme.dart
   core/
     config.dart              API base URL, privacy notice version
-    api/api_client.dart      JSON client and ApiFailure (error envelope)
+    api/                     ApiClient (JSON, bearer token, error envelope), idempotency keys
     format.dart              Money and area formatting
-    widgets/                 AsyncView, MessageView, AppBadge
+    widgets/                 Brand outline, card, section heading, logo; badges; Reveal; AsyncView
   features/
-    listings/
-      data/                  Listing model, ListingRepository, SAMPLE listings
-      presentation/          Home, search, listing detail, listing card
-    property_requests/
-      data/                  Request model, receipt, API repository
-      presentation/          Request screen and form
-    markets/data/            Market configuration
-    shell/                   Bottom navigation, Activity and Account placeholders
-test/                        Model, repository and form tests
+    listings/                Listing model and repository; home, search, detail, cards
+    directory/               Profile model, directory and business-enquiry repositories; hub, lists, profile
+    enquiries/               Shared contact model, receipt and the enquiry form
+    property_requests/       Listing request model, repository and screen
+    auth/                    User model, auth repository, token store, controller; sign-in, register, account
+    markets/                 Market configuration
+    shell/                   Bottom navigation and the Activity placeholder
+assets/
+  data/                      listings.json, directory.json (mirrored from the web)
+  images/                    Sample photos and CREDITS.md (Unsplash licence)
+  brand/                     Logo and app icon sources
+tool/sync_web_data.mjs       Mirrors the web sample data and photos
+test/                        Data, repository, auth and screen tests
 ```
 
 ## Conventions
 
-- **Colours come from `context.colors`.** Screens never use raw hex or import `tokens.dart`. `tokens.dart` is a straight copy of the web `tokens.json` (same names and values); when the web tokens change, update it to match and adjust `app_colors.dart` if a semantic mapping changed.
-- **Every customer request goes to the Go API** at `POST /v1/property-requests`. Customer details are never sent straight to an agent or a third party.
-- **Say only what the system knows.** A saved request is "received". It is never described as delivered or read.
-- **Idempotency.** `ApiPropertyRequestRepository` reuses the key when unchanged content is retried and creates a new one when the content changes.
-- **Money** is a decimal string with an ISO 4217 code, always shown with the code (`USD 385,000`).
-- **Times** are sent to the API in UTC.
-- **Accessibility.** 48dp touch targets, one spoken summary per listing card, headings marked for screen readers, and layouts that hold at 200% text size (there is a test for the form).
-- **Repositories are interfaces.** `SampleListingRepository` is sample data and is replaced by an API implementation once listing endpoints exist. The six sample ids match the listings seeded in the backend's in-memory dev store.
-
-## Design notes
-
-The theme mirrors the web design system: indigo `#1900AC` brand, turquoise `#21DDBA` accent, sans-serif only. The brand typeface is Inter. Its font files are not bundled yet, so the app uses the platform sans (Roboto on Android, San Francisco on iOS). The launcher icon and in-app logo are still Flutter defaults; the approved logo kit is in the web repository under `design/assets/logo`.
+- **Colours come from `context.colors`.** Screens never use raw hex or import `tokens.dart`.
+- **Brand styling.** Cards use `BrandCard`: the indigo-to-turquoise gradient outline shows while pressed, focused or hovered, and always on featured listings and sponsored profiles. Section titles use `SectionHeading` (3px gradient rule). The search field uses `BrandSearchField`. Use the logo only through `BrandLogo`; never recolour or retype it.
+- **Contact is enquiry-only.** No screen shows a phone number or email address for a listing, agent or profile. Listing enquiries go to `POST /v1/property-requests`; directory enquiries go to `POST /v1/business-enquiries`. There is a test that fails if a profile screen shows contact details.
+- **Say only what the system knows.** A saved enquiry is "received". It is never described as delivered or read.
+- **Sponsored is always labelled.** Sponsored profiles sort first and carry a "Sponsored" badge.
+- **Idempotency.** Enquiry repositories reuse the key when unchanged content is retried and create a new one when the content changes.
+- **Sessions.** Sign-in uses `token_delivery: "bearer"`. The token is kept in the Android Keystore / iOS Keychain (`flutter_secure_storage`) and sent as `Authorization: Bearer`. When signed in, enquiries omit name and email and the API uses the account. Roles decide what is shown only; the API authorises every request.
+- **Money** is a decimal string with an ISO 4217 code, always shown with the code (`USD 385,000`). **Times** are sent to the API in UTC.
+- **Motion.** Entrance animations (`Reveal`), the rotating hero, the stat count-up and outline transitions are switched off when the OS asks for reduced motion.
+- **Accessibility.** 48dp touch targets, one spoken summary per card, headings marked for screen readers, photo alt text, and layouts that hold at 200% text size (there is a test for the form).
+- **Repositories are interfaces.** Sample repositories are replaced by API implementations once listing and directory endpoints exist.
 
 ## What is built
 
-- Home with search, categories and featured listings
-- Search with deal, category and text filters, and an empty state
-- Listing detail
-- Property request form with validation, API field errors, failure states and a receipt
-- Light and dark themes
-- Bottom navigation: Home, Search, Activity, Account
+- Home: photo hero with the featured listings rotating, search, stats, just listed, featured, for sale, to rent, commercial and land, explore by city, popular suburbs, directory entry points
+- Search with deal, category and text filters
+- Listing detail with photo, the agent and agency (linked to their profiles), and the request form
+- Directories: hub, list per kind (service providers grouped by trade), profile with services, areas, agents and listings, and an enquiry form
+- Sign-in, registration with role selection, account screen with roles and memberships, sign-out
+- Light and dark themes, official launcher icon and splash screen
 
 ## Not built yet
 
 These are required by the specification and come later:
 
-- Sign-in and accounts. The backend contract is `POST /v1/auth/login` with `token_delivery: "bearer"` and `GET /v1/me`; the token must go in secure storage. Activity and Account are placeholders until then.
-- My Property Activity (saved, enquired, applied, viewings)
+- Email confirmation and password reset inside the app. The links in those emails open the website; deep links are not set up.
+- My Property Activity (saved, enquired, applied, viewings). The Activity tab is a placeholder.
+- Agent and seller inbox, listing management
 - Push notifications and device token registration
-- Deep links
 - In-app account deletion (required by both app stores)
-- Maps, photos, YouTube tours
-- Real listing data from the API
-- Agent features: inbox, listings, leads
-- Bundled Inter font, app icon and splash screen
-- Localisation and release signing
+- Maps, photo galleries, YouTube tours
+- Real listing and directory data from the API
+- Bundled Inter font (the platform sans is used), localisation, release signing
+- Multi-factor authentication (not implemented by the backend yet)
 
 ## Branches
 
@@ -131,3 +154,5 @@ These are required by the specification and come later:
 | `dev` | Integration branch. Feature branches merge here first. |
 | `main` | Reviewed, release-ready code. |
 | `production` | What is published to the stores. |
+
+Remote: `origin` is `https://github.com/adminweighty/rightproperty365-mobile.git`.

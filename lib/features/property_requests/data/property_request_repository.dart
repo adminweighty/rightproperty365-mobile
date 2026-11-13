@@ -1,26 +1,21 @@
-import 'dart:math';
-
 import '../../../core/api/api_client.dart';
+import '../../../core/api/idempotency.dart';
+import '../../enquiries/data/enquiry.dart';
 import 'property_request.dart';
 
 abstract interface class PropertyRequestRepository {
   /// Saves the request through the RightProperty365 API. Throws [ApiFailure].
-  Future<PropertyRequestReceipt> submit(PropertyRequestDraft draft);
+  Future<EnquiryReceipt> submit(PropertyRequestDraft draft);
 }
 
 /// Sends every customer request to POST /v1/property-requests (BR-022,
 /// FR-059). Customer details never go straight to an agent or a push provider.
 class ApiPropertyRequestRepository implements PropertyRequestRepository {
   ApiPropertyRequestRepository(this._api, {String Function()? newKey})
-    : _newKey = newKey ?? _randomKey;
+    : _keys = IdempotencyKeys(newKey);
 
   final ApiClient _api;
-  final String Function() _newKey;
-
-  // One key per logical request. A retry of unchanged content reuses it, so
-  // the API returns the first receipt instead of creating a second lead.
-  String? _key;
-  String? _keyFingerprint;
+  final IdempotencyKeys _keys;
 
   static const _messages = {
     404: 'This listing could not be found.',
@@ -30,41 +25,21 @@ class ApiPropertyRequestRepository implements PropertyRequestRepository {
   };
 
   @override
-  Future<PropertyRequestReceipt> submit(PropertyRequestDraft draft) async {
-    if (_key == null || _keyFingerprint != draft.fingerprint) {
-      _key = _newKey();
-      _keyFingerprint = draft.fingerprint;
-    }
-    final key = _key!;
-
+  Future<EnquiryReceipt> submit(PropertyRequestDraft draft) async {
+    final key = _keys.keyFor(draft.fingerprint);
     try {
       final response = await _api.postJson(
         '/v1/property-requests',
         draft.toJson(key),
         headers: {'Idempotency-Key': key},
       );
-      _key = null;
-      _keyFingerprint = null;
-      return PropertyRequestReceipt.fromJson(response.body);
+      _keys.reset();
+      return EnquiryReceipt.fromJson(response.body, 'request_id');
     } on ApiFailure catch (failure) {
-      // A conflict means this key is spent; the next attempt needs a new one.
-      if (failure.status == 409) _key = null;
+      if (failure.status == 409) _keys.reset();
       final message = failure.fields.isEmpty ? _messages[failure.status] : null;
       if (message == null) rethrow;
-      throw ApiFailure(
-        status: failure.status,
-        code: failure.code,
-        message: message,
-        traceId: failure.traceId,
-      );
+      throw failure.withMessage(message);
     }
-  }
-
-  static String _randomKey() {
-    final random = Random.secure();
-    return List.generate(
-      16,
-      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-    ).join();
   }
 }

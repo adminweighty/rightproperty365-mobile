@@ -1,10 +1,11 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../app/app_scope.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../../core/widgets/brand.dart';
 import '../data/listing.dart';
 import 'widgets/listing_card.dart';
 
@@ -78,15 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
               Space.x4,
               Space.x2,
             ),
-            child: TextField(
-              controller: _query,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _load(),
-              decoration: const InputDecoration(
-                labelText: 'Suburb, city or property type',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
+            child: BrandSearchField(controller: _query, onSubmitted: _load),
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -155,7 +148,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     final listing = listings[index - 1];
                     return ListingCard(
                       listing: listing,
-                      onTap: () => context.push(Routes.listing(listing.slug)),
+                      heroScope: 'search',
+                      onTap: () => context.push(
+                        Routes.listing(listing.slug, heroScope: 'search'),
+                      ),
                     );
                   },
                 );

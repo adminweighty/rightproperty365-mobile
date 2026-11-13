@@ -33,6 +33,15 @@ class ApiFailure implements Exception {
 
   bool get isNetwork => status == 0;
 
+  /// The same failure with wording chosen by the caller.
+  ApiFailure withMessage(String message) => ApiFailure(
+    status: status,
+    code: code,
+    message: message,
+    fields: fields,
+    traceId: traceId,
+  );
+
   @override
   String toString() => 'ApiFailure($status, $code)';
 }
@@ -53,28 +62,42 @@ class ApiClient {
   final String _baseUrl;
   final http.Client _http;
 
+  /// The signed-in session token, sent as `Authorization: Bearer`. Set by the
+  /// auth controller; null when signed out.
+  String? bearerToken;
+
   static const _timeout = Duration(seconds: 20);
   static const _fallbackMessage =
       'Something went wrong on our side. Please try again.';
+
+  Future<ApiResponse> get(String path) => _send('GET', path);
 
   Future<ApiResponse> postJson(
     String path,
     Map<String, dynamic> body, {
     Map<String, String> headers = const {},
+  }) => _send('POST', path, body: body, headers: headers);
+
+  Future<ApiResponse> _send(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String> headers = const {},
   }) async {
+    final request = http.Request(method, Uri.parse('$_baseUrl$path'))
+      ..headers.addAll({
+        'Accept': 'application/json',
+        if (body != null) 'Content-Type': 'application/json',
+        if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',
+        ...headers,
+      });
+    if (body != null) request.body = jsonEncode(body);
+
     final http.Response response;
     try {
-      response = await _http
-          .post(
-            Uri.parse('$_baseUrl$path'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              ...headers,
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(_timeout);
+      response = await http.Response.fromStream(
+        await _http.send(request).timeout(_timeout),
+      );
     } on SocketException {
       throw const ApiFailure.network();
     } on TimeoutException {

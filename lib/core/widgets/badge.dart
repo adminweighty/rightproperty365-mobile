@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/tokens.dart';
 
-enum BadgeTone { neutral, primary, accent, success }
+enum BadgeTone { neutral, primary, accent, success, onPhoto }
 
 /// A short, non-interactive label. Always carries text, never colour alone.
 class AppBadge extends StatelessWidget {
@@ -26,6 +26,8 @@ class AppBadge extends StatelessWidget {
       BadgeTone.primary => (c.primarySoft, c.primaryInk),
       BadgeTone.accent => (c.accentSoft, c.accentInk),
       BadgeTone.success => (c.successSoft, c.success),
+      // Sits on a photograph, so it needs an opaque surface.
+      BadgeTone.onPhoto => (c.surface, c.ink),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -52,4 +54,25 @@ class AppBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Sponsored" label for paid placements. Required wherever one is shown.
+class SponsoredBadge extends StatelessWidget {
+  const SponsoredBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      const AppBadge('Sponsored', tone: BadgeTone.accent);
+}
+
+/// "Verified" label for checked advertisers and profiles.
+class VerifiedBadge extends StatelessWidget {
+  const VerifiedBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) => const AppBadge(
+    'Verified',
+    tone: BadgeTone.success,
+    icon: Icons.verified_outlined,
+  );
 }

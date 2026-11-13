@@ -1,20 +1,14 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
-import '../core/api/api_client.dart';
-import '../core/config.dart';
-import '../features/listings/data/listing_repository.dart';
-import '../features/property_requests/data/property_request_repository.dart';
 import 'app_scope.dart';
 import 'router.dart';
 import 'theme/app_theme.dart';
 
 class RightPropertyApp extends StatefulWidget {
-  const RightPropertyApp({super.key, this.listings, this.propertyRequests});
+  const RightPropertyApp({super.key, required this.services});
 
-  /// Overrides for tests. Production uses the defaults below.
-  final ListingRepository? listings;
-  final PropertyRequestRepository? propertyRequests;
+  final AppServices services;
 
   @override
   State<RightPropertyApp> createState() => _RightPropertyAppState();
@@ -22,11 +16,6 @@ class RightPropertyApp extends StatefulWidget {
 
 class _RightPropertyAppState extends State<RightPropertyApp> {
   late final GoRouter _router = buildRouter();
-  late final ListingRepository _listings =
-      widget.listings ?? const SampleListingRepository();
-  late final PropertyRequestRepository _requests =
-      widget.propertyRequests ??
-      ApiPropertyRequestRepository(ApiClient(baseUrl: AppConfig.apiBaseUrl));
 
   @override
   void dispose() {
@@ -37,8 +26,7 @@ class _RightPropertyAppState extends State<RightPropertyApp> {
   @override
   Widget build(BuildContext context) {
     return AppScope(
-      listings: _listings,
-      propertyRequests: _requests,
+      services: widget.services,
       child: MaterialApp.router(
         title: 'RightProperty365',
         debugShowCheckedModeBanner: false,
