@@ -1,0 +1,115 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+
+/// A failed API call, built from the error envelope
+/// `{"error": {"code", "message", "fields"}, "trace_id"}` or from a transport
+/// failure (status 0).
+class ApiFailure implements Exception {
+  const ApiFailure({
+    required this.status,
+    required this.code,
+    required this.message,
+    this.fields = const {},
+    this.traceId,
+  });
+
+  const ApiFailure.network()
+    : this(
+        status: 0,
+        code: 'NETWORK_ERROR',
+        message: 'We could not reach RightProperty365. Check your connection and try again.',
+      );
+
+  final int status;
+  final String code;
+  final String message;
+
+  /// API field path (for example `guest_contact.phone`) to its problem.
+  final Map<String, String> fields;
+  final String? traceId;
+
+  bool get isNetwork => status == 0;
+
+  @override
+  String toString() => 'ApiFailure($status, $code)';
+}
+
+class ApiResponse {
+  const ApiResponse(this.status, this.body);
+  final int status;
+  final Map<String, dynamic> body;
+}
+
+/// Thin JSON wrapper over `package:http`. Throws [ApiFailure] for anything
+/// that is not a 2xx response.
+class ApiClient {
+  ApiClient({required String baseUrl, http.Client? httpClient})
+    : _baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
+      _http = httpClient ?? http.Client();
+
+  final String _baseUrl;
+  final http.Client _http;
+
+  static const _timeout = Duration(seconds: 20);
+  static const _fallbackMessage =
+      'Something went wrong on our side. Please try again.';
+
+  Future<ApiResponse> postJson(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String> headers = const {},
+  }) async {
+    final http.Response response;
+    try {
+      response = await _http
+          .post(
+            Uri.parse('$_baseUrl$path'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...headers,
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+    } on SocketException {
+      throw const ApiFailure.network();
+    } on TimeoutException {
+      throw const ApiFailure.network();
+    } on http.ClientException {
+      throw const ApiFailure.network();
+    }
+
+    final decoded = _decode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return ApiResponse(response.statusCode, decoded);
+    }
+
+    final error = decoded['error'];
+    final details = error is Map<String, dynamic>
+        ? error
+        : const <String, dynamic>{};
+    final fields = details['fields'];
+    throw ApiFailure(
+      status: response.statusCode,
+      code: details['code'] as String? ?? 'HTTP_${response.statusCode}',
+      message: details['message'] as String? ?? _fallbackMessage,
+      fields: fields is Map
+          ? fields.map((key, value) => MapEntry('$key', '$value'))
+          : const {},
+      traceId: decoded['trace_id'] as String?,
+    );
+  }
+
+  Map<String, dynamic> _decode(String body) {
+    try {
+      final value = jsonDecode(body);
+      return value is Map<String, dynamic> ? value : const {};
+    } on FormatException {
+      return const {};
+    }
+  }
+}
