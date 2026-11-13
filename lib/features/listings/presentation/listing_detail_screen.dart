@@ -9,6 +9,7 @@ import '../../../app/theme/tokens.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
+import '../../activity/activity_screen.dart';
 import '../../directory/data/profile.dart';
 import '../../directory/presentation/widgets/profile_widgets.dart';
 import '../data/listing.dart';
@@ -77,7 +78,10 @@ class _Detail extends StatelessWidget {
     final profiles = AppScope.of(context).directory.profilesFor(listing);
 
     return Scaffold(
-      appBar: AppBar(title: Text(listing.suburb)),
+      appBar: AppBar(
+        title: Text(listing.suburb),
+        actions: [SaveListingButton(slug: listing.slug)],
+      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(

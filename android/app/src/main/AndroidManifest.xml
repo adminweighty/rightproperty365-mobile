@@ -26,6 +26,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Flutter hands incoming links to go_router (lib/app/router.dart). -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="true"/>
+
+            <!-- Email links: {WEB_BASE_URL}/verify-email?token=... and
+                 /reset-password?token=... open the app instead of the website.
+                 Android only does this without asking once the website serves
+                 /.well-known/assetlinks.json for this app (see README). The
+                 hosts must match the backend's WEB_BASE_URL. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:host="rightproperty365.com"/>
+                <data android:host="www.rightproperty365.com"/>
+                <data android:path="/verify-email"/>
+                <data android:path="/reset-password"/>
+            </intent-filter>
+
+            <!-- App-only links, for example rightproperty365://app/verify-email?token=...
+                 These need no website set-up. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="rightproperty365" android:host="app"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

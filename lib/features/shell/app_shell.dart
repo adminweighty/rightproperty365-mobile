@@ -1,8 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../core/widgets/async_view.dart';
-
 /// Bottom navigation around the five top-level sections.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.shell});
@@ -53,21 +51,4 @@ class AppShell extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Placeholder. My Property Activity is not built yet.
-class ActivityScreen extends StatelessWidget {
-  const ActivityScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Activity')),
-    body: const MessageView(
-      icon: Icons.inbox_outlined,
-      title: 'Your activity will appear here',
-      body:
-          'Saved properties, enquiries, applications and viewings will be listed here in a later '
-          'release. Until then, keep the reference shown after you send a request.',
-    ),
-  );
 }

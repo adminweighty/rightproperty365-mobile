@@ -247,17 +247,27 @@ class ProfileEnquiryScreen extends StatelessWidget {
                     'Hello, I would like to ask about your services.',
                 services: profile.services,
                 submitLabel: 'Send enquiry',
-                onSubmit: (input) => services.businessEnquiries.submit(
-                  BusinessEnquiryDraft(
-                    recipient: profile,
-                    service: input.service,
-                    message: input.message,
-                    contactMethod: input.contactMethod,
-                    contact: input.contact,
-                    consentAccepted: input.consentAccepted,
-                    privacyVersion: AppConfig.privacyNoticeVersion,
-                  ),
-                ),
+                onSubmit: (input) async {
+                  final receipt = await services.businessEnquiries.submit(
+                    BusinessEnquiryDraft(
+                      recipient: profile,
+                      service: input.service,
+                      message: input.message,
+                      contactMethod: input.contactMethod,
+                      contact: input.contact,
+                      consentAccepted: input.consentAccepted,
+                      privacyVersion: AppConfig.privacyNoticeVersion,
+                    ),
+                  );
+                  // Kept on this phone so the reference can be found again.
+                  await services.activity.recordRequest(
+                    receipt: receipt,
+                    title: input.service ?? 'Enquiry',
+                    recipient: profile.name,
+                    route: Routes.profile(profile),
+                  );
+                  return receipt;
+                },
               ),
             ),
     );

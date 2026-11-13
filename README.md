@@ -78,6 +78,29 @@ dart run flutter_launcher_icons
 dart run flutter_native_splash:create
 ```
 
+## Email links (confirm email, reset password)
+
+The API emails links of the form `{WEB_BASE_URL}/verify-email?token=...` and `{WEB_BASE_URL}/reset-password?token=...`. The app has routes with the same paths, so a link opened on the phone lands on the right screen. There are three ways in:
+
+| Way in | Works today | Needs |
+| --- | --- | --- |
+| Paste the link | Yes | Nothing. The confirm and reset screens accept the whole link from the email. |
+| App scheme `rightproperty365://app/verify-email?token=...` | Yes, once installed | Nothing on the website. The backend would have to send this form of link. |
+| Website link opens the app (Android App Links, iOS Universal Links) | Not until set up | See below. |
+
+To make the website links open the app without asking:
+
+- **Android:** the manifest already declares `https://rightproperty365.com` and `https://www.rightproperty365.com` for `/verify-email` and `/reset-password`. The website must serve `/.well-known/assetlinks.json` naming package `com.rightproperty365.rightproperty365` and the SHA-256 fingerprint of the release signing key. If the production `WEB_BASE_URL` uses a different host, change the hosts in `android/app/src/main/AndroidManifest.xml`.
+- **iOS:** add the Associated Domains capability (`applinks:rightproperty365.com`) in Xcode with the Apple team, and serve `/.well-known/apple-app-site-association` from the website. Not done; it needs a Mac and the Apple developer account.
+
+Try a link on an Android emulator or device:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "rightproperty365://app/verify-email?token=PASTE_TOKEN"
+```
+
+In development the API writes the links to its log instead of sending email.
+
 ## Structure
 
 ```
@@ -99,9 +122,11 @@ lib/
     directory/               Profile model, directory and business-enquiry repositories; hub, lists, profile
     enquiries/               Shared contact model, receipt and the enquiry form
     property_requests/       Listing request model, repository and screen
-    auth/                    User model, auth repository, token store, controller; sign-in, register, account
+    auth/                    User model, auth repository, token store, controller; sign-in, register,
+                             account, confirm email, forgot and reset password
+    activity/                ActivityStore (on-device) and the Activity screen: requests and saved
     markets/                 Market configuration
-    shell/                   Bottom navigation and the Activity placeholder
+    shell/                   Bottom navigation
 assets/
   data/                      listings.json, directory.json (mirrored from the web)
   images/                    Sample photos and CREDITS.md (Unsplash licence)
@@ -119,6 +144,8 @@ test/                        Data, repository, auth and screen tests
 - **Sponsored is always labelled.** Sponsored profiles sort first and carry a "Sponsored" badge.
 - **Idempotency.** Enquiry repositories reuse the key when unchanged content is retried and create a new one when the content changes.
 - **Sessions.** Sign-in uses `token_delivery: "bearer"`. The token is kept in the Android Keystore / iOS Keychain (`flutter_secure_storage`) and sent as `Authorization: Bearer`. When signed in, enquiries omit name and email and the API uses the account. Roles decide what is shown only; the API authorises every request.
+- **Activity is kept on the phone.** Saved properties and the requests sent from this phone are stored with `shared_preferences` (`ActivityStore`). A stored request holds the reference, title, recipient, date and receipt status only, never the message or contact details. The API has no endpoint yet for a customer's own activity, so this does not follow the account to another device and statuses are not refreshed after sending. When that endpoint exists, put an API implementation behind the same screen.
+- **Account emails never reveal whether an address is registered.** Registration, resend and reset screens say "if this address has an account", matching the API.
 - **Money** is a decimal string with an ISO 4217 code, always shown with the code (`USD 385,000`). **Times** are sent to the API in UTC.
 - **Motion.** Entrance animations (`Reveal`), the rotating hero, the stat count-up and outline transitions are switched off when the OS asks for reduced motion.
 - **Accessibility.** 48dp touch targets, one spoken summary per card, headings marked for screen readers, photo alt text, and layouts that hold at 200% text size (there is a test for the form).
@@ -131,14 +158,16 @@ test/                        Data, repository, auth and screen tests
 - Listing detail with photo, the agent and agency (linked to their profiles), and the request form
 - Directories: hub, list per kind (service providers grouped by trade), profile with services, areas, agents and listings, and an enquiry form
 - Sign-in, registration with role selection, account screen with roles and memberships, sign-out
+- Email confirmation (by link or by pasting it, with resend) and password reset (request and set new password)
+- Activity: requests sent from this phone with their references, and saved properties
 - Light and dark themes, official launcher icon and splash screen
 
 ## Not built yet
 
 These are required by the specification and come later:
 
-- Email confirmation and password reset inside the app. The links in those emails open the website; deep links are not set up.
-- My Property Activity (saved, enquired, applied, viewings). The Activity tab is a placeholder.
+- Website links opening the app automatically (App Links and Universal Links). See "Email links" above for what the website and Apple set-up still need.
+- Activity synced with the account: live request status, agent replies, applications and viewings. This needs a customer activity endpoint in the API.
 - Agent and seller inbox, listing management
 - Push notifications and device token registration
 - In-app account deletion (required by both app stores)

@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rightproperty365/app/app_scope.dart';
 import 'package:rightproperty365/app/theme/app_theme.dart';
 import 'package:rightproperty365/core/api/api_client.dart';
+import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
@@ -151,6 +153,32 @@ class FakeAuthRepository implements AuthRepository {
     logouts++;
     if (logoutFailure != null) throw logoutFailure!;
   }
+
+  ApiFailure? linkFailure;
+  String? verifiedToken;
+  String? resentTo;
+  String? resetRequestedFor;
+  ({String token, String password})? passwordReset;
+
+  @override
+  Future<({User user, String token})> verifyEmail(String token) async {
+    verifiedToken = token;
+    if (linkFailure != null) throw linkFailure!;
+    return (user: testUser, token: 'token-verified');
+  }
+
+  @override
+  Future<void> resendVerification(String email) async => resentTo = email;
+
+  @override
+  Future<void> requestPasswordReset(String email) async =>
+      resetRequestedFor = email;
+
+  @override
+  Future<void> confirmPasswordReset(String token, String password) async {
+    if (linkFailure != null) throw linkFailure!;
+    passwordReset = (token: token, password: password);
+  }
 }
 
 /// Services wired with fakes for widget tests.
@@ -169,8 +197,12 @@ class TestServices {
       propertyRequests: propertyRequests,
       businessEnquiries: businessEnquiries,
       auth: auth,
+      activity: activity,
     );
   }
+
+  final storage = MemoryStore();
+  late final activity = ActivityStore(storage);
 
   final MemoryTokenStore tokens;
   final ApiClient api;
@@ -180,6 +212,20 @@ class TestServices {
   late final AuthController auth;
   late final AppServices services;
 }
+
+/// The whole app on [router], wired like the real one but with fakes and
+/// reduced motion (so the rotating home hero does not keep tests waiting).
+Widget appWith(TestServices test, GoRouter router) => AppScope(
+  services: test.services,
+  child: MaterialApp.router(
+    theme: AppTheme.light(),
+    routerConfig: router,
+    builder: (context, app) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(disableAnimations: true),
+      child: app!,
+    ),
+  ),
+);
 
 /// Pumps [child] inside the app theme and scope on a phone-sized surface that
 /// is tall enough for every field of a form to be built.

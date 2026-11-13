@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../app/app_scope.dart';
+import '../../../app/router.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/config.dart';
 import '../../../core/widgets/async_view.dart';
@@ -56,29 +57,40 @@ class PropertyRequestForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final requests = AppScope.of(context).propertyRequests;
+    final services = AppScope.of(context);
+    final recipient = listing.advertiser.kind == AdvertiserKind.agency
+        ? listing.advertiser.name
+        : listing.listedBy;
     return EnquiryForm(
       title: listing.title,
       subtitle:
           '${listing.location} · ${listing.listedBy}, ${listing.advertiser.name}',
-      recipientName: listing.advertiser.kind == AdvertiserKind.agency
-          ? listing.advertiser.name
-          : listing.listedBy,
+      recipientName: recipient,
       defaultMessage:
           'Hello, I am interested in ${listing.reference}. Please send me more details.',
       showRequestType: true,
-      onSubmit: (input) => requests.submit(
-        PropertyRequestDraft(
-          listingId: listing.id,
-          requestType: input.requestType,
-          preferredSlot: input.preferredSlot,
-          message: input.message,
-          contactMethod: input.contactMethod,
-          contact: input.contact,
-          consentAccepted: input.consentAccepted,
-          privacyVersion: AppConfig.privacyNoticeVersion,
-        ),
-      ),
+      onSubmit: (input) async {
+        final receipt = await services.propertyRequests.submit(
+          PropertyRequestDraft(
+            listingId: listing.id,
+            requestType: input.requestType,
+            preferredSlot: input.preferredSlot,
+            message: input.message,
+            contactMethod: input.contactMethod,
+            contact: input.contact,
+            consentAccepted: input.consentAccepted,
+            privacyVersion: AppConfig.privacyNoticeVersion,
+          ),
+        );
+        // Kept on this phone so the reference can be found again in Activity.
+        await services.activity.recordRequest(
+          receipt: receipt,
+          title: listing.title,
+          recipient: recipient,
+          route: Routes.listing(listing.slug, heroScope: 'activity'),
+        );
+        return receipt;
+      },
     );
   }
 }

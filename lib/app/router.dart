@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
+import '../features/activity/activity_screen.dart';
 import '../features/auth/presentation/auth_screens.dart';
+import '../features/auth/presentation/recovery_screens.dart';
 import '../features/directory/data/profile.dart';
 import '../features/directory/presentation/directory_screens.dart';
 import '../features/directory/presentation/profile_screen.dart';
@@ -19,6 +21,16 @@ abstract final class Routes {
   static const account = '/account';
   static const signIn = '/sign-in';
   static const register = '/register';
+  static const forgotPassword = '/forgot-password';
+
+  /// With no token these open the screen where the emailed link is pasted.
+  static String verifyEmail([String? token]) =>
+      _withToken('/verify-email', token);
+  static String resetPassword([String? token]) =>
+      _withToken('/reset-password', token);
+  static String _withToken(String path, String? token) => token == null
+      ? path
+      : Uri(path: path, queryParameters: {'token': token}).toString();
 
   static String search({
     String query = '',
@@ -156,6 +168,23 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
+    ),
+    // The next two paths match the links in the emails the API sends
+    // ({WEB_BASE_URL}/verify-email?token=..., /reset-password?token=...), so
+    // an email link opened on the phone lands on the right screen.
+    GoRoute(
+      path: '/verify-email',
+      builder: (context, state) =>
+          VerifyEmailScreen(token: state.uri.queryParameters['token']),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) =>
+          ResetPasswordScreen(token: state.uri.queryParameters['token']),
     ),
   ],
 );

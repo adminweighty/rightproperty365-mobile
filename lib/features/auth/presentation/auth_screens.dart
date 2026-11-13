@@ -12,11 +12,11 @@ import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
 import '../data/auth_models.dart';
 
-final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
 /// A failure message with its support reference, announced when it appears.
-class _FailureBox extends StatelessWidget {
-  const _FailureBox(this.failure);
+class FailureBox extends StatelessWidget {
+  const FailureBox(this.failure, {super.key});
 
   final ApiFailure failure;
 
@@ -122,7 +122,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ],
                   decoration: const InputDecoration(labelText: 'Email address'),
                   validator: (value) =>
-                      _emailPattern.hasMatch((value ?? '').trim())
+                      emailPattern.hasMatch((value ?? '').trim())
                       ? null
                       : 'Enter a valid email address',
                 ),
@@ -138,7 +138,15 @@ class _SignInScreenState extends State<SignInScreen> {
                   validator: (value) =>
                       (value ?? '').isEmpty ? 'Enter your password' : null,
                 ),
-                if (_failure != null) ...[gap, _FailureBox(_failure!)],
+                if (_failure != null) ...[gap, FailureBox(_failure!)],
+                if (_failure?.code == 'EMAIL_NOT_VERIFIED') ...[
+                  const SizedBox(height: Space.x2),
+                  OutlinedButton(
+                    key: const Key('sign-in-confirm-email'),
+                    onPressed: () => context.push(Routes.verifyEmail()),
+                    child: const Text('Confirm my email'),
+                  ),
+                ],
                 const SizedBox(height: Space.x5),
                 FilledButton(
                   key: const Key('sign-in-submit'),
@@ -147,13 +155,13 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 const SizedBox(height: Space.x2),
                 TextButton(
+                  key: const Key('sign-in-forgot'),
+                  onPressed: () => context.push(Routes.forgotPassword),
+                  child: const Text('Forgot your password?'),
+                ),
+                TextButton(
                   onPressed: () => context.pushReplacement(Routes.register),
                   child: const Text('Create an account'),
-                ),
-                Text(
-                  'To reset a forgotten password, use the RightProperty365 website.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -240,9 +248,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           title: 'Check your email',
           body:
               'If ${_email.text.trim()} can be registered, we have sent it a link to confirm the '
-              'address. Open the link, then come back and sign in.',
-          actionLabel: 'Go to sign in',
-          onAction: () => context.pushReplacement(Routes.signIn),
+              'address. Opening the link on this phone confirms it and signs you in.',
+          actionLabel: 'The link did not open the app',
+          onAction: () => context.pushReplacement(Routes.verifyEmail()),
         ),
       );
     }
@@ -280,7 +288,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 autofillHints: const [AutofillHints.email],
                 decoration: const InputDecoration(labelText: 'Email address'),
                 validator: (value) =>
-                    !_emailPattern.hasMatch((value ?? '').trim())
+                    !emailPattern.hasMatch((value ?? '').trim())
                     ? 'Enter a valid email address'
                     : _apiError('email', 'Email address'),
               ),
@@ -349,7 +357,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       )
                     : null,
               ),
-              if (_failure != null) ...[gap, _FailureBox(_failure!)],
+              if (_failure != null) ...[gap, FailureBox(_failure!)],
               const SizedBox(height: Space.x5),
               FilledButton(
                 key: const Key('register-submit'),

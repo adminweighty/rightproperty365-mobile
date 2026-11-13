@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../features/activity/activity_store.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/directory/data/business_enquiry_repository.dart';
 import '../features/directory/data/directory_repository.dart';
@@ -15,8 +16,10 @@ class AppServices {
     required this.propertyRequests,
     required this.businessEnquiries,
     required this.auth,
+    required this.activity,
   });
 
+  final ActivityStore activity;
   final ListingRepository listings;
   final DirectoryRepository directory;
   final PropertyRequestRepository propertyRequests;

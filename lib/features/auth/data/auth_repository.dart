@@ -21,6 +21,33 @@ abstract interface class AuthRepository {
 
   /// Revokes the current session on the server.
   Future<void> logout();
+
+  /// Confirms an email address with the single-use token from the email and
+  /// starts a session.
+  Future<({User user, String token})> verifyEmail(String token);
+
+  /// Sends the confirmation email again. The API answers the same way
+  /// whether or not the address has an unconfirmed account.
+  Future<void> resendVerification(String email);
+
+  /// Asks for a password-reset email. The API answers the same way whether
+  /// or not an account exists.
+  Future<void> requestPasswordReset(String email);
+
+  /// Sets a new password with the single-use token from the reset email.
+  /// Every session of that account is revoked.
+  Future<void> confirmPasswordReset(String token, String password);
+}
+
+/// The token from what someone pasted: the whole link from the email
+/// (`.../verify-email?token=abc`) or the token on its own.
+String? extractEmailToken(String input) {
+  final text = input.trim();
+  if (text.isEmpty) return null;
+  final fromLink = Uri.tryParse(text)?.queryParameters['token'];
+  if (fromLink != null) return fromLink.isEmpty ? null : fromLink;
+  // A bare token has no spaces and no URL punctuation.
+  return RegExp(r'^[A-Za-z0-9._~-]+$').hasMatch(text) ? text : null;
 }
 
 /// Identity endpoints of the Go API (api/openapi.yaml in the backend).
@@ -59,6 +86,10 @@ class ApiAuthRepository implements AuthRepository {
       };
     }
 
+    return _session(response);
+  }
+
+  ({User user, String token}) _session(ApiResponse response) {
     final token = response.body['access_token'];
     final user = response.body['user'];
     if (token is! String || user is! Map<String, dynamic>) {
@@ -71,6 +102,57 @@ class ApiAuthRepository implements AuthRepository {
       );
     }
     return (user: User.fromJson(user), token: token);
+  }
+
+  static const _invalidLink =
+      'That link is not valid any more. It may have expired or already been used. Ask for a new one.';
+
+  ApiFailure _linkFailure(ApiFailure failure) => switch (failure.code) {
+    'INVALID_TOKEN' => failure.withMessage(_invalidLink),
+    _ when failure.status == 429 => failure.withMessage(
+      'Too many attempts. Please wait a minute and try again.',
+    ),
+    _ => failure,
+  };
+
+  @override
+  Future<({User user, String token})> verifyEmail(String token) async {
+    try {
+      return _session(
+        await _api.postJson('/v1/auth/verify-email', {
+          'token': token,
+          'token_delivery': 'bearer',
+        }),
+      );
+    } on ApiFailure catch (failure) {
+      throw _linkFailure(failure);
+    }
+  }
+
+  @override
+  Future<void> resendVerification(String email) async {
+    await _api.postJson('/v1/auth/resend-verification', {
+      'email': email.trim(),
+    });
+  }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    await _api.postJson('/v1/auth/password-reset/request', {
+      'email': email.trim(),
+    });
+  }
+
+  @override
+  Future<void> confirmPasswordReset(String token, String password) async {
+    try {
+      await _api.postJson('/v1/auth/password-reset/confirm', {
+        'token': token,
+        'password': password,
+      });
+    } on ApiFailure catch (failure) {
+      throw _linkFailure(failure);
+    }
   }
 
   @override

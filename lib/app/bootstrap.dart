@@ -1,7 +1,10 @@
 import 'package:flutter/services.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../core/api/api_client.dart';
 import '../core/config.dart';
+import '../features/activity/activity_store.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/token_store.dart';
@@ -32,6 +35,9 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     propertyRequests: ApiPropertyRequestRepository(api),
     businessEnquiries: ApiBusinessEnquiryRepository(api),
     auth: auth,
+    activity: ActivityStore(
+      PreferencesStore(await SharedPreferences.getInstance()),
+    ),
   );
 
   // Not awaited: the app opens straight away and the account area updates

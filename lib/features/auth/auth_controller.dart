@@ -46,12 +46,27 @@ class AuthController extends ChangeNotifier {
   }
 
   /// Throws [ApiFailure] with a message fit to show.
-  Future<void> signIn(String email, String password) async {
-    final session = await _repository.login(email, password);
+  Future<void> signIn(String email, String password) =>
+      _start(_repository.login(email, password));
+
+  /// Confirms an email address with the token from the email, which also
+  /// signs the person in. Throws [ApiFailure].
+  Future<void> confirmEmail(String token) =>
+      _start(_repository.verifyEmail(token));
+
+  Future<void> _start(Future<({User user, String token})> opening) async {
+    final session = await opening;
     await _tokens.write(session.token);
     _api.bearerToken = session.token;
     _user = session.user;
     notifyListeners();
+  }
+
+  /// Sets a new password. The API revokes every session of the account, so
+  /// this device is signed out too and the person signs in again.
+  Future<void> resetPassword(String token, String password) async {
+    await _repository.confirmPasswordReset(token, password);
+    await _forget();
   }
 
   /// Always signs out locally, even if the server cannot be told.
@@ -61,6 +76,10 @@ class AuthController extends ChangeNotifier {
     } on ApiFailure {
       // The session expires on its own; the local token is removed below.
     }
+    await _forget();
+  }
+
+  Future<void> _forget() async {
     _api.bearerToken = null;
     await _tokens.clear();
     _user = null;
