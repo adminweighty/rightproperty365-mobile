@@ -116,7 +116,8 @@ lib/
     config.dart              API base URL, privacy notice version
     api/                     ApiClient (JSON, bearer token, error envelope), idempotency keys
     format.dart              Money and area formatting
-    widgets/                 Brand outline, card, section heading, logo; badges; Reveal; AsyncView
+    widgets/                 Brand outline, card, section heading, logo; badges; Reveal; AsyncView;
+                             SearchableSelectField
   features/
     listings/                Listing model and repository; home, search, detail, cards
     directory/               Profile model, directory and business-enquiry repositories; hub, lists, profile
@@ -168,6 +169,7 @@ Every role name shown in the app comes from `lib/core/terminology.dart`, so the 
 
 - **Colours come from `context.colors`.** Screens never use raw hex or import `tokens.dart`.
 - **Brand styling.** Cards use `BrandCard`: the indigo-to-turquoise gradient outline shows while pressed, focused or hovered, and always on featured listings and sponsored profiles. Section titles use `SectionHeading` (3px gradient rule). The search field uses `BrandSearchField`. Use the logo only through `BrandLogo`; never recolour or retype it.
+- **Every dropdown is searchable.** Use `SearchableSelectField` (`lib/core/widgets/searchable_select.dart`) for any pick-one list, short or long; do not use `DropdownButton`. It opens a sheet with a search box: typing matches any part of a label or its keywords, ignoring case and accents; group headings stay while their options match; "No matches" when nothing fits; an "any" row clears the choice where one is allowed; long lists show 100 options and ask for more typing. Pick-many lists (the sign-up roles) filter in place with a search box and keep ticked items ticked. This mirrors the web's `SearchableSelect`.
 - **Contact is enquiry-only.** No screen shows a phone number or email address for a listing, agent or profile. Listing enquiries go to `POST /v1/property-requests`; directory enquiries go to `POST /v1/business-enquiries`. There is a test that fails if a profile screen shows contact details.
 - **Say only what the system knows.** A saved enquiry is "received". It is never described as delivered or read.
 - **Sponsored is always labelled.** Sponsored profiles sort first and carry a "Sponsored" badge.

@@ -6,6 +6,7 @@ import '../../../app/app_scope.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../../property_requests/data/property_request.dart';
 import '../data/enquiry.dart';
 
@@ -199,21 +200,16 @@ class _EnquiryFormState extends State<EnquiryForm> {
           Text(widget.subtitle, style: text.bodyMedium),
           const SizedBox(height: Space.x6),
           if (widget.showRequestType) ...[
-            DropdownButtonFormField<RequestType>(
+            SearchableSelectField<RequestType>(
               key: const Key('request-type'),
-              // Expanded with free item height, so large text wraps, not clips.
-              isExpanded: true,
-              itemHeight: null,
-              initialValue: _type,
-              decoration: const InputDecoration(
-                labelText: 'What would you like to do?',
-              ),
-              items: [
+              label: 'What would you like to do?',
+              value: _type,
+              options: [
                 for (final type in RequestType.values)
-                  DropdownMenuItem(value: type, child: Text(type.label)),
+                  SelectOption(type, type.label),
               ],
               onChanged: (value) => setState(() {
-                _type = value!;
+                _type = value ?? RequestType.enquiry;
                 if (!_type.allowsSlot) _slot = null;
               }),
             ),
@@ -244,21 +240,15 @@ class _EnquiryFormState extends State<EnquiryForm> {
             gap,
           ],
           if (widget.services.isNotEmpty) ...[
-            DropdownButtonFormField<String?>(
+            SearchableSelectField<String>(
               key: const Key('service'),
-              isExpanded: true,
-              itemHeight: null,
-              initialValue: _service,
-              decoration: const InputDecoration(
-                labelText: 'Service (optional)',
-              ),
-              items: [
-                const DropdownMenuItem(
-                  value: null,
-                  child: Text('General enquiry'),
-                ),
+              label: 'Service (optional)',
+              value: _service,
+              // Clearing the choice means a general enquiry.
+              anyLabel: 'General enquiry',
+              options: [
                 for (final service in widget.services)
-                  DropdownMenuItem(value: service, child: Text(service)),
+                  SelectOption(service, service),
               ],
               onChanged: (value) => setState(() => _service = value),
             ),
@@ -307,19 +297,16 @@ class _EnquiryFormState extends State<EnquiryForm> {
             ),
           ],
           gap,
-          DropdownButtonFormField<ContactMethod>(
+          SearchableSelectField<ContactMethod>(
             key: const Key('contact-method'),
-            isExpanded: true,
-            itemHeight: null,
-            initialValue: _method,
-            decoration: const InputDecoration(
-              labelText: 'How should they reply?',
-            ),
-            items: [
+            label: 'How should they reply?',
+            value: _method,
+            options: [
               for (final method in ContactMethod.values)
-                DropdownMenuItem(value: method, child: Text(method.label)),
+                SelectOption(method, method.label),
             ],
-            onChanged: (value) => setState(() => _method = value!),
+            onChanged: (value) =>
+                setState(() => _method = value ?? ContactMethod.email),
           ),
           gap,
           TextFormField(

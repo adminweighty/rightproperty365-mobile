@@ -11,6 +11,7 @@ import '../../../core/terminology.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../data/auth_models.dart';
 
 final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -197,8 +198,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _name.dispose();
     _email.dispose();
     _password.dispose();
+    _roleQuery.dispose();
     super.dispose();
   }
+
+  final _roleQuery = TextEditingController();
 
   String? _apiError(String field, String label) {
     final problem = _failure?.fields[field];
@@ -281,6 +285,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ? 'Choose at least one'
         : _failure?.fields['roles'];
 
+    // Groups keep their heading while any of their roles match the search.
+    final visibleGroups = [
+      for (final group in _groups)
+        if (filterOptions([
+              for (final role in group.roles)
+                SelectOption(
+                  role,
+                  role.label,
+                  keywords: '${role.description} ${group.legend}',
+                ),
+            ], _roleQuery.text)
+            case final matches when matches.isNotEmpty)
+          AccountRoleGroup(group.legend, [for (final m in matches) m.value]),
+    ];
+
     return Scaffold(
       appBar: AppBar(title: const Text('Create an account')),
       body: SingleChildScrollView(
@@ -337,7 +356,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 'before they are approved.',
                 style: text.bodyMedium,
               ),
-              for (final group in _groups) ...[
+              const SizedBox(height: Space.x4),
+              // The role list is a pick-many list, so it filters in place
+              // instead of opening a picker. Ticked roles stay ticked while
+              // hidden by the filter.
+              TextField(
+                key: const Key('role-search'),
+                controller: _roleQuery,
+                textInputAction: TextInputAction.search,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: 'Search roles',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _roleQuery.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setState(_roleQuery.clear),
+                        ),
+                ),
+              ),
+              if (visibleGroups.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: Space.x4),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text('No matches', style: text.bodyLarge),
+                  ),
+                ),
+              for (final group in visibleGroups) ...[
                 const SizedBox(height: Space.x4),
                 Text(group.legend, style: text.titleSmall),
                 for (final role in group.roles)
