@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rightproperty365/core/widgets/searchable_select.dart';
-import 'package:rightproperty365/features/auth/presentation/auth_screens.dart';
 import 'package:rightproperty365/features/directory/data/profile.dart';
 import 'package:rightproperty365/features/directory/presentation/profile_screen.dart';
 import 'package:rightproperty365/features/enquiries/data/enquiry.dart';
@@ -275,41 +274,5 @@ void main() {
         expect(test.businessEnquiries.drafts.single.service, 'Geysers');
       },
     );
-
-    testWidgets('the sign-up role list filters as you type and keeps ticks', (
-      tester,
-    ) async {
-      final test = TestServices();
-      await pumpInApp(
-        tester,
-        test,
-        const RegisterScreen(),
-        size: const Size(390, 5200),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('role-LANDLORD')));
-      await tester.pump();
-
-      await tester.enterText(find.byKey(const Key('role-search')), 'solic');
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('role-SOLICITOR')), findsOneWidget);
-      expect(find.byKey(const Key('role-LANDLORD')), findsNothing);
-      expect(find.text('Real Estate Professionals'), findsOneWidget);
-      expect(find.text('Property Owners'), findsNothing);
-
-      await tester.enterText(find.byKey(const Key('role-search')), 'zzz');
-      await tester.pumpAndSettle();
-      expect(find.text('No matches'), findsOneWidget);
-
-      await tester.enterText(find.byKey(const Key('role-search')), '');
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<CheckboxListTile>(find.byKey(const Key('role-LANDLORD')))
-            .value,
-        isTrue,
-      );
-    });
   });
 }

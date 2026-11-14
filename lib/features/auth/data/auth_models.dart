@@ -1,5 +1,27 @@
 import '../../../core/terminology.dart';
 
+/// The question a registration must answer (GET /v1/auth/captcha). It is
+/// valid until [expiresAt] and for one attempt only; never cache it.
+class Captcha {
+  const Captcha({
+    required this.id,
+    required this.question,
+    required this.expiresAt,
+  });
+
+  factory Captcha.fromJson(Map<String, dynamic> json) => Captcha(
+    id: json['captcha_id'] as String,
+    question: json['question'] as String,
+    expiresAt: DateTime.parse(json['expires_at'] as String),
+  );
+
+  final String id;
+
+  /// Plain words, for example "What is 7 + 5?".
+  final String question;
+  final DateTime expiresAt;
+}
+
 /// A self-selected role. A professional role grants no access until a
 /// Platform Administrator has approved it.
 class AccountRole {

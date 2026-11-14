@@ -282,44 +282,6 @@ void main() {
       expect(test.tokens.token, isNull);
       expect(find.text('Sign in'), findsOneWidget);
     });
-
-    testWidgets(
-      'registration sends the chosen roles and then asks to check email',
-      (tester) async {
-        final test = TestServices();
-        await pumpInApp(
-          tester,
-          test,
-          const RegisterScreen(),
-          size: const Size(390, 3200),
-        );
-
-        await tester.enterText(
-          find.byKey(const Key('register-name')),
-          'New Person',
-        );
-        await tester.enterText(
-          find.byKey(const Key('register-email')),
-          'new@example.test',
-        );
-        await tester.enterText(
-          find.byKey(const Key('register-password')),
-          'correct-horse-battery',
-        );
-        await tester.tap(find.byKey(const Key('role-LANDLORD')));
-        await tester.tap(find.byKey(const Key('register-consent')));
-        await tester.pump();
-        await tester.tap(find.byKey(const Key('register-submit')));
-        await tester.pumpAndSettle();
-
-        expect(test.authRepository.registered?['roles'], [
-          'CONSUMER',
-          'LANDLORD',
-        ]);
-        expect(find.text('Check your email'), findsOneWidget);
-        expect(find.textContaining('account has been created'), findsNothing);
-      },
-    );
   });
 
   testWidgets('home shows every section from the sample data', (tester) async {

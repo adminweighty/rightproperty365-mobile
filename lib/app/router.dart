@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/auth/presentation/auth_screens.dart';
 import '../features/auth/presentation/recovery_screens.dart';
+import '../features/auth/presentation/register_screen.dart';
 import '../features/directory/data/profile.dart';
 import '../features/inbox/inbox_screen.dart';
 import '../features/directory/presentation/directory_screens.dart';

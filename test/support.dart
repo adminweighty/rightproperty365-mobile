@@ -141,11 +141,17 @@ class FakeAuthRepository implements AuthRepository {
     required List<String> roles,
     required bool consentAccepted,
     required String privacyVersion,
+    required String captchaId,
+    required String captchaAnswer,
   }) async {
+    registrations++;
+    if (registerFailure != null) throw registerFailure!;
     registered = {
       'name': name,
       'email': email,
       'roles': roles,
+      'captcha_id': captchaId,
+      'captcha_answer': captchaAnswer,
       'consent': consentAccepted,
     };
   }
@@ -162,6 +168,24 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<List<SelectableRole>> selectableRoles() async =>
       selectable ?? (throw const ApiFailure.network());
+
+  ApiFailure? registerFailure;
+  int registrations = 0;
+
+  /// Null makes GET /v1/auth/captcha fail.
+  String? captchaQuestion = 'What is 7 + 5?';
+  int captchasAsked = 0;
+
+  @override
+  Future<Captcha> captcha() async {
+    if (captchaQuestion == null) throw const ApiFailure.network();
+    captchasAsked++;
+    return Captcha(
+      id: 'captcha-$captchasAsked',
+      question: captchaQuestion!,
+      expiresAt: DateTime.now().add(const Duration(minutes: 10)),
+    );
+  }
 
   ApiFailure? linkFailure;
   String? verifiedToken;

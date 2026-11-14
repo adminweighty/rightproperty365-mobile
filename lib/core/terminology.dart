@@ -55,7 +55,12 @@ class AccountRoleGroup {
 /// A role the API accepts at sign-up, as GET /v1/reference/account_roles
 /// describes it.
 class SelectableRole {
-  const SelectableRole(this.code, this.label, [this.group]);
+  const SelectableRole(
+    this.code,
+    this.label, [
+    this.group,
+    this.requiresVerification,
+  ]);
 
   final String code;
 
@@ -65,6 +70,15 @@ class SelectableRole {
 
   /// The heading the API lists the role under, when it gives one.
   final String? group;
+
+  /// From the API: false for Property Seeker roles, which need no approval.
+  final bool? requiresVerification;
+
+  /// A Property Seeker role. A registration holds seeker roles only or other
+  /// roles only, never both.
+  bool get seeker => requiresVerification == null
+      ? seekerRoleCodes.contains(code)
+      : !requiresVerification!;
 }
 
 /// The roles this app knows, in the specification's categories. Used for the

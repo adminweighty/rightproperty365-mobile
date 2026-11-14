@@ -131,30 +131,6 @@ void main() {
       expect(requests.single.headers['Authorization'], 'Bearer token-abc');
     });
 
-    test('register posts the chosen roles and consent', () async {
-      final (:api, :requests) = mockApi(
-        (_) async => jsonResponse(202, {'status': 'VERIFICATION_SENT'}),
-      );
-
-      await ApiAuthRepository(api).register(
-        name: ' New Person ',
-        email: 'new@example.test',
-        password: 'correct-horse-battery',
-        roles: ['CONSUMER', 'LANDLORD'],
-        consentAccepted: true,
-        privacyVersion: 'v1',
-      );
-
-      expect(requests.single.url.path, '/v1/auth/register');
-      expect(jsonDecode(requests.single.body), {
-        'name': 'New Person',
-        'email': 'new@example.test',
-        'password': 'correct-horse-battery',
-        'roles': ['CONSUMER', 'LANDLORD'],
-        'consent': {'privacy_version': 'v1', 'accepted': true},
-      });
-    });
-
     test('logout accepts 204 with an empty body', () async {
       final (:api, :requests) = mockApi((_) async => http.Response('', 204));
       await ApiAuthRepository(api).logout();

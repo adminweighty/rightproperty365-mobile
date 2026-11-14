@@ -18,7 +18,12 @@ abstract interface class AuthRepository {
     required List<String> roles,
     required bool consentAccepted,
     required String privacyVersion,
+    required String captchaId,
+    required String captchaAnswer,
   });
+
+  /// A new sign-up question. Each is single use and expires in ten minutes.
+  Future<Captcha> captcha();
 
   /// Revokes the current session on the server.
   Future<void> logout();
@@ -175,18 +180,26 @@ class ApiAuthRepository implements AuthRepository {
     required List<String> roles,
     required bool consentAccepted,
     required String privacyVersion,
+    required String captchaId,
+    required String captchaAnswer,
   }) async {
     await _api.postJson('/v1/auth/register', {
       'name': name.trim(),
       'email': email.trim(),
       'password': password,
       'roles': roles,
+      // The answer goes as a string of digits, exactly as typed.
+      'captcha': {'captcha_id': captchaId, 'answer': captchaAnswer.trim()},
       'consent': {
         'privacy_version': privacyVersion,
         'accepted': consentAccepted,
       },
     });
   }
+
+  @override
+  Future<Captcha> captcha() async =>
+      Captcha.fromJson((await _api.get('/v1/auth/captcha')).body);
 
   @override
   Future<void> logout() async {
@@ -202,6 +215,7 @@ class ApiAuthRepository implements AuthRepository {
           item['code'] as String,
           item['label'] as String,
           (item['group'] as Map?)?['label'] as String?,
+          item['requires_verification'] as bool?,
         ),
     ];
   }

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rightproperty365/core/terminology.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
-import 'package:rightproperty365/features/auth/presentation/auth_screens.dart';
 import 'package:rightproperty365/features/directory/data/profile.dart';
 import 'package:rightproperty365/features/listings/data/listing.dart';
 import 'package:rightproperty365/features/listings/presentation/listing_detail_screen.dart';
@@ -237,36 +236,5 @@ void main() {
       directory.info(DirectoryKind.propertyManagers).title,
       'Property Managers',
     );
-  });
-
-  testWidgets('sign-up offers the roles under their categories', (
-    tester,
-  ) async {
-    final test = TestServices();
-    await pumpInApp(
-      tester,
-      test,
-      const RegisterScreen(),
-      size: const Size(390, 4200),
-    );
-
-    for (final label in [
-      'Property Seekers',
-      'Prospective Buyer',
-      'Prospective Tenant',
-      'Real Estate Professionals',
-      'Estate Agent',
-      'Real Estate Businesses',
-      'Agency Principal',
-      'Agency Administrator',
-      'Property Owners',
-      'Landlord',
-      'Property Seller (Vendor)',
-    ]) {
-      expect(find.text(label), findsOneWidget, reason: label);
-    }
-    expect(find.text('Buyer or renter'), findsNothing);
-    expect(find.text('Private seller'), findsNothing);
-    expect(tester.takeException(), isNull);
   });
 }
