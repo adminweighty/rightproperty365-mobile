@@ -6,6 +6,7 @@ import '../../app/app_scope.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/tokens.dart';
+import '../../core/terminology.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
@@ -30,8 +31,8 @@ class ActivityScreen extends StatelessWidget {
           title: const Text('Activity'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Requests'),
-              Tab(text: 'Saved'),
+              Tab(text: 'My Enquiries'),
+              Tab(text: 'Saved Properties'),
             ],
           ),
         ),
@@ -56,7 +57,7 @@ class _Requests extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Clear this list?'),
         content: const Text(
-          'This removes the list from this phone only. Your requests stay with the agents and '
+          'This removes the list from this phone only. Your enquiries stay with the Estate Agents and '
           'businesses you sent them to.',
         ),
         actions: [
@@ -82,9 +83,9 @@ class _Requests extends StatelessWidget {
     if (requests.isEmpty) {
       return MessageView(
         icon: Icons.inbox_outlined,
-        title: 'No requests yet',
+        title: 'No enquiries yet',
         body:
-            'When you contact an agent, seller or business, the request and its reference are '
+            'When you contact an Estate Agent, Landlord, Property Seller or business, the enquiry and its reference are '
             'kept here so you can follow up.',
         actionLabel: 'Find a property',
         onAction: () => context.go(Routes.search()),
@@ -95,8 +96,8 @@ class _Requests extends StatelessWidget {
       padding: const EdgeInsets.all(Space.x4),
       children: [
         Text(
-          'Requests sent from this phone. Replies come by the contact method you chose; '
-          'the status here is from when the request was saved.',
+          'Enquiries sent from this phone. Replies come by the contact method you chose; '
+          'the status here is from when the enquiry was saved.',
           style: text.bodyMedium,
         ),
         const SizedBox(height: Space.x4),
@@ -118,18 +119,6 @@ class _Requests extends StatelessWidget {
   }
 }
 
-/// Customer-facing words for a request status. Only "Received" is certain;
-/// it means saved by RightProperty365, not delivered or read.
-String requestStatusLabel(String status) => switch (status) {
-  'RECEIVED' => 'Received',
-  'ROUTED' => 'Sent to agent or seller',
-  'IN_PROGRESS' => 'In progress',
-  'RESPONDED' => 'Responded',
-  'CLOSED' => 'Closed',
-  'ROUTING_EXCEPTION' => 'Unable to route',
-  _ => 'Received',
-};
-
 class _RequestCard extends StatelessWidget {
   const _RequestCard(this.request);
 
@@ -140,7 +129,7 @@ class _RequestCard extends StatelessWidget {
     final c = context.colors;
     final text = Theme.of(context).textTheme;
     final sent = DateFormat('d MMM y, HH:mm').format(request.sentAt.toLocal());
-    final status = requestStatusLabel(request.status);
+    final status = enquiryStatusLabel(request.status);
     return BrandCard(
       onTap: () => context.push(request.route),
       semanticLabel:

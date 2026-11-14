@@ -1,74 +1,28 @@
-/// A role a person can choose for themselves at sign-up.
-class AccountRoleOption {
-  const AccountRoleOption(this.value, this.label);
-  final String value;
-  final String label;
-}
+import '../../../core/terminology.dart';
 
-class AccountRoleGroup {
-  const AccountRoleGroup(this.legend, this.roles);
-  final String legend;
-  final List<AccountRoleOption> roles;
-}
-
-/// Mirrors `accountRoleGroups` in the web's src/lib/api/auth.ts. Platform
-/// administrator roles are never in this list; the API rejects them.
-const accountRoleGroups = [
-  AccountRoleGroup('Looking for property', [
-    AccountRoleOption('CONSUMER', 'Buyer or renter'),
-    AccountRoleOption('TENANT', 'Tenant'),
-  ]),
-  AccountRoleGroup('Listing or managing property', [
-    AccountRoleOption('PRIVATE_SELLER', 'Private seller'),
-    AccountRoleOption('LANDLORD', 'Landlord or property manager'),
-    AccountRoleOption('HOST', 'Host: short stays and venues'),
-    AccountRoleOption('DEVELOPER', 'Property developer'),
-    AccountRoleOption('SERVICE_PROVIDER', 'Service provider'),
-  ]),
-  AccountRoleGroup('Working at an agency', [
-    AccountRoleOption('AGENT', 'Estate agent'),
-    AccountRoleOption('AGENCY_STAFF', 'Agency staff'),
-    AccountRoleOption('AGENCY_ADMIN', 'Agency administrator'),
-    AccountRoleOption('AGENCY_OWNER', 'Agency owner'),
-  ]),
-];
-
-const _labels = {
-  // Platform roles
-  'SUPER_ADMIN': 'Super admin',
-  'PLATFORM_ADMIN': 'Platform admin',
-  'MARKET_ADMIN': 'Market admin',
-  'FINANCE_ADMIN': 'Finance admin',
-  'CONTENT_ADMIN': 'Content admin',
-  'MODERATOR': 'Moderator',
-  'SUPPORT': 'Support',
-  // Membership roles
-  'OWNER': 'Owner',
-  'MANAGER': 'Manager',
-  'STAFF': 'Staff',
-  // Organisation kinds
-  'AGENCY': 'Agency',
-};
-
-/// A readable label for any role or organisation-kind code from the API.
-String roleLabel(String code) {
-  for (final group in accountRoleGroups) {
-    for (final role in group.roles) {
-      if (role.value == code) return role.label;
-    }
-  }
-  final known = _labels[code];
-  if (known != null) return known;
-  final words = code.toLowerCase().split('_').join(' ');
-  return words.isEmpty ? code : words[0].toUpperCase() + words.substring(1);
-}
-
-/// A self-selected role. A pending role grants no access until it is verified.
+/// A self-selected role. A professional role grants no access until a
+/// Platform Administrator has approved it.
 class AccountRole {
-  const AccountRole(this.role, this.status);
+  const AccountRole(this.role, this.status, [this.onboardingStatus]);
+
+  /// The API's role code, for example `AGENT`. Show [label], never this.
   final String role;
+
+  /// `ACTIVE`, `PENDING_VERIFICATION` or `REJECTED`.
   final String status;
-  bool get pending => status == 'PENDING_VERIFICATION';
+
+  /// Status of the role's verification application, when it has one.
+  final String? onboardingStatus;
+
+  String get label => roleLabel(role);
+
+  /// Property Seeker roles need no verification.
+  bool get isSeeker => seekerRoleCodes.contains(role);
+  bool get approved => status == 'ACTIVE';
+
+  /// "Approved", "Under Review", "Pending Verification", ...
+  String get verificationLabel =>
+      verificationStatusLabel(status, onboardingStatus);
 }
 
 class Membership {
@@ -82,6 +36,12 @@ class Membership {
   final String organisationKind;
   final String marketCode;
   final String role;
+
+  /// "Agency Principal", "Estate Agent", ...
+  String get roleLabel => membershipRoleLabel(role, organisationKind);
+
+  /// "Real Estate Agency", "Landlord", ...
+  String get kindLabel => organisationKindLabel(organisationKind);
 }
 
 /// The signed-in person, from GET /v1/me. Roles are for choosing what to
@@ -104,7 +64,11 @@ class User {
     emailVerified: json['email_verified'] as bool? ?? false,
     accountRoles: [
       for (final role in (json['account_roles'] as List?) ?? const [])
-        AccountRole(role['role'] as String, role['status'] as String),
+        AccountRole(
+          role['role'] as String,
+          role['status'] as String,
+          role['onboarding_status'] as String?,
+        ),
     ],
     platformRoles: [
       for (final role in (json['platform_roles'] as List?) ?? const [])

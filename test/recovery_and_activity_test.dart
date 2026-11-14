@@ -364,7 +364,7 @@ void main() {
       await pumpInApp(tester, test, const ActivityScreen());
       await tester.pumpAndSettle();
 
-      expect(find.text('No requests yet'), findsOneWidget);
+      expect(find.text('No enquiries yet'), findsOneWidget);
     });
 
     testWidgets(
@@ -401,7 +401,7 @@ void main() {
 
         expect(find.text(listing.title), findsOneWidget);
         expect(find.text('RP-8VXWDQJG'), findsOneWidget);
-        expect(find.text('Received'), findsOneWidget);
+        expect(find.text('New Enquiry'), findsOneWidget);
         expect(find.textContaining('Delivered'), findsNothing);
         expect(find.textContaining('test@example.com'), findsNothing);
       },
@@ -474,7 +474,7 @@ void main() {
 
       await pumpInApp(tester, test, const ActivityScreen());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Saved'));
+      await tester.tap(find.text('Saved Properties'));
       await tester.pumpAndSettle();
 
       expect(find.text(listing.title), findsOneWidget);

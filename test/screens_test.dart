@@ -201,7 +201,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Send an enquiry to Sample Estates'), findsOneWidget);
-        expect(find.text('Agents'), findsOneWidget);
+        expect(find.text('Estate Agents'), findsOneWidget);
         expect(find.text('Properties'), findsOneWidget);
         for (final text in tester.widgetList<Text>(find.byType(Text))) {
           final value = text.data ?? text.textSpan?.toPlainText() ?? '';
@@ -266,9 +266,13 @@ void main() {
       await pumpInApp(tester, test, const AccountScreen());
 
       expect(find.text('Tendai Ncube'), findsOneWidget);
-      expect(find.text('Buyer or renter'), findsOneWidget);
-      expect(find.text('Estate agent'), findsOneWidget);
-      expect(find.text('Pending'), findsOneWidget);
+      expect(find.text('Prospective Buyer'), findsOneWidget);
+      expect(find.text('Estate Agent'), findsOneWidget);
+      expect(find.text('Pending Verification'), findsOneWidget);
+      expect(
+        find.textContaining('Estate Agent · Real Estate Agency'),
+        findsOneWidget,
+      );
       expect(find.text('Sample Estates'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('sign-out')));
@@ -341,7 +345,7 @@ void main() {
       expect(find.text(heading), findsOneWidget, reason: heading);
     }
     expect(find.text('18'), findsOneWidget); // properties stat
-    expect(find.text('Estate agencies'), findsOneWidget);
+    expect(find.text('Real Estate Agencies'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -9,6 +9,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:rightproperty365/app/app_scope.dart';
 import 'package:rightproperty365/app/theme/app_theme.dart';
 import 'package:rightproperty365/core/api/api_client.dart';
+import 'package:rightproperty365/core/terminology.dart';
+import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
@@ -154,6 +156,15 @@ class FakeAuthRepository implements AuthRepository {
     if (logoutFailure != null) throw logoutFailure!;
   }
 
+  /// What GET /v1/reference/account_roles answers; null means it fails.
+  Map<String, String>? selectable = {
+    for (final code in baselineRoleCodes) code: roleLabel(code),
+  };
+
+  @override
+  Future<Map<String, String>> selectableRoles() async =>
+      selectable ?? (throw const ApiFailure.network());
+
   ApiFailure? linkFailure;
   String? verifiedToken;
   String? resentTo;
@@ -181,6 +192,17 @@ class FakeAuthRepository implements AuthRepository {
   }
 }
 
+class FakeInbox implements InboxRepository {
+  List<ReceivedEnquiry> enquiries = [];
+  ApiFailure? failure;
+
+  @override
+  Future<List<ReceivedEnquiry>> received() async {
+    if (failure != null) throw failure!;
+    return enquiries;
+  }
+}
+
 /// Services wired with fakes for widget tests.
 class TestServices {
   TestServices({MemoryTokenStore? tokens})
@@ -198,9 +220,11 @@ class TestServices {
       businessEnquiries: businessEnquiries,
       auth: auth,
       activity: activity,
+      inbox: inbox,
     );
   }
 
+  final inbox = FakeInbox();
   final storage = MemoryStore();
   late final activity = ActivityStore(storage);
 

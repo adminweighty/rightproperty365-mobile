@@ -4,7 +4,7 @@ enum RequestType {
   enquiry('ENQUIRY', 'General enquiry'),
   propertyInformation('PROPERTY_INFORMATION', 'More information'),
   viewingRequest('VIEWING_REQUEST', 'Book a viewing'),
-  consultationRequest('CONSULTATION_REQUEST', 'Speak to the agent');
+  consultationRequest('CONSULTATION_REQUEST', 'Request a consultation');
 
   const RequestType(this.wire, this.label);
   final String wire;

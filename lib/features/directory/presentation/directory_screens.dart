@@ -25,7 +25,7 @@ class DirectoryHubScreen extends StatelessWidget {
         padding: const EdgeInsets.all(Space.x4),
         children: [
           Text(
-            'Find agencies, agents, developers, property managers, hosts and '
+            'Find Real Estate Agencies, Estate Agents, Property Developers, Landlords and Property Managers, hosts and '
             'property services. Contact is by enquiry through RightProperty365.',
             style: text.bodyLarge?.copyWith(color: context.colors.muted),
           ),
@@ -137,6 +137,18 @@ class DirectoryListScreen extends StatelessWidget {
         onTap: () => context.push(Routes.profile(profile)),
       ),
     );
+
+    if (directory.ofKind(kind).isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(info.title)),
+        body: MessageView(
+          icon: directoryIcon(kind),
+          title: 'No ${info.title} listed yet',
+          body:
+              '${info.description} Profiles appear here once they have been verified.',
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(info.title)),

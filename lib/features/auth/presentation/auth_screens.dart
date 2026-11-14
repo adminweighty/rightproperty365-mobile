@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/config.dart';
+import '../../../core/terminology.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
@@ -204,6 +205,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return problem == null ? null : '$label $problem';
   }
 
+  // The roles the API accepts today. Starts with the baseline and is replaced
+  // by the live list, so a role added on the server (such as Solicitor) is
+  // offered without an app update and never offered before the API takes it.
+  List<AccountRoleGroup> _groups = signUpRoleGroups({
+    for (final code in baselineRoleCodes) code: roleLabel(code),
+  });
+  bool _rolesRequested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_rolesRequested) return;
+    _rolesRequested = true;
+    AppScope.of(context).auth.repository.selectableRoles().then((accepted) {
+      if (!mounted || accepted.isEmpty) return;
+      setState(() {
+        _groups = signUpRoleGroups(accepted);
+        _roles.removeWhere((code) => !accepted.containsKey(code));
+      });
+    }, onError: (_) {}); // Offline: keep the baseline.
+  }
+
   Future<void> _submit() async {
     final valid = _form.currentState!.validate();
     setState(() => _consentMissing = !_consent);
@@ -307,13 +330,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     : _apiError('password', 'Password'),
               ),
               const SizedBox(height: Space.x6),
-              const SectionHeading('How will you use RightProperty365?'),
+              const SectionHeading('Your role'),
               const SizedBox(height: Space.x2),
               Text(
-                'Choose all that apply. Professional roles are checked before they are switched on.',
+                'Choose every role that applies to you, for example Landlord and Property Seller. '
+                'Professional, business and owner roles are verified by a Platform Administrator '
+                'before they are approved.',
                 style: text.bodyMedium,
               ),
-              for (final group in accountRoleGroups) ...[
+              for (final group in _groups) ...[
                 const SizedBox(height: Space.x4),
                 Text(group.legend, style: text.titleSmall),
                 for (final role in group.roles)
@@ -327,8 +352,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(role.label, style: text.bodyLarge),
+                    title: Text(role.label, style: text.titleMedium),
+                    subtitle: role.description.isEmpty
+                        ? null
+                        : Text(role.description, style: text.bodyMedium),
                   ),
               ],
               if (rolesError != null)
@@ -415,8 +442,9 @@ class _SignedOut extends StatelessWidget {
         Text('Sign in to RightProperty365', style: text.headlineSmall),
         const SizedBox(height: Space.x2),
         Text(
-          'With an account your enquiries use your saved name and email. '
-          'You can still browse and send requests as a guest.',
+          'For Property Seekers, Estate Agents, Real Estate Agencies, Landlords and '
+          'Property Sellers. With an account your enquiries use your saved name and email. '
+          'You can still browse and send enquiries as a guest.',
           style: text.bodyLarge?.copyWith(color: context.colors.muted),
         ),
         const SizedBox(height: Space.x6),
@@ -470,33 +498,74 @@ class _SignedIn extends StatelessWidget {
           child: Text(user.name, style: text.headlineSmall),
         ),
         Text(user.email, style: text.bodyLarge?.copyWith(color: c.muted)),
+        // Professionals and property owners: the enquiries they have received.
+        // The API decides what, if anything, each account may see.
+        if (user.memberships.isNotEmpty ||
+            user.accountRoles.any((r) => !r.isSeeker)) ...[
+          const SizedBox(height: Space.x5),
+          BrandCard(
+            key: const Key('open-inbox'),
+            emphasised: true,
+            onTap: () => context.push(Routes.inbox),
+            semanticLabel:
+                'Enquiries Received. Enquiries about your listings and profile',
+            child: Padding(
+              padding: const EdgeInsets.all(Space.x4),
+              child: Row(
+                children: [
+                  Icon(Icons.inbox_outlined, color: c.primaryInk),
+                  const SizedBox(width: Space.x3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Enquiries Received', style: text.titleMedium),
+                        Text(
+                          'Enquiries about your listings and profile',
+                          style: text.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: c.subtle),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: Space.x6),
         const SectionHeading('Your roles'),
         const SizedBox(height: Space.x2),
         if (user.accountRoles.isEmpty &&
             user.memberships.isEmpty &&
             user.platformRoles.isEmpty)
-          Text('Buyer or renter', style: text.bodyLarge),
+          Text(Terms.propertySeeker, style: text.bodyLarge),
         for (final role in user.accountRoles)
           row(
-            roleLabel(role.role),
-            role.pending
-                ? 'Waiting to be verified. It gives no access until then.'
-                : '',
-            trailing: role.pending
-                ? const AppBadge('Pending')
-                : const AppBadge('Active', tone: BadgeTone.success),
+            role.label,
+            role.isSeeker
+                ? Terms.propertySeeker
+                : role.approved
+                ? ''
+                : 'This role gives no access until a Platform Administrator approves it.',
+            // Seeker roles need no verification, so they carry no status.
+            trailing: role.isSeeker
+                ? null
+                : AppBadge(
+                    role.verificationLabel,
+                    tone: role.approved ? BadgeTone.success : BadgeTone.neutral,
+                  ),
           ),
         for (final role in user.platformRoles)
-          row(roleLabel(role), 'Platform role'),
+          row(roleLabel(role), 'Platform operations'),
         if (user.memberships.isNotEmpty) ...[
           const SizedBox(height: Space.x6),
-          const SectionHeading('Organisations'),
+          const SectionHeading('Agencies and organisations'),
           const SizedBox(height: Space.x2),
           for (final membership in user.memberships)
             row(
               membership.organisationName,
-              '${roleLabel(membership.role)} · ${roleLabel(membership.organisationKind)} · ${membership.marketCode}',
+              '${membership.roleLabel} · ${membership.kindLabel} · ${membership.marketCode}',
             ),
         ],
         const SizedBox(height: Space.x6),

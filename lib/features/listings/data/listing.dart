@@ -1,4 +1,5 @@
 import '../../../core/format.dart';
+import '../../../core/terminology.dart';
 
 enum DealType {
   sale('For sale'),
@@ -141,6 +142,13 @@ class Listing {
   final bool featured;
 
   String get location => '$suburb, $city';
+
+  /// Who a Property Seeker contacts about this listing, in real-estate terms:
+  /// a Sales Agent or Lettings Agent for an agency listing, a Property Seller
+  /// or Landlord when the owner lists it directly.
+  String get contactTitle => advertiser.kind == AdvertiserKind.agency
+      ? listingAgentTitle(forSale: deal == DealType.sale)
+      : listingOwnerTitle(forSale: deal == DealType.sale);
 
   /// One sentence for screen readers, so a card reads as a single item.
   String get spokenSummary => [

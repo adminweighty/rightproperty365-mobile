@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:rightproperty365/core/api/api_client.dart';
+import 'package:rightproperty365/core/terminology.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
-import 'package:rightproperty365/features/auth/data/auth_models.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
 import 'package:rightproperty365/features/auth/data/token_store.dart';
 
@@ -61,7 +61,7 @@ void main() {
           session.user.memberships.single.organisationName,
           'Sample Estates',
         );
-        expect(session.user.accountRoles.last.pending, isTrue);
+        expect(session.user.accountRoles.last.approved, isFalse);
         final sent = requests.single;
         expect(sent.url.path, '/v1/auth/login');
         expect(jsonDecode(sent.body), {
@@ -178,8 +178,8 @@ void main() {
     };
     expect(offered.intersection(platform), isEmpty);
     expect(offered, contains('CONSUMER'));
-    expect(roleLabel('AGENCY_OWNER'), 'Agency owner');
-    expect(roleLabel('SOMETHING_NEW'), 'Something new');
+    expect(roleLabel('AGENCY_OWNER'), 'Agency Principal');
+    expect(roleLabel('SOMETHING_NEW'), 'Something New');
   });
 
   group('AuthController', () {

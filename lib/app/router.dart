@@ -4,6 +4,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/auth/presentation/auth_screens.dart';
 import '../features/auth/presentation/recovery_screens.dart';
 import '../features/directory/data/profile.dart';
+import '../features/inbox/inbox_screen.dart';
 import '../features/directory/presentation/directory_screens.dart';
 import '../features/directory/presentation/profile_screen.dart';
 import '../features/listings/data/listing.dart';
@@ -22,6 +23,7 @@ abstract final class Routes {
   static const signIn = '/sign-in';
   static const register = '/register';
   static const forgotPassword = '/forgot-password';
+  static const inbox = '/inbox';
 
   /// With no token these open the screen where the emailed link is pasted.
   static String verifyEmail([String? token]) =>
@@ -165,6 +167,7 @@ GoRouter buildRouter() => GoRouter(
       path: '/sign-in',
       builder: (context, state) => const SignInScreen(),
     ),
+    GoRoute(path: '/inbox', builder: (context, state) => const InboxScreen()),
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),

@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/config.dart';
+import '../../../core/terminology.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
@@ -121,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: TextButton.icon(
                 onPressed: () => context.push(Routes.profile(agency)),
                 icon: const Icon(Icons.business_outlined),
-                label: Text('Works at ${agency.name}'),
+                label: Text('${Terms.estateAgent} at ${agency.name}'),
               ),
             ),
           ],
@@ -168,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           if (agents.isNotEmpty) ...[
             const SizedBox(height: Space.x6),
-            const SectionHeading('Agents'),
+            const SectionHeading(Terms.estateAgents),
             const SizedBox(height: Space.x3),
             for (final agent in agents)
               Padding(

@@ -22,6 +22,10 @@ abstract interface class AuthRepository {
   /// Revokes the current session on the server.
   Future<void> logout();
 
+  /// The role codes a person may choose at sign-up today, with the API's own
+  /// label for each (GET /v1/reference/account_roles), in display order.
+  Future<Map<String, String>> selectableRoles();
+
   /// Confirms an email address with the single-use token from the email and
   /// starts a session.
   Future<({User user, String token})> verifyEmail(String token);
@@ -185,5 +189,14 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     await _api.postJson('/v1/auth/logout', const {});
+  }
+
+  @override
+  Future<Map<String, String>> selectableRoles() async {
+    final response = await _api.get('/v1/reference/account_roles');
+    return {
+      for (final item in (response.body['items'] as List?) ?? const [])
+        item['code'] as String: item['label'] as String,
+    };
   }
 }

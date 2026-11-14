@@ -388,7 +388,7 @@ class _HeroState extends State<_Hero> {
                 Reveal(
                   index: 1,
                   child: Text(
-                    'Homes, commercial space and land from verified agents and owners across Zimbabwe.',
+                    'Homes, commercial space and land from verified Estate Agents, Landlords and Property Sellers across Zimbabwe.',
                     style: text.bodyLarge?.copyWith(color: c.onBrand),
                   ),
                 ),

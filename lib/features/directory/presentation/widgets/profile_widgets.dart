@@ -110,4 +110,5 @@ IconData directoryIcon(DirectoryKind kind) => switch (kind) {
   DirectoryKind.propertyManagers => Icons.key_outlined,
   DirectoryKind.hosts => Icons.event_available_outlined,
   DirectoryKind.serviceProviders => Icons.handyman_outlined,
+  DirectoryKind.solicitors => Icons.gavel_outlined,
 };

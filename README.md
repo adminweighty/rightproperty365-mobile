@@ -125,6 +125,7 @@ lib/
     auth/                    User model, auth repository, token store, controller; sign-in, register,
                              account, confirm email, forgot and reset password
     activity/                ActivityStore (on-device) and the Activity screen: requests and saved
+    inbox/                   Enquiries received by professionals (read-only)
     markets/                 Market configuration
     shell/                   Bottom navigation
 assets/
@@ -134,6 +135,31 @@ assets/
 tool/sync_web_data.mjs       Mirrors the web sample data and photos
 test/                        Data, repository, auth and screen tests
 ```
+
+## Real-estate terminology
+
+Every role name shown in the app comes from `lib/core/terminology.dart`, so the wording is the same on every screen. Role names are written as titles.
+
+| API code | Shown as | Category |
+| --- | --- | --- |
+| `CONSUMER` | Prospective Buyer | Property Seekers |
+| `TENANT` | Prospective Tenant | Property Seekers |
+| `AGENT` | Estate Agent | Real Estate Professionals |
+| `SOLICITOR` | Solicitor | Real Estate Professionals |
+| `AGENCY_OWNER` | Agency Principal | Real Estate Businesses |
+| `AGENCY_ADMIN` | Agency Administrator | Real Estate Businesses |
+| `AGENCY_STAFF` | Agency Staff | Real Estate Businesses |
+| `LANDLORD` | Landlord | Property Owners |
+| `PRIVATE_SELLER` | Property Seller (Vendor) | Property Owners |
+| `DEVELOPER`, `HOST`, `SERVICE_PROVIDER` | Property Developer, Host, Property Service Provider | Other property businesses |
+
+- On a listing, the agent is a **Sales Agent** (for sale) or **Lettings Agent** (to rent), and an owner listing directly is a **Property Seller** or **Landlord**.
+- In an organisation, `OWNER` is the Agency Principal, `MANAGER` the Agency Administrator (Property Manager outside an agency), `AGENT` an Estate Agent. An agency is a **Real Estate Agency**.
+- Verification statuses: Pending Verification, Under Review, Changes Requested, Approved, Rejected, Suspended.
+- Enquiry statuses: New Enquiry, Assigned, Contacted, Viewing Requested, Viewing Scheduled, Follow-up Required, Converted, Closed. The API's current statuses are mapped onto these.
+- Sales Agent, Lettings Agent and Property Manager have no role code of their own in the API yet, so they cannot be chosen separately at sign-up.
+- Sign-up offers only the roles the API accepts (`GET /v1/reference/account_roles`). **Solicitor** appears there as soon as the backend adds the `SOLICITOR` code; until then it is named in the app but not offered.
+- The **Solicitors** directory (`solicitors` kind) is always shown and is empty until the data includes solicitor profiles.
 
 ## Conventions
 
@@ -158,6 +184,8 @@ test/                        Data, repository, auth and screen tests
 - Listing detail with photo, the agent and agency (linked to their profiles), and the request form
 - Directories: hub, list per kind (service providers grouped by trade), profile with services, areas, agents and listings, and an enquiry form
 - Sign-in, registration with role selection, account screen with roles and memberships, sign-out
+- Enquiries Received: a read-only inbox for Estate Agents, Agency Principals, Solicitors, Landlords, Property Sellers and other professionals, showing the enquiries the API authorises them to see
+- Solicitors directory (empty until solicitor profiles exist)
 - Email confirmation (by link or by pasting it, with resend) and password reset (request and set new password)
 - Activity: requests sent from this phone with their references, and saved properties
 - Light and dark themes, official launcher icon and splash screen
@@ -168,7 +196,9 @@ These are required by the specification and come later:
 
 - Website links opening the app automatically (App Links and Universal Links). See "Email links" above for what the website and Apple set-up still need.
 - Activity synced with the account: live request status, agent replies, applications and viewings. This needs a customer activity endpoint in the API.
-- Agent and seller inbox, listing management
+- Replying to enquiries, changing their status, assigning leads, viewing appointments and calendars, rental applications, listing management and listing statistics. The API has no endpoints for these yet.
+- The Solicitor role, law-firm organisations and solicitor profiles on the backend and website
+- There is no payment in the app, by design: subscriptions are recorded by Platform Administrators on the web
 - Push notifications and device token registration
 - In-app account deletion (required by both app stores)
 - Maps, photo galleries, YouTube tours

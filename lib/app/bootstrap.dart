@@ -10,6 +10,7 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/token_store.dart';
 import '../features/directory/data/business_enquiry_repository.dart';
 import '../features/directory/data/directory_repository.dart';
+import '../features/inbox/inbox_repository.dart';
 import '../features/listings/data/listing_repository.dart';
 import '../features/property_requests/data/property_request_repository.dart';
 import 'app_scope.dart';
@@ -35,6 +36,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     propertyRequests: ApiPropertyRequestRepository(api),
     businessEnquiries: ApiBusinessEnquiryRepository(api),
     auth: auth,
+    inbox: ApiInboxRepository(api),
     activity: ActivityStore(
       PreferencesStore(await SharedPreferences.getInstance()),
     ),

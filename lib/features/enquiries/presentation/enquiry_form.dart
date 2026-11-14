@@ -231,7 +231,7 @@ class _EnquiryFormState extends State<EnquiryForm> {
               Padding(
                 padding: const EdgeInsets.only(top: Space.x1, left: Space.x3),
                 child: Text(
-                  _apiError('preferred_slot_utc', 'The preferred time') ?? 'In your local time. The agent will confirm or suggest another slot.',
+                  _apiError('preferred_slot_utc', 'The preferred time') ?? 'In your local time. They will confirm it or suggest another time.',
                   style: TextStyle(
                     fontSize: 14,
                     color: _failure?.fields['preferred_slot_utc'] == null

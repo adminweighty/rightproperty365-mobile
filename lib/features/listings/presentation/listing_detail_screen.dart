@@ -6,6 +6,7 @@ import '../../../app/app_scope.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
+import '../../../core/terminology.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
@@ -92,7 +93,7 @@ class _Detail extends StatelessWidget {
           ),
           child: FilledButton(
             onPressed: () => context.push(Routes.request(listing.slug)),
-            child: Text('Contact the ${isAgency ? 'agent' : 'seller'}'),
+            child: Text('Contact the ${listing.contactTitle}'),
           ),
         ),
       ),
@@ -171,11 +172,11 @@ class _Detail extends StatelessWidget {
                     ),
                   ),
                 const SizedBox(height: Space.x6),
-                SectionHeading(isAgency ? 'Listed by' : 'Sold by the owner'),
+                SectionHeading(isAgency ? 'Listed by' : 'Offered by the owner'),
                 const SizedBox(height: Space.x3),
                 _ListedBy(
                   name: listing.listedBy,
-                  detail: isAgency ? 'Agent' : 'Private seller',
+                  detail: listing.contactTitle,
                   verified: !isAgency && listing.advertiser.verified,
                   profile: profiles.agent,
                 ),
@@ -183,7 +184,7 @@ class _Detail extends StatelessWidget {
                   const SizedBox(height: Space.x3),
                   _ListedBy(
                     name: listing.advertiser.name,
-                    detail: 'Agency',
+                    detail: Terms.agency,
                     verified: listing.advertiser.verified,
                     profile: profiles.agency,
                   ),

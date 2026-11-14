@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../core/terminology.dart';
 import '../../listings/data/listing.dart';
 import 'profile.dart';
 
@@ -26,6 +27,14 @@ abstract interface class DirectoryRepository {
   ({Profile? agency, Profile? agent}) profilesFor(Listing listing);
 }
 
+/// The Solicitors directory, used when the data does not define it yet.
+const solicitorsDirectory = DirectoryInfo(
+  kind: DirectoryKind.solicitors,
+  title: Terms.solicitors,
+  singular: Terms.solicitor,
+  description: 'Solicitors and conveyancers for property transfers, leases, title checks and legal advice.',
+);
+
 /// SAMPLE DATA. Serves assets/data/directory.json, which is mirrored from the
 /// web repository by tool/sync_web_data.mjs.
 class SampleDirectoryRepository implements DirectoryRepository {
@@ -37,13 +46,21 @@ class SampleDirectoryRepository implements DirectoryRepository {
 
   factory SampleDirectoryRepository.fromJson(String source) {
     final json = jsonDecode(source) as Map<String, dynamic>;
+    // A kind this version of the app does not know is skipped, not a crash.
+    bool known(dynamic item) =>
+        DirectoryKind.fromSlug(item['kind'] as String?) != null;
+    final directories = [
+      for (final kind in (json['kinds'] as List).where(known))
+        DirectoryInfo.fromJson(kind as Map<String, dynamic>),
+    ];
+    // The Solicitors directory always exists, even before any are listed.
+    if (!directories.any((d) => d.kind == DirectoryKind.solicitors)) {
+      directories.add(solicitorsDirectory);
+    }
     return SampleDirectoryRepository(
-      directories: [
-        for (final kind in json['kinds'] as List)
-          DirectoryInfo.fromJson(kind as Map<String, dynamic>),
-      ],
+      directories: directories,
       profiles: [
-        for (final profile in json['profiles'] as List)
+        for (final profile in (json['profiles'] as List).where(known))
           Profile.fromJson(profile as Map<String, dynamic>),
       ],
       tradeOrder: List<String>.from(json['tradeOrder'] as List),

@@ -16,7 +16,7 @@ void main() {
     expect(total, 29);
     expect(
       directory.info(DirectoryKind.serviceProviders).title,
-      'Property services',
+      'Property Services',
     );
   });
 

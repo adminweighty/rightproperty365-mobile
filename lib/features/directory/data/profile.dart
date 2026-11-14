@@ -1,3 +1,5 @@
+import '../../../core/terminology.dart';
+
 /// The six public directories. [slug] is the value used by the web routes and
 /// by the API's `recipient.kind`.
 enum DirectoryKind {
@@ -6,7 +8,8 @@ enum DirectoryKind {
   developers('developers'),
   propertyManagers('property-managers'),
   hosts('hosts'),
-  serviceProviders('service-providers');
+  serviceProviders('service-providers'),
+  solicitors('solicitors');
 
   const DirectoryKind(this.slug);
   final String slug;
@@ -30,8 +33,9 @@ class DirectoryInfo {
 
   factory DirectoryInfo.fromJson(Map<String, dynamic> json) => DirectoryInfo(
     kind: DirectoryKind.fromSlug(json['kind'] as String)!,
-    title: json['title'] as String,
-    singular: json['singular'] as String,
+    title: directoryTitles[json['kind']]?.title ?? json['title'] as String,
+    singular:
+        directoryTitles[json['kind']]?.singular ?? json['singular'] as String,
     description: json['description'] as String,
   );
 

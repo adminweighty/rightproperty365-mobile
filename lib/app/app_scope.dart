@@ -4,6 +4,7 @@ import '../features/activity/activity_store.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/directory/data/business_enquiry_repository.dart';
 import '../features/directory/data/directory_repository.dart';
+import '../features/inbox/inbox_repository.dart';
 import '../features/listings/data/listing_repository.dart';
 import '../features/property_requests/data/property_request_repository.dart';
 
@@ -17,7 +18,10 @@ class AppServices {
     required this.businessEnquiries,
     required this.auth,
     required this.activity,
+    required this.inbox,
   });
+
+  final InboxRepository inbox;
 
   final ActivityStore activity;
   final ListingRepository listings;
