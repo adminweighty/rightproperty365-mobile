@@ -52,13 +52,25 @@ class AccountRoleGroup {
   final List<AccountRoleOption> roles;
 }
 
-/// The roles offered at sign-up, in the specification's categories. The codes
-/// are the ones the API accepts (`SelectableAccountRole`). Platform
-/// administrator roles are never offered; the API rejects them.
-///
-/// Sales Agent, Lettings Agent and Property Manager have no code of their own
-/// in the API yet, so they cannot be chosen separately: an agent registers as
-/// an Estate Agent and a property manager under Landlord.
+/// A role the API accepts at sign-up, as GET /v1/reference/account_roles
+/// describes it.
+class SelectableRole {
+  const SelectableRole(this.code, this.label, [this.group]);
+
+  final String code;
+
+  /// The API's wording. It is configurable on the server and wins over the
+  /// names built into the app.
+  final String label;
+
+  /// The heading the API lists the role under, when it gives one.
+  final String? group;
+}
+
+/// The roles this app knows, in the specification's categories. Used for the
+/// descriptions under each role, for naming roles on other screens, and as
+/// the sign-up list when the API cannot be reached. Platform administrator
+/// roles are never offered; the API rejects them.
 const accountRoleGroups = [
   AccountRoleGroup('Property Seekers', [
     AccountRoleOption(
@@ -77,6 +89,21 @@ const accountRoleGroups = [
       'AGENT',
       Terms.estateAgent,
       'Markets properties, manages enquiries and arranges viewings, for sale or to let.',
+    ),
+    AccountRoleOption(
+      'SALES_AGENT',
+      Terms.salesAgent,
+      'An Estate Agent specialising in properties for sale.',
+    ),
+    AccountRoleOption(
+      'LETTINGS_AGENT',
+      Terms.lettingsAgent,
+      'An Estate Agent specialising in rentals and leases.',
+    ),
+    AccountRoleOption(
+      'PROPERTY_MANAGER',
+      Terms.propertyManager,
+      'Manages rental properties, tenants and viewings on behalf of owners.',
     ),
     AccountRoleOption(
       'SOLICITOR',
@@ -105,7 +132,7 @@ const accountRoleGroups = [
     AccountRoleOption(
       'LANDLORD',
       Terms.landlord,
-      'Owns or manages property offered for rent or lease.',
+      'Owns property offered for rent or lease.',
     ),
     AccountRoleOption(
       'PRIVATE_SELLER',
@@ -132,43 +159,48 @@ const accountRoleGroups = [
   ]),
 ];
 
-/// The role codes every version of the API accepts. Used when the live list
-/// cannot be loaded. Roles added later, such as SOLICITOR, are offered only
-/// once the API lists them (GET /v1/reference/account_roles).
-const baselineRoleCodes = {
-  'CONSUMER',
-  'TENANT',
-  'PRIVATE_SELLER',
-  'LANDLORD',
-  'HOST',
-  'DEVELOPER',
-  'SERVICE_PROVIDER',
-  'AGENT',
-  'AGENCY_STAFF',
-  'AGENCY_ADMIN',
-  'AGENCY_OWNER',
-};
+/// The roles shown at sign-up before the API has answered, and when it
+/// cannot be reached: everything this app knows, in its own grouping.
+List<SelectableRole> get builtInRoles => [
+  for (final group in accountRoleGroups)
+    for (final role in group.roles)
+      SelectableRole(role.value, role.label, group.legend),
+];
 
-/// The sign-up groups limited to the roles the API accepts. A role the API
-/// offers that this app has no name for yet is listed last under the API's
-/// own label, so a new role is never hidden.
-List<AccountRoleGroup> signUpRoleGroups(Map<String, String> accepted) {
-  final known = <String>{};
-  final groups = <AccountRoleGroup>[];
+/// The sign-up list for the roles the API accepts, in the API's order.
+///
+/// Labels and group headings are the API's, so they can be changed on the
+/// server without an app update and a role added there (as Solicitor was) is
+/// offered straight away. The one-line description under each role is the
+/// app's, where it has one. A role the API sends without a heading falls
+/// under the app's heading for it, or "Other roles".
+List<AccountRoleGroup> signUpRoleGroups(List<SelectableRole> accepted) {
+  final descriptions = <String, String>{};
+  final headings = <String, String>{};
   for (final group in accountRoleGroups) {
-    final roles = group.roles
-        .where((r) => accepted.containsKey(r.value))
-        .toList();
-    known.addAll(group.roles.map((r) => r.value));
-    if (roles.isNotEmpty) groups.add(AccountRoleGroup(group.legend, roles));
+    for (final role in group.roles) {
+      descriptions[role.value] = role.description;
+      headings[role.value] = group.legend;
+    }
   }
-  final unnamed = [
-    for (final entry in accepted.entries)
-      if (!known.contains(entry.key))
-        AccountRoleOption(entry.key, entry.value, ''),
+
+  final grouped = <String, List<AccountRoleOption>>{};
+  for (final role in accepted) {
+    final heading = role.group ?? headings[role.code] ?? 'Other roles';
+    grouped
+        .putIfAbsent(heading, () => [])
+        .add(
+          AccountRoleOption(
+            role.code,
+            role.label,
+            descriptions[role.code] ?? '',
+          ),
+        );
+  }
+  return [
+    for (final entry in grouped.entries)
+      AccountRoleGroup(entry.key, entry.value),
   ];
-  if (unnamed.isNotEmpty) groups.add(AccountRoleGroup('Other roles', unnamed));
-  return groups;
 }
 
 /// Self-selected role codes that need no verification.
@@ -187,6 +219,7 @@ const _platformRoles = {
 const _organisationKinds = {
   'AGENCY': Terms.agency,
   'LAW_FIRM': 'Law Firm',
+  'PROPERTY_MANAGER': Terms.propertyManager,
   'LANDLORD': Terms.landlord,
   'HOST': 'Host',
   'DEVELOPER': 'Property Developer',
@@ -245,7 +278,7 @@ const directoryTitles = {
   'agents': (title: Terms.estateAgents, singular: Terms.estateAgent),
   'developers': (title: 'Property Developers', singular: 'Property Developer'),
   'property-managers': (
-    title: 'Landlords and Property Managers',
+    title: 'Property Managers',
     singular: Terms.propertyManager,
   ),
   'hosts': (title: 'Hosts and Venues', singular: 'Host'),

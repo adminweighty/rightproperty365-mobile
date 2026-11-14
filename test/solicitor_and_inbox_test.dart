@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
 import 'package:rightproperty365/core/api/api_client.dart';
 import 'package:rightproperty365/core/terminology.dart';
+import 'package:rightproperty365/features/auth/data/auth_models.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
 import 'package:rightproperty365/features/auth/presentation/auth_screens.dart';
 import 'package:rightproperty365/features/directory/data/directory_repository.dart';
@@ -56,130 +57,184 @@ http.Response forbidden() => jsonResponse(403, {
 });
 
 void main() {
-  group('Solicitor role', () {
-    test('has its name, a law firm kind and a directory', () {
+  group('roles from the API', () {
+    // What an API that has not added Solicitor yet would list.
+    final withoutSolicitor = builtInRoles
+        .where((r) => r.code != 'SOLICITOR')
+        .toList();
+    Iterable<String> offered(List<SelectableRole> accepted) =>
+        signUpRoleGroups(accepted).expand((g) => g.roles).map((r) => r.label);
+
+    test('Solicitor has its name, a law firm kind and a directory', () {
       expect(roleLabel('SOLICITOR'), 'Solicitor');
+      expect(roleLabel('SALES_AGENT'), 'Sales Agent');
+      expect(roleLabel('LETTINGS_AGENT'), 'Lettings Agent');
+      expect(roleLabel('PROPERTY_MANAGER'), 'Property Manager');
       expect(organisationKindLabel('LAW_FIRM'), 'Law Firm');
+      expect(organisationKindLabel('PROPERTY_MANAGER'), 'Property Manager');
       expect(DirectoryKind.fromSlug('solicitors'), DirectoryKind.solicitors);
     });
 
-    test('is offered at sign-up only when the API accepts it', () {
-      Iterable<String> offered(Map<String, String> accepted) =>
-          signUpRoleGroups(accepted).expand((g) => g.roles).map((r) => r.label);
-      final baseline = {
-        for (final code in baselineRoleCodes) code: roleLabel(code),
-      };
-
-      expect(offered(baseline), isNot(contains('Solicitor')));
+    test('only roles the API lists are offered', () {
+      expect(offered(withoutSolicitor), isNot(contains('Solicitor')));
+      expect(offered(builtInRoles), contains('Solicitor'));
       expect(
-        offered({...baseline, 'SOLICITOR': 'Solicitor'}),
-        contains('Solicitor'),
+        offered(builtInRoles),
+        containsAll(['Sales Agent', 'Lettings Agent', 'Property Manager']),
       );
     });
 
-    test('a role the app has no name for is listed under the API label', () {
-      final groups = signUpRoleGroups({
-        'CONSUMER': 'x',
-        'VALUER': 'Property Valuer',
-      });
-      expect(groups.last.legend, 'Other roles');
-      expect(groups.last.roles.single.label, 'Property Valuer');
-      expect(groups.first.roles.single.label, 'Prospective Buyer');
-    });
-
-    test('the accepted roles are read from the reference set', () async {
-      final (:api, :requests) = mockApi(
-        (_) async => jsonResponse(200, {
-          'set': 'account_roles',
-          'market': null,
-          'items': [
-            {'code': 'CONSUMER', 'label': 'Buyer'},
-            {'code': 'SOLICITOR', 'label': 'Solicitor'},
-          ],
-        }),
-      );
-
-      final roles = await ApiAuthRepository(api).selectableRoles();
-
-      expect(requests.single.url.path, '/v1/reference/account_roles');
-      expect(roles.keys, ['CONSUMER', 'SOLICITOR']);
-    });
-
-    testWidgets(
-      'sign-up shows Solicitor once the API lists it, and can register it',
-      (tester) async {
-        final test = TestServices();
-        test.authRepository.selectable = {
-          for (final code in baselineRoleCodes) code: roleLabel(code),
-          'SOLICITOR': 'Solicitor',
-        };
-        await pumpInApp(
-          tester,
-          test,
-          const RegisterScreen(),
-          size: const Size(390, 4600),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text('Solicitor'), findsOneWidget);
-
-        await tester.enterText(
-          find.byKey(const Key('register-name')),
-          'Sam Solicitor',
-        );
-        await tester.enterText(
-          find.byKey(const Key('register-email')),
-          'sam@example.test',
-        );
-        await tester.enterText(
-          find.byKey(const Key('register-password')),
-          'correct-horse-battery',
-        );
-        await tester.tap(find.byKey(const Key('role-SOLICITOR')));
-        await tester.tap(find.byKey(const Key('register-consent')));
-        await tester.pump();
-        await tester.tap(find.byKey(const Key('register-submit')));
-        await tester.pumpAndSettle();
-
-        expect(test.authRepository.registered?['roles'], [
-          'CONSUMER',
-          'SOLICITOR',
+    test(
+      'labels and group headings are the API\'s; descriptions are the app\'s',
+      () {
+        final groups = signUpRoleGroups(const [
+          SelectableRole('CONSUMER', 'Home Buyer', 'People looking'),
+          SelectableRole('SOLICITOR', 'Conveyancing Solicitor', 'Legal'),
+          SelectableRole('TENANT', 'Renter', 'People looking'),
+          SelectableRole('VALUER', 'Property Valuer', 'Legal'),
+          SelectableRole('AGENT', 'Estate Agent'),
+          SelectableRole('MYSTERY', 'Mystery Role'),
         ]);
+
+        expect(groups.map((g) => g.legend), [
+          'People looking',
+          'Legal',
+          'Real Estate Professionals', // no heading from the API: the app's own
+          'Other roles',
+        ]);
+        expect(groups[0].roles.map((r) => r.label), ['Home Buyer', 'Renter']);
+        expect(groups[1].roles.map((r) => r.label), [
+          'Conveyancing Solicitor',
+          'Property Valuer',
+        ]);
+        expect(groups[1].roles.first.description, contains('conveyancing'));
+        expect(groups[1].roles.last.description, isEmpty);
       },
     );
 
-    testWidgets(
-      'sign-up does not offer Solicitor while the API does not accept it',
-      (tester) async {
-        final test = TestServices();
-        await pumpInApp(
-          tester,
-          test,
-          const RegisterScreen(),
-          size: const Size(390, 4600),
+    test(
+      'the accepted roles are read from the reference set with their groups',
+      () async {
+        final (:api, :requests) = mockApi(
+          (_) async => jsonResponse(200, {
+            'set': 'account_roles',
+            'market': null,
+            'items': [
+              {
+                'code': 'CONSUMER',
+                'label': 'Prospective Buyer',
+                'group': {
+                  'code': 'seekers',
+                  'label': 'Property Seekers',
+                  'sort_order': 10,
+                },
+              },
+              {'code': 'SOLICITOR', 'label': 'Solicitor', 'group': null},
+            ],
+          }),
         );
-        await tester.pumpAndSettle();
 
-        expect(find.text('Solicitor'), findsNothing);
-        expect(find.text('Estate Agent'), findsOneWidget);
+        final roles = await ApiAuthRepository(api).selectableRoles();
+
+        expect(requests.single.url.path, '/v1/reference/account_roles');
+        expect(roles.map((r) => r.code), ['CONSUMER', 'SOLICITOR']);
+        expect(roles.first.group, 'Property Seekers');
+        expect(roles.last.group, isNull);
       },
     );
 
-    testWidgets('sign-up falls back to the baseline roles when offline', (
+    test('a membership uses the role label the API sends', () {
+      final user = User.fromJson({
+        'id': 'u',
+        'name': 'n',
+        'email': 'e@example.test',
+        'memberships': [
+          {
+            'organisation_name': 'Sample Solicitors',
+            'organisation_kind': 'LAW_FIRM',
+            'market_code': 'ZW',
+            'role': 'OWNER',
+            'role_label': 'Principal',
+          },
+          {
+            'organisation_name': 'Sample Estates',
+            'organisation_kind': 'AGENCY',
+            'market_code': 'ZW',
+            'role': 'OWNER',
+          },
+        ],
+      });
+      expect(user.memberships.first.roleLabel, 'Principal');
+      expect(user.memberships.first.kindLabel, 'Law Firm');
+      expect(user.memberships.last.roleLabel, 'Agency Principal');
+    });
+
+    testWidgets('sign-up offers Solicitor and can register it', (tester) async {
+      final test = TestServices();
+      await pumpInApp(
+        tester,
+        test,
+        const RegisterScreen(),
+        size: const Size(390, 5200),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solicitor'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const Key('register-name')),
+        'Sam Solicitor',
+      );
+      await tester.enterText(
+        find.byKey(const Key('register-email')),
+        'sam@example.test',
+      );
+      await tester.enterText(
+        find.byKey(const Key('register-password')),
+        'correct-horse-battery',
+      );
+      await tester.tap(find.byKey(const Key('role-SOLICITOR')));
+      await tester.tap(find.byKey(const Key('register-consent')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('register-submit')));
+      await tester.pumpAndSettle();
+
+      expect(test.authRepository.registered?['roles'], [
+        'CONSUMER',
+        'SOLICITOR',
+      ]);
+    });
+
+    testWidgets('sign-up drops a role the API has switched off', (
       tester,
     ) async {
+      final test = TestServices();
+      test.authRepository.selectable = withoutSolicitor;
+      await pumpInApp(
+        tester,
+        test,
+        const RegisterScreen(),
+        size: const Size(390, 5200),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solicitor'), findsNothing);
+      expect(find.text('Estate Agent'), findsOneWidget);
+    });
+
+    testWidgets('sign-up uses the built-in roles when offline', (tester) async {
       final test = TestServices();
       test.authRepository.selectable = null;
       await pumpInApp(
         tester,
         test,
         const RegisterScreen(),
-        size: const Size(390, 4600),
+        size: const Size(390, 5200),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Prospective Buyer'), findsOneWidget);
-      expect(find.text('Solicitor'), findsNothing);
+      expect(find.text('Property Manager'), findsOneWidget);
     });
   });
 

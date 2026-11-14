@@ -25,7 +25,7 @@ class DirectoryHubScreen extends StatelessWidget {
         padding: const EdgeInsets.all(Space.x4),
         children: [
           Text(
-            'Find Real Estate Agencies, Estate Agents, Property Developers, Landlords and Property Managers, hosts and '
+            'Find Real Estate Agencies, Estate Agents, Property Developers, Property Managers, Solicitors, hosts and '
             'property services. Contact is by enquiry through RightProperty365.',
             style: text.bodyLarge?.copyWith(color: context.colors.muted),
           ),

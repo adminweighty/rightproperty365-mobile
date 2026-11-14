@@ -157,12 +157,10 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   /// What GET /v1/reference/account_roles answers; null means it fails.
-  Map<String, String>? selectable = {
-    for (final code in baselineRoleCodes) code: roleLabel(code),
-  };
+  List<SelectableRole>? selectable = builtInRoles;
 
   @override
-  Future<Map<String, String>> selectableRoles() async =>
+  Future<List<SelectableRole>> selectableRoles() async =>
       selectable ?? (throw const ApiFailure.network());
 
   ApiFailure? linkFailure;

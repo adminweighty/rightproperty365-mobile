@@ -77,6 +77,9 @@ void main() {
           'AGENCY_ADMIN',
           'AGENCY_OWNER',
           'SOLICITOR',
+          'SALES_AGENT',
+          'LETTINGS_AGENT',
+          'PROPERTY_MANAGER',
         });
         for (final role in accountRoleGroups.expand((g) => g.roles)) {
           expect(role.description, isNotEmpty);
@@ -232,7 +235,7 @@ void main() {
     expect(directory.info(DirectoryKind.agents).title, 'Estate Agents');
     expect(
       directory.info(DirectoryKind.propertyManagers).title,
-      'Landlords and Property Managers',
+      'Property Managers',
     );
   });
 

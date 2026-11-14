@@ -205,12 +205,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return problem == null ? null : '$label $problem';
   }
 
-  // The roles the API accepts today. Starts with the baseline and is replaced
-  // by the live list, so a role added on the server (such as Solicitor) is
-  // offered without an app update and never offered before the API takes it.
-  List<AccountRoleGroup> _groups = signUpRoleGroups({
-    for (final code in baselineRoleCodes) code: roleLabel(code),
-  });
+  // Starts with the roles built into the app and is replaced by the API's
+  // list, so names, groups and newly added roles follow the server without an
+  // app update, and a role the server has switched off is not offered.
+  List<AccountRoleGroup> _groups = signUpRoleGroups(builtInRoles);
   bool _rolesRequested = false;
 
   @override
@@ -222,9 +220,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted || accepted.isEmpty) return;
       setState(() {
         _groups = signUpRoleGroups(accepted);
-        _roles.removeWhere((code) => !accepted.containsKey(code));
+        final codes = {for (final role in accepted) role.code};
+        _roles.removeWhere((code) => !codes.contains(code));
       });
-    }, onError: (_) {}); // Offline: keep the baseline.
+    }, onError: (_) {}); // Offline: keep the built-in list.
   }
 
   Future<void> _submit() async {

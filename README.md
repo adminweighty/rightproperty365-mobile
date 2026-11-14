@@ -145,6 +145,9 @@ Every role name shown in the app comes from `lib/core/terminology.dart`, so the 
 | `CONSUMER` | Prospective Buyer | Property Seekers |
 | `TENANT` | Prospective Tenant | Property Seekers |
 | `AGENT` | Estate Agent | Real Estate Professionals |
+| `SALES_AGENT` | Sales Agent | Real Estate Professionals |
+| `LETTINGS_AGENT` | Lettings Agent | Real Estate Professionals |
+| `PROPERTY_MANAGER` | Property Manager | Real Estate Professionals |
 | `SOLICITOR` | Solicitor | Real Estate Professionals |
 | `AGENCY_OWNER` | Agency Principal | Real Estate Businesses |
 | `AGENCY_ADMIN` | Agency Administrator | Real Estate Businesses |
@@ -157,9 +160,9 @@ Every role name shown in the app comes from `lib/core/terminology.dart`, so the 
 - In an organisation, `OWNER` is the Agency Principal, `MANAGER` the Agency Administrator (Property Manager outside an agency), `AGENT` an Estate Agent. An agency is a **Real Estate Agency**.
 - Verification statuses: Pending Verification, Under Review, Changes Requested, Approved, Rejected, Suspended.
 - Enquiry statuses: New Enquiry, Assigned, Contacted, Viewing Requested, Viewing Scheduled, Follow-up Required, Converted, Closed. The API's current statuses are mapped onto these.
-- Sales Agent, Lettings Agent and Property Manager have no role code of their own in the API yet, so they cannot be chosen separately at sign-up.
-- Sign-up offers only the roles the API accepts (`GET /v1/reference/account_roles`). **Solicitor** appears there as soon as the backend adds the `SOLICITOR` code; until then it is named in the app but not offered.
-- The **Solicitors** directory (`solicitors` kind) is always shown and is empty until the data includes solicitor profiles.
+- **The API's wording wins.** Sign-up shows the roles, labels and group headings from `GET /v1/reference/account_roles`, and a membership shows the API's `role_label` when it sends one. The table above is what the app falls back to (offline, or on screens where the API sends only a code), and the source of the one-line description under each role. A role added or switched off on the server follows without an app update.
+- A **Landlord** is an individual owner. A **Property Manager** belongs to a property-management organisation, and a **Solicitor** to a Law Firm.
+- The **Solicitors** directory (`solicitors` kind) is always shown. It is empty in this app until the bundled directory data is replaced by the API's (see "Not built yet").
 
 ## Conventions
 
@@ -197,7 +200,8 @@ These are required by the specification and come later:
 - Website links opening the app automatically (App Links and Universal Links). See "Email links" above for what the website and Apple set-up still need.
 - Activity synced with the account: live request status, agent replies, applications and viewings. This needs a customer activity endpoint in the API.
 - Replying to enquiries, changing their status, assigning leads, viewing appointments and calendars, rental applications, listing management and listing statistics. The API has no endpoints for these yet.
-- The Solicitor role, law-firm organisations and solicitor profiles on the backend and website
+- Directory and listing data from the API. The app still bundles the earlier sample data, so the solicitor firms and other profiles now in the backend do not appear yet.
+- Onboarding for professional roles (details and document upload) in the app; it exists in the API and on the website.
 - There is no payment in the app, by design: subscriptions are recorded by Platform Administrators on the web
 - Push notifications and device token registration
 - In-app account deletion (required by both app stores)

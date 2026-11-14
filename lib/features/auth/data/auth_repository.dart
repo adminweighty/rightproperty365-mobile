@@ -1,4 +1,5 @@
 import '../../../core/api/api_client.dart';
+import '../../../core/terminology.dart';
 import 'auth_models.dart';
 
 abstract interface class AuthRepository {
@@ -22,9 +23,10 @@ abstract interface class AuthRepository {
   /// Revokes the current session on the server.
   Future<void> logout();
 
-  /// The role codes a person may choose at sign-up today, with the API's own
-  /// label for each (GET /v1/reference/account_roles), in display order.
-  Future<Map<String, String>> selectableRoles();
+  /// The roles a person may choose at sign-up today, with the API's label
+  /// and group heading for each (GET /v1/reference/account_roles), in
+  /// display order.
+  Future<List<SelectableRole>> selectableRoles();
 
   /// Confirms an email address with the single-use token from the email and
   /// starts a session.
@@ -192,11 +194,15 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Map<String, String>> selectableRoles() async {
+  Future<List<SelectableRole>> selectableRoles() async {
     final response = await _api.get('/v1/reference/account_roles');
-    return {
+    return [
       for (final item in (response.body['items'] as List?) ?? const [])
-        item['code'] as String: item['label'] as String,
-    };
+        SelectableRole(
+          item['code'] as String,
+          item['label'] as String,
+          (item['group'] as Map?)?['label'] as String?,
+        ),
+    ];
   }
 }

@@ -31,14 +31,19 @@ class Membership {
     required this.organisationKind,
     required this.marketCode,
     required this.role,
+    this.apiRoleLabel,
   });
   final String organisationName;
   final String organisationKind;
   final String marketCode;
   final String role;
 
-  /// "Agency Principal", "Estate Agent", ...
-  String get roleLabel => membershipRoleLabel(role, organisationKind);
+  /// `role_label` from the API, when it sends one.
+  final String? apiRoleLabel;
+
+  /// "Agency Principal", "Estate Agent", ... The API's wording wins.
+  String get roleLabel =>
+      apiRoleLabel ?? membershipRoleLabel(role, organisationKind);
 
   /// "Real Estate Agency", "Landlord", ...
   String get kindLabel => organisationKindLabel(organisationKind);
@@ -81,6 +86,7 @@ class User {
           organisationKind: m['organisation_kind'] as String,
           marketCode: m['market_code'] as String,
           role: m['role'] as String,
+          apiRoleLabel: m['role_label'] as String?,
         ),
     ],
   );
