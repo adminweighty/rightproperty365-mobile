@@ -22,6 +22,51 @@ class Captcha {
   final DateTime expiresAt;
 }
 
+/// The first step of signing in succeeded: the API emailed a code to the
+/// account's address, to be sent back with [id].
+class SignInChallenge {
+  const SignInChallenge({
+    required this.id,
+    required this.sentTo,
+    required this.expiresAt,
+    required this.codeLength,
+  });
+
+  factory SignInChallenge.fromJson(Map<String, dynamic> json) =>
+      SignInChallenge(
+        id: json['challenge_id'] as String,
+        sentTo: json['sent_to'] as String,
+        expiresAt: DateTime.parse(json['expires_at'] as String),
+        codeLength: json['code_length'] as int? ?? 6,
+      );
+
+  final String id;
+
+  /// The address, masked, for example `u•••@example.com`.
+  final String sentTo;
+  final DateTime expiresAt;
+
+  /// Digits in the emailed code.
+  final int codeLength;
+}
+
+/// Where the email-and-password step of signing in leads.
+sealed class SignInStep {
+  const SignInStep();
+}
+
+/// A code was emailed; send it with `AuthRepository.verifySignInCode`.
+class CodeRequired extends SignInStep {
+  const CodeRequired(this.challenge);
+  final SignInChallenge challenge;
+}
+
+/// Signed in straight away (a server that does not ask for a code).
+class SignedIn extends SignInStep {
+  const SignedIn(this.session);
+  final ({User user, String token}) session;
+}
+
 /// A self-selected role. A professional role grants no access until a
 /// Platform Administrator has approved it.
 class AccountRole {

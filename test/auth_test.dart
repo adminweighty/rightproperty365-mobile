@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:rightproperty365/core/api/api_client.dart';
 import 'package:rightproperty365/core/terminology.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
+import 'package:rightproperty365/features/auth/data/auth_models.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
 import 'package:rightproperty365/features/auth/data/token_store.dart';
 
@@ -52,8 +53,9 @@ void main() {
           }),
         );
 
-        final session = await ApiAuthRepository(api)
+        final step = await ApiAuthRepository(api)
             .login(' tendai@example.test ', 'pw');
+        final session = (step as SignedIn).session;
 
         expect(session.token, 'token-abc');
         expect(session.user.name, 'Tendai Ncube');

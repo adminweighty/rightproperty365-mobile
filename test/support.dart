@@ -118,13 +118,43 @@ class FakeAuthRepository implements AuthRepository {
   Map<String, Object?>? registered;
   int logouts = 0;
 
+  /// When true, login asks for an emailed code, as the API does since 0.21.
+  /// Most tests only need someone signed in, so the default skips it.
+  bool requireCode = false;
+  ApiFailure? verifyFailure;
+  ApiFailure? resendFailure;
+  String? verifiedCode;
+  int resends = 0;
+
+  static final challenge = SignInChallenge(
+    id: 'challenge-1',
+    sentTo: 't•••@example.test',
+    expiresAt: DateTime.utc(2030),
+    codeLength: 6,
+  );
+
   @override
-  Future<({User user, String token})> login(
-    String email,
-    String password,
-  ) async {
+  Future<SignInStep> login(String email, String password) async {
     if (loginFailure != null) throw loginFailure!;
-    return (user: testUser, token: 'token-abc');
+    if (requireCode) return CodeRequired(challenge);
+    return const SignedIn((user: testUser, token: 'token-abc'));
+  }
+
+  @override
+  Future<({User user, String token})> verifySignInCode(
+    String challengeId,
+    String code,
+  ) async {
+    verifiedCode = code;
+    if (verifyFailure != null) throw verifyFailure!;
+    return (user: testUser, token: 'token-from-code');
+  }
+
+  @override
+  Future<SignInChallenge> resendSignInCode(String challengeId) async {
+    resends++;
+    if (resendFailure != null) throw resendFailure!;
+    return challenge;
   }
 
   @override

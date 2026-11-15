@@ -45,17 +45,38 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Throws [ApiFailure] with a message fit to show.
-  Future<void> signIn(String email, String password) =>
-      _start(_repository.login(email, password));
+  /// Signing in, step 1. Returns the challenge when the API has emailed a
+  /// code, which the person then enters for [verifyCode]; returns null when
+  /// the person is already signed in. Throws [ApiFailure] with a message fit
+  /// to show.
+  Future<SignInChallenge?> signIn(String email, String password) async {
+    switch (await _repository.login(email, password)) {
+      case CodeRequired(:final challenge):
+        return challenge;
+      case SignedIn(:final session):
+        await _store(session);
+        return null;
+    }
+  }
+
+  /// Signing in, step 2: the emailed code. Throws [ApiFailure].
+  Future<void> verifyCode(String challengeId, String code) =>
+      _start(_repository.verifySignInCode(challengeId, code));
+
+  /// Emails a new sign-in code. Throws [ApiFailure]; a 429 carries
+  /// [ApiFailure.retryAfter].
+  Future<SignInChallenge> resendCode(String challengeId) =>
+      _repository.resendSignInCode(challengeId);
 
   /// Confirms an email address with the token from the email, which also
   /// signs the person in. Throws [ApiFailure].
   Future<void> confirmEmail(String token) =>
       _start(_repository.verifyEmail(token));
 
-  Future<void> _start(Future<({User user, String token})> opening) async {
-    final session = await opening;
+  Future<void> _start(Future<({User user, String token})> opening) async =>
+      _store(await opening);
+
+  Future<void> _store(({User user, String token}) session) async {
     await _tokens.write(session.token);
     _api.bearerToken = session.token;
     _user = session.user;

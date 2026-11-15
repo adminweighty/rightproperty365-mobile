@@ -3,8 +3,19 @@ import '../../../core/terminology.dart';
 import 'auth_models.dart';
 
 abstract interface class AuthRepository {
-  /// Signs in and returns the user with a bearer session token.
-  Future<({User user, String token})> login(String email, String password);
+  /// Signing in, step 1: checks the email and password. The API then emails
+  /// a code ([CodeRequired]); no session exists until the code is sent to
+  /// [verifySignInCode].
+  Future<SignInStep> login(String email, String password);
+
+  /// Signing in, step 2: exchanges the emailed code for the session.
+  Future<({User user, String token})> verifySignInCode(
+    String challengeId,
+    String code,
+  );
+
+  /// Emails a new code for the same challenge. The previous code stops working.
+  Future<SignInChallenge> resendSignInCode(String challengeId);
 
   /// The user for the token currently set on the API client.
   Future<User> me();
@@ -71,10 +82,7 @@ class ApiAuthRepository implements AuthRepository {
   final ApiClient _api;
 
   @override
-  Future<({User user, String token})> login(
-    String email,
-    String password,
-  ) async {
+  Future<SignInStep> login(String email, String password) async {
     final ApiResponse response;
     try {
       response = await _api.postJson('/v1/auth/login', {
@@ -97,7 +105,40 @@ class ApiAuthRepository implements AuthRepository {
       };
     }
 
-    return _session(response);
+    if (response.body['status'] == 'CODE_REQUIRED') {
+      return CodeRequired(SignInChallenge.fromJson(response.body));
+    }
+    return SignedIn(_session(response));
+  }
+
+  static const _tooManyAttempts =
+      'Too many attempts. Please wait a minute and try again.';
+
+  @override
+  Future<({User user, String token})> verifySignInCode(
+    String challengeId,
+    String code,
+  ) async {
+    try {
+      return _session(
+        await _api.postJson('/v1/auth/login/verify', {
+          'challenge_id': challengeId,
+          'code': code.trim(),
+        }),
+      );
+    } on ApiFailure catch (failure) {
+      throw failure.status == 429
+          ? failure.withMessage(_tooManyAttempts)
+          : failure;
+    }
+  }
+
+  @override
+  Future<SignInChallenge> resendSignInCode(String challengeId) async {
+    final response = await _api.postJson('/v1/auth/login/resend', {
+      'challenge_id': challengeId,
+    });
+    return SignInChallenge.fromJson(response.body);
   }
 
   ({User user, String token}) _session(ApiResponse response) {

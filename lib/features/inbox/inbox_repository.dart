@@ -12,6 +12,7 @@ class ReceivedEnquiry {
     required this.subject,
     required this.kind,
     required this.status,
+    this.stageLabel,
     required this.message,
     required this.contactMethod,
     required this.contactName,
@@ -33,6 +34,7 @@ class ReceivedEnquiry {
           .label,
       listingSlug: listing?['slug'] as String?,
       status: json['status'] as String,
+      stageLabel: json['stage_label'] as String?,
       message: json['message'] as String,
       contactMethod: json['preferred_contact_method'] as String,
       contactName: json['contact']['name'] as String,
@@ -66,6 +68,9 @@ class ReceivedEnquiry {
   final String kind;
   final String? listingSlug;
   final String status;
+
+  /// The lead stage's wording from the API (property requests only).
+  final String? stageLabel;
   final String message;
 
   /// EMAIL, PHONE or WHATSAPP: how the Property Seeker wants the reply.
@@ -75,7 +80,7 @@ class ReceivedEnquiry {
   final String? contactPhone;
   final DateTime receivedAt;
 
-  String get statusLabel => enquiryStatusLabel(status);
+  String get statusLabel => stageLabel ?? enquiryStatusLabel(status);
 
   String get replyBy => switch (contactMethod) {
     'PHONE' => 'Phone call',
@@ -103,7 +108,11 @@ class ApiInboxRepository implements InboxRepository {
   @override
   Future<List<ReceivedEnquiry>> received() async {
     final results = await Future.wait([
-      _list('/v1/agent/property-requests', ReceivedEnquiry.fromPropertyRequest),
+      // Paged since API 0.20.0: the newest 100, the most one page holds.
+      _list(
+        '/v1/agent/property-requests?page_size=100',
+        ReceivedEnquiry.fromPropertyRequest,
+      ),
       _list(
         '/v1/inbox/business-enquiries',
         ReceivedEnquiry.fromBusinessEnquiry,

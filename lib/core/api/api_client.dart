@@ -14,6 +14,7 @@ class ApiFailure implements Exception {
     required this.message,
     this.fields = const {},
     this.traceId,
+    this.retryAfter,
   });
 
   const ApiFailure.network()
@@ -31,6 +32,9 @@ class ApiFailure implements Exception {
   final Map<String, String> fields;
   final String? traceId;
 
+  /// From a `Retry-After` header: how long to wait before trying again.
+  final Duration? retryAfter;
+
   bool get isNetwork => status == 0;
 
   /// The same failure with wording chosen by the caller.
@@ -40,6 +44,7 @@ class ApiFailure implements Exception {
     message: message,
     fields: fields,
     traceId: traceId,
+    retryAfter: retryAfter,
   );
 
   @override
@@ -124,6 +129,10 @@ class ApiClient {
           ? fields.map((key, value) => MapEntry('$key', '$value'))
           : const {},
       traceId: decoded['trace_id'] as String?,
+      retryAfter: switch (int.tryParse(response.headers['retry-after'] ?? '')) {
+        final seconds? when seconds >= 0 => Duration(seconds: seconds),
+        _ => null,
+      },
     );
   }
 
