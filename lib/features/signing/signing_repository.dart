@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/api/api_client.dart';
+import 'stamp.dart';
 
 DateTime? _at(Object? value) =>
     value is String ? DateTime.tryParse(value) : null;
@@ -85,7 +86,12 @@ class AdoptedSignature {
 
 /// The signed-in person's saved signature and initials.
 class SavedSignature {
-  const SavedSignature({this.signature, this.initials, this.fonts = const []});
+  const SavedSignature({
+    this.signature,
+    this.initials,
+    this.stamp,
+    this.fonts = const [],
+  });
 
   factory SavedSignature.fromJson(Map<String, dynamic> json) => SavedSignature(
     signature: switch (json['signature']) {
@@ -96,11 +102,16 @@ class SavedSignature {
       final Map<String, dynamic> s => AdoptedSignature.fromSaved(s),
       _ => null,
     },
+    stamp: switch (json['stamp']) {
+      final Map<String, dynamic> s => Stamp.fromJson(s),
+      _ => null,
+    },
     fonts: SignatureFont.listFrom(json['signature_fonts']),
   );
 
   final AdoptedSignature? signature;
   final AdoptedSignature? initials;
+  final Stamp? stamp;
   final List<SignatureFont> fonts;
 }
 
@@ -178,7 +189,7 @@ class SigningField {
   final String id;
   final String recipientId;
 
-  /// SIGNATURE, INITIALS, DATE_SIGNED, NAME, TEXT or CHECKBOX.
+  /// SIGNATURE, INITIALS, STAMP, DATE_SIGNED, NAME, TEXT or CHECKBOX.
   final String type;
   final int page;
 
@@ -228,6 +239,7 @@ class SigningView {
     this.statement = '',
     this.fonts = const [],
     this.pageSizes = const [],
+    this.savedStamp,
   });
 
   factory SigningView.fromJson(Map<String, dynamic> json) {
@@ -273,6 +285,10 @@ class SigningView {
       consentText: json['consent_text'] as String? ?? '',
       statement: json['statement'] as String? ?? '',
       fonts: SignatureFont.listFrom(json['signature_fonts']),
+      savedStamp: switch (json['saved_stamp']) {
+        final Map<String, dynamic> s => Stamp.fromJson(s),
+        _ => null,
+      },
     );
   }
 
@@ -308,6 +324,9 @@ class SigningView {
   final String statement;
   final List<SignatureFont> fonts;
 
+  /// The signed-in recipient's saved stamp, when they have a STAMP field.
+  final Stamp? savedStamp;
+
   bool get approver => recipientRole == 'APPROVER';
   bool get signingNow => canAct && !readOnly;
 
@@ -332,12 +351,14 @@ class SigningSubmission {
     this.fieldValues = const {},
     this.signature,
     this.initials,
+    this.stamp,
   });
 
   final String code;
   final Map<String, String> fieldValues;
   final AdoptedSignature? signature;
   final AdoptedSignature? initials;
+  final Stamp? stamp;
 
   Map<String, dynamic> toJson() => {
     'code': code,
@@ -348,6 +369,7 @@ class SigningSubmission {
     ],
     if (signature != null) 'signature': signature!.toJson(),
     if (initials != null) 'initials': initials!.toJson(),
+    if (stamp != null) 'stamp': stamp!.toJson(),
   };
 }
 
@@ -407,10 +429,19 @@ abstract interface class SigningRepository {
   Future<void> submit(String token, SigningSubmission submission);
   Future<SigningView> decline(String token, String reason);
   Future<SavedSignature> saved();
+
+  /// Saves the signature and initials as given (null removes one). The
+  /// stamp is kept unless [stamp] is given or [clearStamp] is true.
   Future<SavedSignature> save({
     AdoptedSignature? signature,
     AdoptedSignature? initials,
+    Stamp? stamp,
+    bool clearStamp = false,
   });
+
+  /// The stamp as it will be printed: a transparent PNG. [date] is the day
+  /// printed when the stamp includes the date.
+  Future<Uint8List> stampPreview(Stamp stamp, {DateTime? date});
 }
 
 class ApiSigningRepository implements SigningRepository {
@@ -475,10 +506,27 @@ class ApiSigningRepository implements SigningRepository {
   Future<SavedSignature> save({
     AdoptedSignature? signature,
     AdoptedSignature? initials,
+    Stamp? stamp,
+    bool clearStamp = false,
   }) async => SavedSignature.fromJson(
     (await _api.putJson('/v1/me/signature', {
       if (signature != null) 'signature': signature.toJson(),
       if (initials != null) 'initials': initials.toJson(),
+      if (stamp != null)
+        'stamp': stamp.toJson()
+      else if (clearStamp)
+        'stamp': null,
     })).body,
   );
+
+  @override
+  Future<Uint8List> stampPreview(
+    Stamp stamp, {
+    DateTime? date,
+  }) => _api.postJsonForBytes('/v1/stamp-preview', {
+    'stamp': stamp.toJson(),
+    if (date != null)
+      'date':
+          '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+  });
 }

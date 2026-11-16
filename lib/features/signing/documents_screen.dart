@@ -9,8 +9,10 @@ import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import 'adopt_signature.dart';
+import 'adopt_stamp.dart';
 import 'signing_repository.dart';
 import 'signing_screen.dart';
+import 'stamp.dart';
 
 final _day = DateFormat('d MMM y');
 
@@ -224,6 +226,47 @@ class _MySignatureScreenState extends State<MySignatureScreen> {
     }
   }
 
+  /// Saving the stamp sends the signature and initials again: one left out
+  /// would be removed.
+  Future<void> _saveStamp(SavedSignature saved, {Stamp? stamp}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final next = AppScope.of(context).signing.save(
+      signature: saved.signature,
+      initials: saved.initials,
+      stamp: stamp,
+      clearStamp: stamp == null,
+    );
+    setState(() {
+      _saved = next;
+    });
+    try {
+      await next;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(stamp == null ? 'Stamp removed' : 'Stamp saved'),
+        ),
+      );
+    } on ApiFailure catch (failure) {
+      messenger.showSnackBar(SnackBar(content: Text(signingMessage(failure))));
+      if (mounted) {
+        setState(() {
+          _saved = Future.value(saved);
+        });
+      }
+    }
+  }
+
+  Future<void> _changeStamp(SavedSignature saved) async {
+    final choice = await showAdoptStamp(
+      context,
+      name: AppScope.of(context).auth.user?.name ?? '',
+      current: saved.stamp,
+      action: 'Save the stamp',
+    );
+    if (choice == null || !mounted) return;
+    await _saveStamp(saved, stamp: choice.value);
+  }
+
   Future<void> _clear(SavedSignature saved, {required bool initials}) async {
     final next = AppScope.of(context).signing.save(
       signature: initials ? saved.signature : null,
@@ -247,14 +290,14 @@ class _MySignatureScreenState extends State<MySignatureScreen> {
           padding: const EdgeInsets.all(Space.x4),
           children: [
             Text(
-              'Save a signature and initials to add them to documents with one tap. '
+              'Save a signature, initials and a company stamp to add them to documents with one tap. '
               'Nothing is signed until you press Click to sign on a document.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: Space.x5),
             _SavedCard(
               title: 'Signature',
-              value: saved.signature,
+              preview: _signaturePreview(saved.signature),
               onChange: () => _change(saved, initials: false),
               onClear: saved.signature == null
                   ? null
@@ -263,11 +306,25 @@ class _MySignatureScreenState extends State<MySignatureScreen> {
             const SizedBox(height: Space.x4),
             _SavedCard(
               title: 'Initials',
-              value: saved.initials,
+              preview: _signaturePreview(saved.initials),
               onChange: () => _change(saved, initials: true),
               onClear: saved.initials == null
                   ? null
                   : () => _clear(saved, initials: true),
+            ),
+            const SizedBox(height: Space.x4),
+            _SavedCard(
+              title: 'Stamp',
+              height: 160,
+              hint:
+                  'For documents that ask for a company stamp. It is printed with the '
+                  'date you sign when you choose to include the date.',
+              preview: switch (saved.stamp) {
+                final Stamp stamp => StampImage(stamp),
+                null => null,
+              },
+              onChange: () => _changeStamp(saved),
+              onClear: saved.stamp == null ? null : () => _saveStamp(saved),
             ),
           ],
         ),
@@ -276,16 +333,23 @@ class _MySignatureScreenState extends State<MySignatureScreen> {
   }
 }
 
+Widget? _signaturePreview(AdoptedSignature? value) =>
+    value == null ? null : SignaturePreview(value);
+
 class _SavedCard extends StatelessWidget {
   const _SavedCard({
     required this.title,
-    required this.value,
+    required this.preview,
     required this.onChange,
     this.onClear,
+    this.hint,
+    this.height = 90,
   });
 
   final String title;
-  final AdoptedSignature? value;
+  final Widget? preview;
+  final String? hint;
+  final double height;
   final VoidCallback onChange;
   final VoidCallback? onClear;
 
@@ -293,7 +357,7 @@ class _SavedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final text = Theme.of(context).textTheme;
-    final saved = value;
+    final saved = preview;
     return BrandOutline(
       active: false,
       child: Padding(
@@ -302,17 +366,21 @@ class _SavedCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(title, style: text.titleMedium),
+            if (hint != null) ...[
+              const SizedBox(height: Space.x1),
+              Text(hint!, style: text.bodySmall),
+            ],
             const SizedBox(height: Space.x3),
             Container(
-              height: 90,
+              height: height,
               padding: const EdgeInsets.all(Space.x2),
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(bottom: BorderSide(color: c.lineStrong)),
               ),
-              child: saved == null
-                  ? Center(child: Text('Not saved yet', style: text.bodyMedium))
-                  : SignaturePreview(saved),
+              child:
+                  saved ??
+                  Center(child: Text('Not saved yet', style: text.bodyMedium)),
             ),
             const SizedBox(height: Space.x3),
             Row(

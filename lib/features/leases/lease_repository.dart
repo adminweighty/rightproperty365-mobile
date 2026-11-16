@@ -86,6 +86,9 @@ class LeaseTemplate {
     this.description,
     this.optionalClauses = const [],
     this.reviewedBy,
+    this.source = 'SAMPLE',
+    this.organisationId,
+    this.canEdit = false,
   });
 
   factory LeaseTemplate.fromJson(Map<String, dynamic> json) {
@@ -108,6 +111,9 @@ class LeaseTemplate {
       reviewedBy: review is Map
           ? '${review['reviewer_name']}, ${review['organisation']}'
           : null,
+      source: json['source'] as String? ?? 'SAMPLE',
+      organisationId: json['organisation_id'] as String?,
+      canEdit: json['can_edit'] == true,
     );
   }
 
@@ -121,6 +127,14 @@ class LeaseTemplate {
 
   /// Who reviewed the wording, when the template records a review.
   final String? reviewedBy;
+
+  /// SAMPLE (the platform's starting points) or ORGANISATION (one of the
+  /// caller's organisations' own published templates).
+  final String source;
+  final String? organisationId;
+  final bool canEdit;
+
+  bool get sample => source != 'ORGANISATION';
 }
 
 /// One of the caller's listings, to attach a lease to.
@@ -204,6 +218,7 @@ class LeaseDraft {
     required this.noticePeriodDays,
     this.optionalClauses = const [],
     this.specialConditions,
+    this.landlordStamp = false,
   });
 
   final String templateId;
@@ -223,6 +238,9 @@ class LeaseDraft {
   final int noticePeriodDays;
   final List<String> optionalClauses;
   final String? specialConditions;
+
+  /// Each landlord also adds a company stamp next to their signature.
+  final bool landlordStamp;
 
   static String date(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -248,6 +266,7 @@ class LeaseDraft {
     'notice_period_days': noticePeriodDays,
     'optional_clauses': optionalClauses,
     'special_conditions': (specialConditions ?? '').trim(),
+    'landlord_stamp': landlordStamp,
   };
 }
 
@@ -288,6 +307,7 @@ class Lease {
     this.sentAt,
     this.completedAt,
     this.cancelReason,
+    this.landlordStamp = false,
   });
 
   factory Lease.fromJson(Map<String, dynamic> json) {
@@ -341,6 +361,7 @@ class Lease {
       sentAt: _at(json['sent_at']),
       completedAt: _at(json['completed_at']),
       cancelReason: json['cancel_reason'] as String?,
+      landlordStamp: json['landlord_stamp'] == true,
     );
   }
 
@@ -379,6 +400,7 @@ class Lease {
   final DateTime? sentAt;
   final DateTime? completedAt;
   final String? cancelReason;
+  final bool landlordStamp;
 
   String get statusLabel => leaseStatusLabel(status);
 
@@ -406,6 +428,7 @@ class Lease {
     noticePeriodDays: noticePeriodDays,
     optionalClauses: optionalClauses,
     specialConditions: specialConditions,
+    landlordStamp: landlordStamp,
   );
 }
 

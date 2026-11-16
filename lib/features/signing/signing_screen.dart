@@ -15,8 +15,10 @@ import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import 'adopt_signature.dart';
+import 'adopt_stamp.dart';
 import 'pdf_pages.dart';
 import 'signing_repository.dart';
+import 'stamp.dart';
 
 final _when = DateFormat('d MMM y, HH:mm');
 String _today() => DateFormat('d MMM y').format(DateTime.now());
@@ -495,9 +497,14 @@ class _GuidedState extends State<_Guided> {
   final _applied = <String>{};
   AdoptedSignature? _signature;
   AdoptedSignature? _initials;
+  late Stamp? _stamp = widget.view.savedStamp;
+  Uint8List? _stampImage;
   SavedSignature? _saved;
   bool _showMissing = false;
-  String? _notice;
+  late String? _notice = widget.view.savedStamp == null ? null : _readyNotice;
+
+  static const _readyNotice =
+      'What you saved to your account is ready. Tap each box to add it; tap it again to change it.';
 
   @override
   void didChangeDependencies() {
@@ -517,8 +524,11 @@ class _GuidedState extends State<_Guided> {
         _saved = saved;
         _signature ??= saved.signature;
         _initials ??= saved.initials;
-        if (saved.signature != null || saved.initials != null) {
-          _notice = 'Your saved signature is ready. Tap each signature box to add it; tap it again to change it.';
+        _stamp ??= saved.stamp;
+        if (saved.signature != null ||
+            saved.initials != null ||
+            (_stamp != null && _mine.any((f) => f.type == 'STAMP'))) {
+          _notice = _readyNotice;
         }
       });
     } on ApiFailure {
@@ -539,6 +549,7 @@ class _GuidedState extends State<_Guided> {
   bool _filled(SigningField f) => switch (f.type) {
     'SIGNATURE' => _applied.contains(f.id) && _signature != null,
     'INITIALS' => _applied.contains(f.id) && _initials != null,
+    'STAMP' => _applied.contains(f.id) && _stamp != null,
     'TEXT' => (_values[f.id] ?? '').trim().isNotEmpty,
     'CHECKBOX' => _values[f.id] == 'true',
     _ => true,
@@ -601,10 +612,11 @@ class _GuidedState extends State<_Guided> {
     if (choice == null || !mounted) return;
     if (choice.save) {
       try {
-        final saved = _saved;
+        // A signature or initials left out of the save would be removed.
+        final saved = _saved ?? await services.signing.saved();
         final next = await services.signing.save(
-          signature: initials ? saved?.signature : choice.value,
-          initials: initials ? choice.value : saved?.initials,
+          signature: initials ? saved.signature : choice.value,
+          initials: initials ? choice.value : saved.initials,
         );
         if (mounted) setState(() => _saved = next);
       } on ApiFailure catch (failure) {
@@ -625,6 +637,49 @@ class _GuidedState extends State<_Guided> {
       } else {
         _signature = choice.value;
       }
+      _applied.add(field.id);
+    });
+  }
+
+  Future<void> _applyStamp(SigningField field) async {
+    if (_stamp != null && !_applied.contains(field.id)) {
+      setState(() => _applied.add(field.id));
+      return;
+    }
+    final services = AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final choice = await showAdoptStamp(
+      context,
+      name: widget.view.recipientName,
+      current: _stamp,
+      canSave: services.auth.user != null,
+      date: DateTime.now(),
+    );
+    if (choice == null || !mounted) return;
+    if (choice.save) {
+      try {
+        final saved = _saved ?? await services.signing.saved();
+        final next = await services.signing.save(
+          signature: saved.signature,
+          initials: saved.initials,
+          stamp: choice.value,
+        );
+        if (mounted) setState(() => _saved = next);
+      } on ApiFailure catch (failure) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'It is used here, but we could not save it to your account: '
+              '${signingMessage(failure)}',
+            ),
+          ),
+        );
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _stamp = choice.value;
+      _stampImage = choice.image;
       _applied.add(field.id);
     });
   }
@@ -676,6 +731,9 @@ class _GuidedState extends State<_Guided> {
       initials: !view.approver && _mine.any((f) => f.type == 'INITIALS')
           ? _initials
           : null,
+      stamp: !view.approver && _mine.any((f) => f.type == 'STAMP')
+          ? _stamp
+          : null,
     );
   }
 
@@ -700,12 +758,33 @@ class _GuidedState extends State<_Guided> {
     final box = switch (field.type) {
       'SIGNATURE' || 'INITIALS' => _SignBox(
         word: field.type == 'SIGNATURE' ? 'Sign' : 'Initial',
+        noun: field.type == 'SIGNATURE' ? 'Signature' : 'Initials',
         required: field.required,
-        adopted: _applied.contains(field.id)
+        preview: switch (_applied.contains(field.id)
             ? (field.type == 'SIGNATURE' ? _signature : _initials)
-            : null,
+            : null) {
+          final AdoptedSignature adopted => SignaturePreview(adopted),
+          null => null,
+        },
         missing: missing,
         onTap: () => _sign(field),
+      ),
+      'STAMP' => _SignBox(
+        word: 'Stamp',
+        noun: 'Stamp',
+        icon: Icons.approval_outlined,
+        required: field.required,
+        preview: switch (_applied.contains(field.id) ? _stamp : null) {
+          final Stamp stamp => StampImage(
+            stamp,
+            date: DateTime.now(),
+            initial: _stampImage,
+            onLoaded: (_, bytes) => _stampImage = bytes,
+          ),
+          null => null,
+        },
+        missing: missing,
+        onTap: () => _applyStamp(field),
       ),
       'NAME' || 'DATE_SIGNED' => Tooltip(
         message: 'Filled in for you',
@@ -910,7 +989,7 @@ class _GuidedState extends State<_Guided> {
                     ],
                     const SizedBox(height: Space.x3),
                     Text(
-                      '${view.approver ? 'Read it, then approve it at the end. You do not sign it.' : 'Press Start to go to each field you need to fill in. Yellow boxes are yours. Your name and the date are filled in for you.'} '
+                      '${view.approver ? 'Read it, then approve it at the end. You do not sign it.' : 'Press Start to go to each field you need to fill in. Yellow boxes are yours. Your name and the date are filled in for you.${_mine.any((f) => f.type == 'STAMP') ? ' You also add your company stamp.' : ''}'} '
                       'It can be signed until ${_when.format(view.expiresAt.toLocal())}.',
                       style: text.bodyMedium,
                     ),
@@ -964,23 +1043,28 @@ class _GuidedState extends State<_Guided> {
 class _SignBox extends StatelessWidget {
   const _SignBox({
     required this.word,
+    required this.noun,
     required this.required,
-    required this.adopted,
+    required this.preview,
     required this.missing,
     required this.onTap,
+    this.icon = Icons.draw_outlined,
   });
 
   final String word;
+  final String noun;
   final bool required;
-  final AdoptedSignature? adopted;
+
+  /// What was added, or null while the box is empty.
+  final Widget? preview;
   final bool missing;
   final VoidCallback onTap;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final value = adopted;
-    final noun = word == 'Sign' ? 'Signature' : 'Initials';
+    final value = preview;
     return Semantics(
       button: true,
       label: value != null
@@ -1005,28 +1089,28 @@ class _SignBox extends StatelessWidget {
               width: 2,
             ),
           ),
-          child: value != null
-              ? SignaturePreview(value)
-              : FittedBox(
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.draw_outlined, color: c.warning, size: 14),
-                        const SizedBox(width: 2),
-                        Text(
-                          word,
-                          style: TextStyle(
-                            color: c.warning,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
+          child:
+              value ??
+              FittedBox(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: c.warning, size: 14),
+                      const SizedBox(width: 2),
+                      Text(
+                        word,
+                        style: TextStyle(
+                          color: c.warning,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
         ),
       ),
     );

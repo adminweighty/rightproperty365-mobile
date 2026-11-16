@@ -112,6 +112,13 @@ class ApiClient {
   Future<Uint8List> getBytes(String path) async =>
       (await _exchange('GET', path, accept: '*/*')).bodyBytes;
 
+  /// A JSON POST whose answer is a file, such as a generated image.
+  Future<Uint8List> postJsonForBytes(
+    String path,
+    Map<String, dynamic> body,
+  ) async =>
+      (await _exchange('POST', path, body: body, accept: '*/*')).bodyBytes;
+
   Future<ApiResponse> _send(
     String method,
     String path, {

@@ -11,7 +11,10 @@ import 'package:rightproperty365/features/leases/lease_form_screen.dart';
 import 'package:rightproperty365/features/leases/lease_repository.dart';
 import 'package:rightproperty365/features/leases/leases_screen.dart';
 import 'package:rightproperty365/features/signing/signing_repository.dart';
+import 'package:rightproperty365/features/signing/adopt_stamp.dart';
+import 'package:rightproperty365/features/signing/documents_screen.dart';
 import 'package:rightproperty365/features/signing/signing_screen.dart';
+import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/team/invitation_screen.dart';
 import 'package:rightproperty365/features/team/team_repository.dart';
 import 'package:rightproperty365/features/team/team_screen.dart';
@@ -265,6 +268,38 @@ Map<String, dynamic> signingView({
     'link_expires_at': '2026-12-16T09:00:00Z',
   },
 };
+
+/// A 1x1 transparent PNG, as the stamp preview answers.
+final stampPng = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+);
+
+http.Response stampImage(http.Request _) =>
+    http.Response.bytes(stampPng, 200, headers: {'content-type': 'image/png'});
+
+/// A signing view in which this signer only has a company stamp to add.
+Map<String, dynamic> stampView({Map<String, dynamic>? saved}) => {
+  'signing': {
+    ...(signingView()['signing'] as Map<String, dynamic>),
+    'fields': [
+      {...field('f-stamp', 'STAMP', y: 500), 'w': 113, 'h': 113},
+    ],
+    'saved_stamp': saved,
+  },
+};
+
+/// Scrolls the open stamp sheet until [finder] is built and on screen.
+Future<void> inSheet(WidgetTester tester, Finder finder) =>
+    tester.scrollUntilVisible(
+      finder,
+      120,
+      scrollable: find
+          .descendant(
+            of: find.byType(AdoptStampSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
 
 Future<void> settle(WidgetTester tester) async {
   await tester.pumpAndSettle();
@@ -606,6 +641,35 @@ void main() {
         draft.toJson(creating: false).containsKey('organisation_id'),
         isFalse,
       );
+      expect(created['landlord_stamp'], isFalse);
+    });
+
+    test("templates say whether they are samples or the agency's own", () {
+      final own = LeaseTemplate.fromJson({
+        'id': 'tpl-own',
+        'name': 'Our lease',
+        'version': 1,
+        'market_code': 'ZW',
+        'lease_kind': 'RESIDENTIAL',
+        'source': 'ORGANISATION',
+        'organisation_id': 'org-1',
+        'can_edit': true,
+      });
+      expect(own.sample, isFalse);
+      expect(own.organisationId, 'org-1');
+      expect(own.canEdit, isTrue);
+      final sample = LeaseTemplate.fromJson({
+        'id': 'tpl-1',
+        'name': 'Sample',
+        'version': 1,
+      });
+      expect(sample.sample, isTrue);
+      expect(
+        Lease.fromJson({...leaseJson(), 'landlord_stamp': true})
+            .toDraft()
+            .landlordStamp,
+        isTrue,
+      );
     });
 
     test('a lease is read with its parties and what can be done', () {
@@ -721,6 +785,21 @@ void main() {
               ],
               'status': 'APPROVED',
               'legal_review': null,
+              'source': 'SAMPLE',
+              'organisation_id': null,
+              'can_edit': false,
+            },
+            {
+              'id': 'tpl-own',
+              'version': 1,
+              'market_code': 'ZW',
+              'name': 'Sample Estates house lease',
+              'lease_kind': 'RESIDENTIAL',
+              'optional_clauses': [],
+              'status': 'APPROVED',
+              'source': 'ORGANISATION',
+              'organisation_id': 'org-1',
+              'can_edit': true,
             },
           ],
           'variables': [],
@@ -738,6 +817,17 @@ void main() {
 
       await tester.tap(find.byKey(const Key('lease-template')));
       await settle(tester);
+      // The agency's own templates are listed before the samples.
+      expect(
+        tester.getTopLeft(find.text('Your templates')).dy,
+        lessThan(tester.getTopLeft(find.text('Samples')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text('Sample Estates house lease (v1)')).dy,
+        lessThan(
+          tester.getTopLeft(find.text('Zimbabwe residential lease (v2)')).dy,
+        ),
+      );
       await tester.tap(find.text('Zimbabwe residential lease (v2)'));
       await settle(tester);
       await tester.enterText(
@@ -761,7 +851,11 @@ void main() {
         'tom@example.test',
       );
       await tester.enterText(find.byKey(const Key('lease-rent')), '850');
+      await tester.ensureVisible(find.byKey(const Key('lease-landlord-stamp')));
+      await tester.tap(find.byKey(const Key('lease-landlord-stamp')));
+      await tester.ensureVisible(find.text('Pets allowed'));
       await tester.tap(find.text('Pets allowed'));
+      await tester.ensureVisible(find.byKey(const Key('lease-periodic')));
       await tester.tap(find.byKey(const Key('lease-periodic')));
       await tester.tap(find.byKey(const Key('lease-start')));
       await settle(tester);
@@ -778,6 +872,7 @@ void main() {
       expect(body.containsKey('end_date'), isFalse);
       expect(body['optional_clauses'], ['PETS']);
       expect(body['notice_period_days'], 30);
+      expect(body['landlord_stamp'], isTrue);
       // One organisation: the API picks it, nothing to send.
       expect(body.containsKey('organisation_id'), isFalse);
     });
@@ -1089,6 +1184,256 @@ void main() {
         );
       },
     );
+
+    test('a stamp is sent cleaned, as the API keeps it', () {
+      const stamp = Stamp(
+        shape: 'OVAL',
+        colour: 'RED',
+        topText: ' Acme Properties ',
+        centreLines: ['harare', ' '],
+        bottomText: 'reg 1/2020',
+      );
+      expect(stamp.toJson(), {
+        'shape': 'OVAL',
+        'colour': 'RED',
+        'top_text': 'ACME PROPERTIES',
+        'centre_lines': ['HARARE'],
+        'bottom_text': 'REG 1/2020',
+        'include_date': true,
+      });
+      expect(const Stamp(topText: ' ').problem, 'Type the name on the stamp.');
+      expect(
+        Stamp(topText: 'A', centreLines: ['x' * 31]).problem,
+        contains('30 characters'),
+      );
+      expect(Stamp.forName('Tom Tenant').topText, 'TOM TENANT');
+      final odd = Stamp.fromJson({'shape': 'STAR', 'top_text': 'X'});
+      expect(
+        [odd.shape, odd.colour, odd.includeDate],
+        ['ROUND', 'BLUE', false],
+      );
+
+      final view = SigningView.fromJson(
+        stampView(saved: stamp.toJson())['signing'] as Map<String, dynamic>,
+      );
+      expect(view.savedStamp, stamp);
+      expect(view.mine.single.selfFilled, isTrue);
+      expect(SavedSignature.fromJson({'stamp': stamp.toJson()}).stamp, stamp);
+      expect(
+        const SigningSubmission(code: '1', stamp: stamp).toJson()['stamp'],
+        stamp.toJson(),
+      );
+    });
+
+    testWidgets('a signer adopts a stamp, sees it drawn, and sends it', (
+      tester,
+    ) async {
+      final test = TestServices();
+      serve(test, {
+        'GET /v1/signing/$signingToken': (_) => stampView(),
+        'GET /v1/signing/$signingToken/pdf': (_) =>
+            http.Response.bytes([1], 200),
+        'POST /v1/stamp-preview': stampImage,
+        'POST /v1/signing/$signingToken/code': (_) => {
+          'sent_to': 't•••@example.test',
+          'expires_at': '2026-11-16T10:10:00Z',
+          'code_length': 6,
+        },
+        'POST /v1/signing/$signingToken/submit': (_) => {
+          'recipient_status': 'SIGNED',
+          'agreement_status': 'OUT_FOR_SIGNATURE',
+        },
+      });
+      await pumpInApp(
+        tester,
+        test,
+        const SigningScreen(token: signingToken),
+        size: const Size(390, 900),
+      );
+      await settle(tester);
+      expect(find.text('Start · 0 of 1 required fields'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('signing-next')));
+      await settle(tester);
+      await tester.tap(find.bySemanticsLabel('Stamp here (required)'));
+      await settle(tester);
+      expect(find.text('Adopt your stamp'), findsOneWidget);
+      // Prefilled with the signer's name; not signed in, so nothing to save.
+      expect(find.text('TOM TENANT'), findsOneWidget);
+      expect(find.byKey(const Key('stamp-save')), findsNothing);
+      await tester.pump(const Duration(milliseconds: 700));
+      await settle(tester);
+      final previews = test.workRequests
+          .where((r) => r.url.path == '/v1/stamp-preview')
+          .toList();
+      expect(previews, hasLength(1));
+      expect(bodyOf(previews.single)['stamp']['top_text'], 'TOM TENANT');
+      expect(bodyOf(previews.single)['date'], matches(r'^\d{4}-\d{2}-\d{2}$'));
+
+      // An empty name is stopped before anything is sent.
+      await tester.enterText(find.byKey(const Key('stamp-top')), '');
+      await tester.tap(find.byKey(const Key('stamp-adopt')));
+      await settle(tester);
+      expect(find.text('Type the name on the stamp.'), findsWidgets);
+
+      await tester.enterText(
+        find.byKey(const Key('stamp-top')),
+        'Acme Properties',
+      );
+      await inSheet(tester, find.text('Oval'));
+      await tester.tap(find.text('Oval'));
+      await inSheet(tester, find.byKey(const Key('stamp-ink-RED')));
+      await tester.tap(find.byKey(const Key('stamp-ink-RED')));
+      await inSheet(tester, find.byKey(const Key('stamp-add-line')));
+      await tester.tap(find.byKey(const Key('stamp-add-line')));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('stamp-line-0')), 'Harare');
+      await inSheet(tester, find.byKey(const Key('stamp-bottom')));
+      await tester.enterText(
+        find.byKey(const Key('stamp-bottom')),
+        'Reg 1/2020',
+      );
+      // A preview is asked for when typing pauses, not for every change.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 700));
+      await settle(tester);
+      final drawn = test.workRequests
+          .where((r) => r.url.path == '/v1/stamp-preview')
+          .toList();
+      expect(drawn.length, lessThan(6));
+      expect(bodyOf(drawn.last)['stamp'], {
+        'shape': 'OVAL',
+        'colour': 'RED',
+        'top_text': 'ACME PROPERTIES',
+        'centre_lines': ['HARARE'],
+        'bottom_text': 'REG 1/2020',
+        'include_date': true,
+      });
+      await tester.tap(find.byKey(const Key('stamp-adopt')));
+      await settle(tester);
+      expect(find.text('Adopt your stamp'), findsNothing);
+      expect(find.bySemanticsLabel('Stamp added. Change it'), findsOneWidget);
+      expect(find.text('Finish · 1 of 1 required fields'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('signing-next')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('signing-send-code')));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('signing-code')), '123456');
+      await tester.tap(find.byKey(const Key('signing-consent')));
+      await tester.tap(find.byKey(const Key('signing-submit')));
+      await settle(tester);
+
+      final body = bodyOf(
+        test.workRequests.lastWhere((r) => r.url.path.endsWith('/submit')),
+      );
+      expect(body['stamp'], {
+        'shape': 'OVAL',
+        'colour': 'RED',
+        'top_text': 'ACME PROPERTIES',
+        'centre_lines': ['HARARE'],
+        'bottom_text': 'REG 1/2020',
+        'include_date': true,
+      });
+      expect(body.containsKey('signature'), isFalse);
+      await tester.pump(const Duration(seconds: 31));
+    });
+
+    testWidgets('a saved stamp is ready with one tap', (tester) async {
+      final test = TestServices();
+      serve(test, {
+        'GET /v1/signing/$signingToken': (_) =>
+            stampView(saved: const Stamp(topText: 'ACME PROPERTIES').toJson()),
+        'GET /v1/signing/$signingToken/pdf': (_) =>
+            http.Response.bytes([1], 200),
+        'POST /v1/stamp-preview': stampImage,
+      });
+      await pumpInApp(tester, test, const SigningScreen(token: signingToken));
+      await settle(tester);
+      expect(find.textContaining('is ready. Tap each box'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('signing-next')));
+      await settle(tester);
+      await tester.tap(find.bySemanticsLabel('Stamp here (required)'));
+      await settle(tester);
+      expect(find.text('Adopt your stamp'), findsNothing);
+      expect(find.text('Finish · 1 of 1 required fields'), findsOneWidget);
+    });
+
+    testWidgets('My signature saves a stamp without losing the signature', (
+      tester,
+    ) async {
+      final test = TestServices();
+      const typed = {'kind': 'TYPED', 'text': 'Tom Tenant', 'font': 'FLOWING'};
+      Map<String, dynamic>? stamp;
+      serve(test, {
+        'GET /v1/me/signature': (_) => {
+          'signature': typed,
+          'initials': null,
+          'stamp': stamp,
+        },
+        'PUT /v1/me/signature': (request) {
+          final body = bodyOf(request);
+          if (body.containsKey('stamp')) {
+            stamp = body['stamp'] as Map<String, dynamic>?;
+          }
+          return {'signature': typed, 'initials': null, 'stamp': stamp};
+        },
+        'POST /v1/stamp-preview': stampImage,
+      });
+      await pumpInApp(tester, test, const MySignatureScreen());
+      await settle(tester);
+      await tester.ensureVisible(find.byKey(const Key('change-stamp')));
+      await tester.tap(find.byKey(const Key('change-stamp')));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('stamp-top')), 'Acme');
+      await tester.tap(find.byKey(const Key('stamp-adopt')));
+      await settle(tester);
+
+      final saved = bodyOf(
+        test.workRequests.lastWhere((r) => r.method == 'PUT'),
+      );
+      expect(saved['signature'], typed);
+      expect((saved['stamp'] as Map)['top_text'], 'ACME');
+      expect(find.text('Stamp saved'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Remove').last);
+      await tester.tap(find.text('Remove').last);
+      await settle(tester);
+      final cleared = bodyOf(
+        test.workRequests.lastWhere((r) => r.method == 'PUT'),
+      );
+      expect(cleared['signature'], typed);
+      expect(cleared.containsKey('stamp'), isTrue);
+      expect(cleared['stamp'], isNull);
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('the stamp sheet holds at 200% text size', (tester) async {
+      final test = TestServices();
+      serve(test, {
+        'GET /v1/signing/$signingToken': (_) => stampView(),
+        'GET /v1/signing/$signingToken/pdf': (_) =>
+            http.Response.bytes([1], 200),
+        'POST /v1/stamp-preview': stampImage,
+      });
+      await pumpInApp(
+        tester,
+        test,
+        const SigningScreen(token: signingToken),
+        textScale: 2,
+        size: const Size(390, 844),
+      );
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('signing-next')));
+      await settle(tester);
+      await tester.tap(find.bySemanticsLabel('Stamp here (required)'));
+      await settle(tester);
+      expect(find.text('Adopt your stamp'), findsOneWidget);
+      await inSheet(tester, find.byKey(const Key('stamp-date')));
+      await tester.pump(const Duration(milliseconds: 700));
+      await settle(tester);
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('the signing screen and the team hold at 200% text size', (
       tester,

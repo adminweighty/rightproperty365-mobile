@@ -67,6 +67,7 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
   DateTime? _start;
   DateTime? _end;
   bool _periodic = false;
+  bool _landlordStamp = false;
   final _rent = TextEditingController();
   final _currency = TextEditingController(text: 'USD');
   String _period = 'MONTHLY';
@@ -125,6 +126,7 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
     _start = draft.startDate;
     _end = draft.endDate;
     _periodic = draft.periodic;
+    _landlordStamp = draft.landlordStamp;
     _rent.text = draft.rentAmount;
     _currency.text = draft.rentCurrency;
     _period = draft.rentPeriod;
@@ -218,6 +220,7 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
           if (_clauses.contains(clause.code)) clause.code,
       ],
       specialConditions: _special.text,
+      landlordStamp: _landlordStamp,
     );
     setState(() {
       _saving = true;
@@ -280,8 +283,8 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
               icon: Icons.description_outlined,
               title: 'No lease templates yet',
               body:
-                  'Create and approve a lease template on the website first. Leases are '
-                  'drafted from your approved templates.',
+                  'There are no published templates for your country yet. Copy a sample '
+                  'template on the website, change it and publish it, then draft the lease here.',
             );
           }
           return _formBody(context, choices);
@@ -395,14 +398,17 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
             key: const Key('lease-template'),
             label: 'Template',
             value: _templateId,
+            // The organisation's own templates first, then the samples.
             options: [
-              for (final t in choices.templates)
-                SelectOption(
-                  t.id,
-                  '${t.name} (v${t.version})',
-                  group: t.marketCode,
-                  keywords: '${t.marketCode} ${t.leaseKind}',
-                ),
+              for (final sample in [false, true])
+                for (final t in choices.templates)
+                  if (t.sample == sample)
+                    SelectOption(
+                      t.id,
+                      '${t.name} (v${t.version})',
+                      group: sample ? 'Samples' : 'Your templates',
+                      keywords: '${t.marketCode} ${t.leaseKind}',
+                    ),
             ],
             onChanged: (id) => setState(() {
               _templateId = id;
@@ -421,6 +427,19 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
                   chosen.marketCode.toUpperCase() !=
                       listing.countryCode.toUpperCase()) {
                 return "Choose a template for the property's country (${listing.countryCode}).";
+              }
+              final organisation =
+                  (_listingId == null ? _organisationId : null) ??
+                  (choices.organisations.length == 1
+                      ? choices.organisations.first.id
+                      : null);
+              if (chosen != null &&
+                  !chosen.sample &&
+                  organisation != null &&
+                  chosen.organisationId != null &&
+                  chosen.organisationId != organisation) {
+                return 'That template belongs to another of your organisations. Choose one of '
+                    "this organisation's templates or a sample.";
               }
               return null;
             },
@@ -492,6 +511,16 @@ class _LeaseFormScreenState extends State<LeaseFormScreen> {
           ),
           gap,
           _parties(context, 'Landlords', _landlords),
+          SwitchListTile(
+            key: const Key('lease-landlord-stamp'),
+            contentPadding: EdgeInsets.zero,
+            value: _landlordStamp,
+            onChanged: (v) => setState(() => _landlordStamp = v),
+            title: const Text('Landlords also stamp the lease'),
+            subtitle: const Text(
+              'Each landlord adds a company stamp next to their signature, for a company or trust.',
+            ),
+          ),
           gap,
           _parties(context, 'Tenants', _tenants),
           gap,

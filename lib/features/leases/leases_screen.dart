@@ -551,6 +551,7 @@ class _LeaseDetailScreenState extends State<LeaseDetailScreen> {
             formatMoney(Money(lease.depositAmount!, lease.rentCurrency)),
           ),
         row('Notice', '${lease.noticePeriodDays} days'),
+        if (lease.landlordStamp) row('Stamp', 'Landlords add a company stamp'),
         if (lease.optionalClauses.isNotEmpty)
           row('Clauses', lease.optionalClauses.join(', ')),
         if ((lease.specialConditions ?? '').isNotEmpty)
