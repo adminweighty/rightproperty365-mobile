@@ -7,6 +7,12 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/sign_in_screen.dart';
 import '../features/directory/data/profile.dart';
 import '../features/inbox/inbox_screen.dart';
+import '../features/leases/lease_form_screen.dart';
+import '../features/leases/leases_screen.dart';
+import '../features/signing/documents_screen.dart';
+import '../features/signing/signing_screen.dart';
+import '../features/team/invitation_screen.dart';
+import '../features/team/team_screen.dart';
 import '../features/directory/presentation/directory_screens.dart';
 import '../features/directory/presentation/profile_screen.dart';
 import '../features/listings/data/listing.dart';
@@ -26,6 +32,22 @@ abstract final class Routes {
   static const register = '/register';
   static const forgotPassword = '/forgot-password';
   static const inbox = '/inbox';
+  static const leases = '/leases';
+  static const newLease = '/leases/new';
+  static const documentsToSign = '/signing';
+  static const mySignature = '/signature';
+  static const joinTeam = '/invitations';
+
+  static String team(String organisationId) =>
+      '/team/${Uri.encodeComponent(organisationId)}';
+  static String lease(String id) => '/leases/${Uri.encodeComponent(id)}';
+  static String editLease(String id) =>
+      '/leases/${Uri.encodeComponent(id)}/edit';
+
+  /// Matches the emailed signing and invitation links on the website.
+  static String sign(String token) => '/sign/${Uri.encodeComponent(token)}';
+  static String invitation(String token) =>
+      '/invitations/${Uri.encodeComponent(token)}';
 
   /// With no token these open the screen where the emailed link is pasted.
   static String verifyEmail([String? token]) =>
@@ -170,6 +192,58 @@ GoRouter buildRouter() => GoRouter(
       builder: (context, state) => const SignInScreen(),
     ),
     GoRoute(path: '/inbox', builder: (context, state) => const InboxScreen()),
+    GoRoute(
+      path: '/team/:id',
+      builder: (context, state) =>
+          TeamScreen(organisationId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/invitations',
+      builder: (context, state) => const InvitationScreen(),
+      routes: [
+        GoRoute(
+          path: ':token',
+          builder: (context, state) =>
+              InvitationScreen(token: state.pathParameters['token']),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/leases',
+      builder: (context, state) => const LeasesScreen(),
+      routes: [
+        // Before ':id', so "new" is not read as an ID.
+        GoRoute(
+          path: 'new',
+          builder: (context, state) => const LeaseFormScreen(),
+        ),
+        GoRoute(
+          path: ':id',
+          builder: (context, state) =>
+              LeaseDetailScreen(id: state.pathParameters['id']!),
+          routes: [
+            GoRoute(
+              path: 'edit',
+              builder: (context, state) =>
+                  LeaseFormScreen(leaseId: state.pathParameters['id']),
+            ),
+          ],
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/signing',
+      builder: (context, state) => const DocumentsToSignScreen(),
+    ),
+    GoRoute(
+      path: '/signature',
+      builder: (context, state) => const MySignatureScreen(),
+    ),
+    GoRoute(
+      path: '/sign/:token',
+      builder: (context, state) =>
+          SigningScreen(token: state.pathParameters['token']!),
+    ),
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),

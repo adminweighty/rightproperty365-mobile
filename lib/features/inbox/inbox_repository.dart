@@ -20,6 +20,8 @@ class ReceivedEnquiry {
     required this.receivedAt,
     this.contactPhone,
     this.listingSlug,
+    this.requestId,
+    this.assignedTo,
   });
 
   /// From GET /v1/agent/property-requests (`OrganisationPropertyRequest`).
@@ -33,6 +35,9 @@ class ReceivedEnquiry {
           .firstWhere((t) => t.wire == type, orElse: () => RequestType.enquiry)
           .label,
       listingSlug: listing?['slug'] as String?,
+      requestId: json['request_id'] as String?,
+      assignedTo:
+          (json['assigned_to'] as Map<String, dynamic>?)?['name'] as String?,
       status: json['status'] as String,
       stageLabel: json['stage_label'] as String?,
       message: json['message'] as String,
@@ -67,6 +72,12 @@ class ReceivedEnquiry {
   /// The request type for a listing, or who the enquiry was addressed to.
   final String kind;
   final String? listingSlug;
+
+  /// Property requests only: the ID used to assign it to a team member.
+  final String? requestId;
+
+  /// The team member the request is assigned to; null in the agency inbox.
+  final String? assignedTo;
   final String status;
 
   /// The lead stage's wording from the API (property requests only).

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -83,15 +84,60 @@ class ApiClient {
     Map<String, String> headers = const {},
   }) => _send('POST', path, body: body, headers: headers);
 
+  /// A POST without a body, for actions such as accepting an invitation.
+  Future<ApiResponse> post(
+    String path, {
+    Map<String, String> headers = const {},
+  }) => _send('POST', path, headers: headers);
+
+  Future<ApiResponse> patchJson(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String> headers = const {},
+  }) => _send('PATCH', path, body: body, headers: headers);
+
+  Future<ApiResponse> putJson(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String> headers = const {},
+  }) => _send('PUT', path, body: body, headers: headers);
+
+  Future<ApiResponse> delete(
+    String path, {
+    Map<String, String> headers = const {},
+  }) => _send('DELETE', path, headers: headers);
+
+  /// A file, such as a PDF, as bytes. Failures are read from the JSON error
+  /// envelope like any other call.
+  Future<Uint8List> getBytes(String path) async =>
+      (await _exchange('GET', path, accept: '*/*')).bodyBytes;
+
   Future<ApiResponse> _send(
     String method,
     String path, {
     Map<String, dynamic>? body,
     Map<String, String> headers = const {},
   }) async {
+    final response = await _exchange(
+      method,
+      path,
+      body: body,
+      headers: headers,
+    );
+    return ApiResponse(response.statusCode, _decode(response.body));
+  }
+
+  /// Sends the request; returns a 2xx response or throws [ApiFailure].
+  Future<http.Response> _exchange(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String> headers = const {},
+    String accept = 'application/json',
+  }) async {
     final request = http.Request(method, Uri.parse('$_baseUrl$path'))
       ..headers.addAll({
-        'Accept': 'application/json',
+        'Accept': accept,
         if (body != null) 'Content-Type': 'application/json',
         if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',
         ...headers,
@@ -111,10 +157,10 @@ class ApiClient {
       throw const ApiFailure.network();
     }
 
-    final decoded = _decode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return ApiResponse(response.statusCode, decoded);
+      return response;
     }
+    final decoded = _decode(response.body);
 
     final error = decoded['error'];
     final details = error is Map<String, dynamic>

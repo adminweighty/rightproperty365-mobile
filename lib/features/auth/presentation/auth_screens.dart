@@ -9,6 +9,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/terminology.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
+import '../../workspace/work_section.dart';
 import '../data/auth_models.dart';
 
 final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -185,6 +186,12 @@ class _SignedIn extends StatelessWidget {
           ),
         ],
         const SizedBox(height: Space.x6),
+        WorkSection(
+          professional:
+              user.memberships.isNotEmpty ||
+              user.accountRoles.any((r) => !r.isSeeker),
+        ),
+        const SizedBox(height: Space.x3),
         const SectionHeading('Your roles'),
         const SizedBox(height: Space.x2),
         if (user.accountRoles.isEmpty &&

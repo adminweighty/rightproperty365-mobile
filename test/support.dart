@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +21,12 @@ import 'package:rightproperty365/features/auth/data/token_store.dart';
 import 'package:rightproperty365/features/directory/data/business_enquiry_repository.dart';
 import 'package:rightproperty365/features/directory/data/directory_repository.dart';
 import 'package:rightproperty365/features/enquiries/data/enquiry.dart';
+import 'package:rightproperty365/features/leases/lease_repository.dart';
 import 'package:rightproperty365/features/listings/data/listing_repository.dart';
+import 'package:rightproperty365/features/signing/pdf_pages.dart';
+import 'package:rightproperty365/features/signing/signing_repository.dart';
+import 'package:rightproperty365/features/team/team_repository.dart';
+import 'package:rightproperty365/features/workspace/workspace.dart';
 import 'package:rightproperty365/features/property_requests/data/property_request.dart';
 import 'package:rightproperty365/features/property_requests/data/property_request_repository.dart';
 
@@ -255,6 +262,32 @@ class FakeInbox implements InboxRepository {
   }
 }
 
+/// A PDF without a PDF engine: blank pages of the given sizes.
+class FakePdf implements OpenPdf {
+  FakePdf(this.pageSizes);
+
+  @override
+  final List<ui.Size> pageSizes;
+  bool closed = false;
+
+  @override
+  Future<ui.Image?> render(int index, int pixelWidth) async => null;
+
+  @override
+  Future<void> close() async => closed = true;
+}
+
+class FakePdfRenderer implements PdfRenderer {
+  List<ui.Size> pages = const [ui.Size(595, 842)];
+  final opened = <Uint8List>[];
+
+  @override
+  Future<OpenPdf> open(Uint8List bytes) async {
+    opened.add(bytes);
+    return FakePdf(pages);
+  }
+}
+
 /// Services wired with fakes for widget tests.
 class TestServices {
   TestServices({MemoryTokenStore? tokens})
@@ -273,8 +306,31 @@ class TestServices {
       auth: auth,
       activity: activity,
       inbox: inbox,
+      workspace: ApiWorkspaceRepository(workApi),
+      team: ApiTeamRepository(workApi, newKey: countingKeys()),
+      leases: ApiLeaseRepository(workApi),
+      signing: ApiSigningRepository(workApi),
+      pdf: pdf,
+      pickSignatureImage: () async => pickedImage,
     );
   }
+
+  /// Answers the work-area calls (dashboard, team, leases, signing); every
+  /// request is kept in [workRequests]. Unset paths answer 404.
+  Future<http.Response> Function(http.Request request) workHandler =
+      (request) async => jsonResponse(404, {
+        'error': {'code': 'NOT_FOUND', 'message': 'Not found'},
+      });
+  final workRequests = <http.Request>[];
+  late final workApi = ApiClient(
+    baseUrl: 'http://api.test',
+    httpClient: MockClient((request) {
+      workRequests.add(request);
+      return workHandler(request);
+    }),
+  );
+  final pdf = FakePdfRenderer();
+  Uint8List? pickedImage;
 
   final inbox = FakeInbox();
   final storage = MemoryStore();

@@ -10,13 +10,15 @@ import '../../core/api/api_client.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
+import '../team/assign_sheet.dart';
+import '../workspace/workspace.dart';
 import 'inbox_repository.dart';
 
 /// Enquiries received by an Estate Agent, Agency Principal, Solicitor,
 /// Landlord, Property Seller or other professional.
 ///
-/// Read-only for now: the API does not yet accept replies, status changes or
-/// viewing appointments, so this screen does not offer them.
+/// An Agency Principal or administrator can give a listing enquiry to a team
+/// member. Replies and stage changes are not offered here yet.
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
 
@@ -27,15 +29,42 @@ class InboxScreen extends StatefulWidget {
 class _InboxScreenState extends State<InboxScreen> {
   Future<List<ReceivedEnquiry>>? _enquiries;
 
+  /// The organisations in which this person may assign enquiries.
+  List<WorkOrganisation> _assigning = const [];
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _enquiries ??= AppScope.of(context).inbox.received();
+    if (_enquiries == null) {
+      final services = AppScope.of(context);
+      _enquiries = services.inbox.received();
+      // Without the dashboard the inbox still works, only without assigning.
+      services.workspace.load().then((workspace) {
+        if (mounted) {
+          setState(() => _assigning = workspace.assigningOrganisations);
+        }
+      }, onError: (_) {});
+    }
+  }
+
+  Future<void> _assign(ReceivedEnquiry enquiry) async {
+    final done = await showAssignSheet(
+      context,
+      requestId: enquiry.requestId!,
+      organisations: _assigning,
+      current: enquiry.assignedTo,
+    );
+    if (done != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
+      await _reload();
+    }
   }
 
   Future<void> _reload() async {
     final next = AppScope.of(context).inbox.received();
-    setState(() => _enquiries = next);
+    setState(() {
+      _enquiries = next;
+    });
     // Let the pull-to-refresh spinner run until the reload settles.
     await next.then<void>((_) {}, onError: (_) {});
   }
@@ -100,7 +129,14 @@ class _InboxScreenState extends State<InboxScreen> {
                           : '${enquiries.length} enquiries',
                       style: Theme.of(context).textTheme.bodyMedium,
                     )
-                  : _EnquiryCard(enquiries[index - 1]),
+                  : _EnquiryCard(
+                      enquiries[index - 1],
+                      onAssign:
+                          _assigning.isEmpty ||
+                              enquiries[index - 1].requestId == null
+                          ? null
+                          : () => _assign(enquiries[index - 1]),
+                    ),
             ),
           );
         },
@@ -110,9 +146,10 @@ class _InboxScreenState extends State<InboxScreen> {
 }
 
 class _EnquiryCard extends StatelessWidget {
-  const _EnquiryCard(this.enquiry);
+  const _EnquiryCard(this.enquiry, {this.onAssign});
 
   final ReceivedEnquiry enquiry;
+  final VoidCallback? onAssign;
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +187,38 @@ class _EnquiryCard extends StatelessWidget {
               ],
             ),
             Text('${enquiry.kind} · $received', style: text.bodyMedium),
+            if (enquiry.requestId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: Space.x2),
+                child: Row(
+                  children: [
+                    ExcludeSemantics(
+                      child: Icon(
+                        Icons.badge_outlined,
+                        size: 18,
+                        color: c.muted,
+                      ),
+                    ),
+                    const SizedBox(width: Space.x2),
+                    Expanded(
+                      child: Text(
+                        enquiry.assignedTo == null
+                            ? 'In the agency inbox'
+                            : 'Assigned to ${enquiry.assignedTo}',
+                        style: text.bodyMedium,
+                      ),
+                    ),
+                    if (onAssign != null)
+                      TextButton(
+                        key: Key('assign-${enquiry.reference}'),
+                        onPressed: onAssign,
+                        child: Text(
+                          enquiry.assignedTo == null ? 'Assign' : 'Reassign',
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const SizedBox(height: Space.x3),
             Text(enquiry.message, style: text.bodyLarge),
             const SizedBox(height: Space.x3),

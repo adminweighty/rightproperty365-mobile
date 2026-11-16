@@ -11,4 +11,8 @@ abstract final class AppConfig {
 
   /// Version of the privacy notice a customer consents to with a request.
   static const privacyNoticeVersion = '2026-11-draft';
+
+  /// The demo signing code a test server accepts (staging: 1234), shown as a
+  /// hint on the signing screen. Empty for production builds.
+  static const demoSigningCode = String.fromEnvironment('DEMO_SIGNING_CODE');
 }

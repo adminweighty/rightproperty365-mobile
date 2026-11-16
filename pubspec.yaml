@@ -18,6 +18,8 @@ dependencies:
   # Keeps the session token in the Android Keystore / iOS Keychain.
   flutter_secure_storage: any
   shared_preferences: ^2.5.6
+  image_picker: ^1.2.4
+  pdfx: ^2.11.0
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +40,24 @@ flutter:
     - assets/images/
     # Official logo kit v4.1.
     - assets/brand/
+    # The font licences travel with the fonts.
+    - assets/fonts/signature/GreatVibes-OFL.txt
+    - assets/fonts/signature/KaushanScript-OFL.txt
+    - assets/fonts/signature/Allura-OFL.txt
+
+  # Typed signature styles, the same fonts the API draws signatures in
+  # (SIL Open Font License 1.1; copied from the web repository's
+  # src/fonts/signature/ with their OFL texts).
+  fonts:
+    - family: GreatVibes
+      fonts:
+        - asset: assets/fonts/signature/GreatVibes-Regular.ttf
+    - family: KaushanScript
+      fonts:
+        - asset: assets/fonts/signature/KaushanScript-Regular.ttf
+    - family: Allura
+      fonts:
+        - asset: assets/fonts/signature/Allura-Regular.ttf
 
 flutter_launcher_icons:
   android: true
