@@ -42,12 +42,15 @@ class AppBadge extends StatelessWidget {
             Icon(icon, size: 14, color: foreground),
             const SizedBox(width: Space.x1),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: foreground,
+          // Wraps rather than overflowing in a narrow place or at large text.
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: foreground,
+              ),
             ),
           ),
         ],

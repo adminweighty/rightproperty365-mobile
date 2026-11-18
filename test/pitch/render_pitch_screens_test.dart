@@ -33,6 +33,9 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../analytics_test.dart' as analytics show reportJson;
 import '../applications_test.dart' as apps show appJson;
 import '../contacts_test.dart' as crm show contactJson;
+import '../ledger_test.dart'
+    as ledger
+    show cashbookJson, entryJson, optionsJson, page;
 import '../map_search_test.dart' as maps show apiListing;
 import '../saved_listings_test.dart' as saved show page;
 import '../support.dart';
@@ -821,5 +824,69 @@ void main() {
     await _settle(tester);
     await tester.drag(find.byType(Scrollable).last, const Offset(0, -380));
     await _shoot(tester, '07-venue-booking-quote');
+  }, skip: _skip != null);
+
+  testWidgets('08 ledger books', (tester) async {
+    final test = TestServices();
+    const base = '/v1/agent/organisations/org-1/ledger';
+    final rent = ledger.entryJson();
+    final repair = {
+      ...ledger.entryJson(
+        id: 'e-2',
+        type: 'EXPENSE',
+        amount: '120.00',
+        out: true,
+        reconciled: true,
+      ),
+      'type_label': 'Expense',
+      'category': 'maintenance',
+      'category_label': 'Maintenance',
+      'method': 'CASH',
+      'method_label': 'Cash',
+      'effective_date': '2026-11-06',
+      'description': 'Geyser element, flat 2',
+      'contact': null,
+    };
+    final deposit = {
+      ...ledger.entryJson(id: 'e-3', amount: '9500.00', currency: 'ZAR'),
+      'type_label': 'Deposit received',
+      'category_label': 'Deposit',
+      'effective_date': '2026-11-12',
+      'description': 'Deposit, Borrowdale cottage',
+      'contact': {'id': 'c-3', 'name': 'Nyasha Dube'},
+    };
+    final cashbook = ledger.cashbookJson();
+    final currencies = cashbook['currencies'] as List;
+    currencies[0] = {
+      ...currencies[0] as Map<String, dynamic>,
+      'out': '120.00',
+      'net': '580.00',
+      'closing_balance': '1080.00',
+      'entry_count': 2,
+    };
+    currencies[1] = {
+      ...currencies[1] as Map<String, dynamic>,
+      'in': '9500.00',
+      'out': '0.00',
+      'net': '9500.00',
+      'closing_balance': '9500.00',
+    };
+    serve(test, {
+      'GET $base/options': (_) => ledger.optionsJson(),
+      'GET $base/reports/cashbook': (_) => cashbook,
+      'GET $base/entries': (_) => ledger.page([deposit, repair, rent]),
+    });
+    await _pumpApp(tester, test);
+    _router(tester).push(
+      Routes.books,
+      extra: const [
+        ContactBook(id: 'org-1', name: 'Sample Estates', canWrite: true),
+      ],
+    );
+    await _settle(tester);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -620));
+    await _shoot(tester, '08-ledger-books');
+    await tester.tap(find.byKey(const Key('record-entry')));
+    await _shoot(tester, '08-ledger-new-entry');
   }, skip: _skip != null);
 }

@@ -13,6 +13,7 @@ import '../../core/config.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
+import '../../core/widgets/searchable_select.dart';
 import '../auth/data/auth_models.dart';
 import '../auth/presentation/auth_screens.dart' show FailureBox;
 import '../workspace/workspace.dart';
@@ -166,12 +167,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
             children: [
               if (widget.books.length > 1) ...[
-                DropdownButtonFormField<String>(
-                  initialValue: book.id,
-                  decoration: const InputDecoration(labelText: 'Contact book'),
-                  items: [
-                    for (final b in widget.books)
-                      DropdownMenuItem(value: b.id, child: Text(b.name)),
+                SearchableSelectField<String>(
+                  value: book.id,
+                  label: 'Contact book',
+                  options: [
+                    for (final b in widget.books) SelectOption(b.id, b.name),
                   ],
                   onChanged: (id) {
                     _book = widget.books.firstWhere((b) => b.id == id);
@@ -953,15 +953,12 @@ class _NewContactScreenState extends State<NewContactScreen> {
             future: _types,
             builder: (context, snapshot) {
               final types = snapshot.data ?? contactTypesFallback;
-              return DropdownButtonFormField<String>(
+              return SearchableSelectField<String>(
                 key: const Key('contact-type'),
-                initialValue: types.containsKey(_type)
-                    ? _type
-                    : types.keys.first,
-                decoration: const InputDecoration(labelText: 'Type'),
-                items: [
-                  for (final t in types.entries)
-                    DropdownMenuItem(value: t.key, child: Text(t.value)),
+                value: types.containsKey(_type) ? _type : types.keys.first,
+                label: 'Type',
+                options: [
+                  for (final t in types.entries) SelectOption(t.key, t.value),
                 ],
                 onChanged: (v) => setState(() => _type = v ?? _type),
               );

@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
+import '../features/ledger/books_screens.dart';
+import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
 import '../features/applications/received_applications.dart';
@@ -55,6 +57,12 @@ abstract final class Routes {
   static const contacts = '/contacts';
   static const receivedApplications = '/received-applications';
   static const hostedVenueBookings = '/hosted-venue-bookings';
+  static const books = '/books';
+
+  static String newLedgerEntry(String book) =>
+      '/books/${Uri.encodeComponent(book)}/new';
+  static String ledgerEntry(String book, String id) =>
+      '/books/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
 
   static String bookHourly(String listingId) =>
       '/venues/${Uri.encodeComponent(listingId)}/book';
@@ -269,6 +277,37 @@ GoRouter buildRouter() => GoRouter(
         id: state.pathParameters['id']!,
         professional: false,
       ),
+    ),
+    GoRoute(
+      path: '/books',
+      builder: (context, state) =>
+          BooksScreen(books: state.extra as List<ContactBook>? ?? const []),
+      routes: [
+        GoRoute(
+          path: ':book/new',
+          builder: (context, state) {
+            final extra =
+                state.extra! as ({ContactBook book, LedgerOptions options});
+            return NewLedgerEntryScreen(
+              book: extra.book,
+              options: extra.options,
+            );
+          },
+        ),
+        GoRoute(
+          path: ':book/:id',
+          builder: (context, state) => LedgerEntryScreen(
+            book:
+                state.extra as ContactBook? ??
+                ContactBook(
+                  id: state.pathParameters['book']!,
+                  name: '',
+                  canWrite: false,
+                ),
+            id: state.pathParameters['id']!,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/venues/:id/book',

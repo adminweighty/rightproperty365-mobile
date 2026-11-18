@@ -12,6 +12,7 @@ import '../../core/market_time.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
+import '../../core/widgets/searchable_select.dart';
 import '../appointments/appointment_screens.dart' show askForText;
 import '../auth/presentation/auth_screens.dart' show FailureBox;
 import '../contacts/contacts_repository.dart' show ContactBook;
@@ -661,14 +662,12 @@ class _HostedVenueBookingsScreenState extends State<HostedVenueBookingsScreen> {
                   padding: const EdgeInsets.all(Space.x4),
                   children: [
                     if (widget.books.length > 1) ...[
-                      DropdownButtonFormField<String>(
-                        initialValue: book.id,
-                        decoration: const InputDecoration(
-                          labelText: 'Agency or business',
-                        ),
-                        items: [
+                      SearchableSelectField<String>(
+                        value: book.id,
+                        label: 'Agency or business',
+                        options: [
                           for (final b in widget.books)
-                            DropdownMenuItem(value: b.id, child: Text(b.name)),
+                            SelectOption(b.id, b.name),
                         ],
                         onChanged: (id) {
                           _book = widget.books.firstWhere((b) => b.id == id);

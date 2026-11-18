@@ -11,6 +11,7 @@ import '../../core/api/api_client.dart';
 import '../../core/config.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/brand.dart';
+import '../../core/widgets/searchable_select.dart';
 import '../workspace/workspace.dart';
 import 'analytics_repository.dart';
 
@@ -85,14 +86,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         padding: const EdgeInsets.all(Space.x4),
         children: [
           if (widget.organisations.length > 1) ...[
-            DropdownButtonFormField<String>(
-              initialValue: _organisation?.id,
-              decoration: const InputDecoration(
-                labelText: 'Agency or business',
-              ),
-              items: [
+            SearchableSelectField<String>(
+              value: _organisation?.id,
+              label: 'Agency or business',
+              options: [
                 for (final o in widget.organisations)
-                  DropdownMenuItem(value: o.id, child: Text(o.name)),
+                  SelectOption(o.id, o.name),
               ],
               onChanged: (id) {
                 _organisation = widget.organisations.firstWhere(

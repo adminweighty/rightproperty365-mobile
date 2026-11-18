@@ -12,6 +12,7 @@ import '../features/activity/my_requests_repository.dart';
 import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_repository.dart';
 import '../features/listings/data/api_listing_repository.dart';
 import '../features/listings/data/video_tour.dart';
@@ -60,6 +61,7 @@ class AppServices {
     required this.agentApplications,
     required this.pickApplicationFile,
     required this.venues,
+    required this.ledger,
     required this.analyticsReports,
     this.mapTiles,
     this.locate = _noLocation,
@@ -80,6 +82,9 @@ class AppServices {
 
   /// Hourly bookings of showrooms and venues.
   final VenueRepository venues;
+
+  /// The organisation's (or direct owner's) own books.
+  final LedgerRepository ledger;
   final AgentApplicationsRepository agentApplications;
 
   /// A file for an application, from the camera or the phone's files;

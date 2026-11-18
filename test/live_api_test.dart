@@ -7,6 +7,7 @@
 //
 // It changes data: it accepts an appointment, moves a lead, signs a lease
 // and deletes the sample account sales.agent@example.test.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,7 @@ import 'package:rightproperty365/features/listings/data/api_listing_repository.d
 import 'package:rightproperty365/features/listings/data/listing.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
+import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 
@@ -647,6 +649,85 @@ void main() {
       'venues: quoted ${quote.currency} ${quote.total} for '
       '${quote.durationMinutes} min, sent ${sent.reference}, cancelled; '
       '$clashes overlapping request(s) refused with SLOT_TAKEN and declined',
+    );
+  }, skip: skip);
+
+  test('the books (API 0.34.0)', () async {
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final books = LedgerRepository(owner);
+    final options = await books.options(org.id);
+    expect(options.canExport, isTrue);
+
+    final now = DateTime.now();
+    String iso(DateTime d) => d.toIso8601String().substring(0, 10);
+    final from = iso(DateTime(now.year - 1));
+    final to = iso(now);
+    final cashbook = await books.cashbook(org.id, from: from, to: to);
+    // One table per currency, never a combined figure.
+    expect(cashbook.map((c) => c.currency).toSet().length, cashbook.length);
+    expect(cashbook.map((c) => c.currency), containsAll(['USD', 'ZAR']));
+
+    final entry = await books.create(
+      org.id,
+      LedgerDraft(
+        type: 'EXPENSE',
+        category: 'maintenance',
+        method: 'CASH',
+        amount: '12.5',
+        currency: 'USD',
+        effectiveDate: iso(now),
+        description: 'Live check: light bulbs',
+      ),
+    );
+    expect(entry.status, 'USER_RECORDED_UNVERIFIED');
+    expect(entry.statusLabel, 'Recorded by you, not verified');
+    expect(entry.signedAmount, '-12.50');
+    await books.attach(org.id, entry.id, (
+      bytes: base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      ),
+      name: 'receipt.png',
+    ));
+    final reversal = await books.reverse(org.id, entry.id, 'Live check');
+    expect(reversal.type, 'REVERSAL');
+    final detail = await books.entry(org.id, entry.id);
+    expect(detail.entry.isReversed, isTrue);
+    expect(detail.related.map((r) => r.id), contains(reversal.id));
+    expect(detail.attachments.single.fileName, 'receipt.png');
+    await expectLater(
+      books.reverse(org.id, entry.id, 'Again'),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('already'),
+        ),
+      ),
+    );
+
+    // Staff read only; agents write but do not export.
+    final staff = await LedgerRepository(
+      await signedIn('agency.staff@example.test'),
+    ).options(org.id);
+    expect(staff.canWrite, isFalse);
+    final agent = await LedgerRepository(await signedIn('agent@example.test'))
+        .options(org.id);
+    expect(agent.canWrite, isTrue);
+    expect(agent.canExport, isFalse);
+    // Another agency's books are not found.
+    await expectLater(
+      LedgerRepository(await signedIn('agent-b@example.test')).options(org.id),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'BOOK_NOT_FOUND'),
+      ),
+    );
+    // ignore: avoid_print
+    print(
+      'books: ${cashbook.map((c) => '${c.currency} ${c.closing}').join(', ')}; '
+      'recorded, receipt added and reversed ${entry.currency} ${entry.amount}',
     );
   }, skip: skip);
 }
