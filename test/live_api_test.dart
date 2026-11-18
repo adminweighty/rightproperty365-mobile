@@ -21,6 +21,7 @@ import 'package:rightproperty365/features/analytics/analytics_repository.dart';
 import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
 import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
+import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/workspace/workspace.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
 import 'package:rightproperty365/features/inbox/inbox_repository.dart';
@@ -402,6 +403,84 @@ void main() {
     print(
       'analytics: ${report.total("views")} views, '
       '${report.total("contact_clicks")} contact clicks in 24h for ${org.name}',
+    );
+  }, skip: skip);
+
+  test('the contact book (API 0.31.0)', () async {
+    final agent = await signedIn('agent@example.test');
+    final org = (await ApiWorkspaceRepository(
+      agent,
+    ).load()).organisations.first;
+    final crm = ContactsRepository(agent);
+
+    final all = await crm.list(org.id);
+    expect(all.total, greaterThanOrEqualTo(8));
+    expect(all.stageCounts.keys, containsAll(contactStages.keys));
+    final found = await crm.list(org.id, query: 'tariro');
+    final tariro = found.items.firstWhere((c) => c.name.contains('Tariro'));
+    final detail = await crm.get(org.id, tariro.id);
+    expect(detail.linkedItems.any((i) => i.kind == 'APPOINTMENT'), isTrue);
+
+    // Her email is already in the book.
+    await expectLater(
+      crm.create(
+        org.id,
+        const ContactDraft(
+          name: 'Tariro again',
+          type: 'tenant',
+          emails: ['tariro@example.com'],
+        ),
+      ),
+      throwsA(isA<DuplicateContacts>()),
+    );
+
+    await crm.addNote(org.id, tariro.id, 'Live check note');
+    final reminder = await crm.addReminder(
+      org.id,
+      tariro.id,
+      DateTime.now().add(const Duration(days: 1)),
+      'Live check reminder',
+    );
+    expect(
+      (await crm.setReminderDone(org.id, tariro.id, reminder.id, true)).done,
+      isTrue,
+    );
+    final moved = await crm.moveStage(
+      org.id,
+      tariro.id,
+      tariro.stage == 'NEGOTIATING' ? 'CONTACTED' : 'NEGOTIATING',
+      note: 'Live check',
+    );
+    expect(moved.contact.stage, isNot(tariro.stage));
+    final events = await crm.timeline(org.id, tariro.id);
+    expect(events.any((e) => e.kind == 'STAGE_CHANGED'), isTrue);
+    expect(events.any((e) => e.kind == 'NOTE_ADDED'), isTrue);
+
+    // One click from an appointment in the agent's inbox.
+    final appointments = await ApiReceivedAppointmentsRepository(agent)
+        .list(from: DateTime.now().toUtc().subtract(const Duration(days: 30)));
+    final linked = await crm.fromRequest(
+      org.id,
+      appointments.items.first.id,
+      kind: 'APPOINTMENT',
+    );
+    expect(linked.detail.contact.name, isNotEmpty);
+
+    // Another agency's book is not found.
+    final other = await signedIn('agent-b@example.test');
+    final otherOrg = (await ApiWorkspaceRepository(
+      other,
+    ).load()).organisations.first;
+    expect((await ContactsRepository(other).list(otherOrg.id)).total, 2);
+    await expectLater(
+      crm.list(otherOrg.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // ignore: avoid_print
+    print(
+      'contacts: ${all.total} in ${org.name}; ${tariro.name} moved to '
+      '${moved.contact.stageLabel}; from appointment: '
+      '${linked.created ? "created" : "linked"} ${linked.detail.contact.name}',
     );
   }, skip: skip);
 }

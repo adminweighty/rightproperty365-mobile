@@ -12,6 +12,7 @@ import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import '../auth/presentation/auth_screens.dart' show FailureBox;
+import '../contacts/contacts_screens.dart';
 import 'appointment_repository.dart';
 
 BadgeTone _tone(String status) => switch (status) {
@@ -759,6 +760,24 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           ),
         if (a.timeline.isNotEmpty) ...[
           const SizedBox(height: Space.x4),
+          if (pro) ...[
+            OutlinedButton.icon(
+              key: const Key('appointment-add-contact'),
+              onPressed: () async {
+                final work = await services.workspace.load();
+                if (!context.mounted) return;
+                await addToContacts(
+                  context,
+                  books: contactBooks(work, services.auth.user),
+                  itemId: a.id,
+                  kind: 'APPOINTMENT',
+                );
+              },
+              icon: const Icon(Icons.person_add_alt),
+              label: const Text('Add to contacts'),
+            ),
+            const SizedBox(height: Space.x4),
+          ],
           const SectionHeading('History'),
           const SizedBox(height: Space.x2),
           for (final e in a.timeline)

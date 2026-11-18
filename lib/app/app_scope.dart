@@ -8,6 +8,7 @@ import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/listings/data/api_listing_repository.dart';
@@ -52,6 +53,7 @@ class AppServices {
     required this.openLink,
     required this.listingSearch,
     required this.analytics,
+    required this.contacts,
     required this.analyticsReports,
     this.mapTiles,
     this.locate = _noLocation,
@@ -63,6 +65,9 @@ class AppServices {
   /// First-party listing statistics: the events this phone sends, and the
   /// reports professionals read.
   final AnalyticsTracker analytics;
+
+  /// The agent CRM: contact books of the person's organisations.
+  final ContactsRepository contacts;
   final AnalyticsRepository analyticsReports;
 
   /// Listings from the API, for the map.

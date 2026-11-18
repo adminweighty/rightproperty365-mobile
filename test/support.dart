@@ -18,6 +18,7 @@ import 'package:rightproperty365/features/analytics/analytics_repository.dart';
 import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
+import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/core/location.dart';
@@ -336,6 +337,7 @@ class TestServices {
       listingDetails: ApiListingDetailsRepository(workApi),
       listingSearch: listingSearch,
       analytics: analytics,
+      contacts: ContactsRepository(workApi),
       analyticsReports: ApiAnalyticsRepository(workApi),
       mapTiles: mapTiles,
       locate: () async => located,

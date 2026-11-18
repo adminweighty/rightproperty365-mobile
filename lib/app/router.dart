@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
+import '../features/contacts/contacts_repository.dart';
+import '../features/contacts/contacts_screens.dart';
 import '../features/workspace/workspace.dart';
 import '../features/appointments/appointment_screens.dart';
 import '../features/auth/presentation/delete_account_screen.dart';
@@ -47,6 +49,13 @@ abstract final class Routes {
   static const deleteAccount = '/account-management/delete';
   static const receivedAppointments = '/appointments';
   static const statistics = '/statistics';
+  static const contacts = '/contacts';
+
+  /// [book] is the organisation (or a direct owner's user) ID.
+  static String contact(String book, String id) =>
+      '/contacts/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
+  static String newContact(String book) =>
+      '/contacts/${Uri.encodeComponent(book)}/new';
 
   static String receivedAppointment(String id) =>
       '/appointments/${Uri.encodeComponent(id)}';
@@ -240,6 +249,38 @@ GoRouter buildRouter() => GoRouter(
         id: state.pathParameters['id']!,
         professional: false,
       ),
+    ),
+    GoRoute(
+      path: '/contacts',
+      builder: (context, state) =>
+          ContactsScreen(books: state.extra as List<ContactBook>? ?? const []),
+      routes: [
+        GoRoute(
+          path: ':book/new',
+          builder: (context, state) => NewContactScreen(
+            book:
+                state.extra as ContactBook? ??
+                ContactBook(
+                  id: state.pathParameters['book']!,
+                  name: '',
+                  canWrite: true,
+                ),
+          ),
+        ),
+        GoRoute(
+          path: ':book/:id',
+          builder: (context, state) => ContactScreen(
+            book:
+                state.extra as ContactBook? ??
+                ContactBook(
+                  id: state.pathParameters['book']!,
+                  name: '',
+                  canWrite: false,
+                ),
+            id: state.pathParameters['id']!,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/statistics',

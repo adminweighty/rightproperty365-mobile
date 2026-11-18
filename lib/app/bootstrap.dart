@@ -13,6 +13,7 @@ import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/listings/data/api_listing_repository.dart';
@@ -88,6 +89,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     listingDetails: ApiListingDetailsRepository(api),
     listingSearch: listingSearch,
     analytics: analytics,
+    contacts: ContactsRepository(api),
     analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,

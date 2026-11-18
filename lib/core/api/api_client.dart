@@ -16,6 +16,7 @@ class ApiFailure implements Exception {
     this.fields = const {},
     this.traceId,
     this.retryAfter,
+    this.details = const {},
   });
 
   const ApiFailure.network()
@@ -36,6 +37,10 @@ class ApiFailure implements Exception {
   /// From a `Retry-After` header: how long to wait before trying again.
   final Duration? retryAfter;
 
+  /// `error.details`, when the API sends more about a failure (for example
+  /// the duplicates of a contact).
+  final Map<String, dynamic> details;
+
   bool get isNetwork => status == 0;
 
   /// The same failure with wording chosen by the caller.
@@ -46,6 +51,7 @@ class ApiFailure implements Exception {
     fields: fields,
     traceId: traceId,
     retryAfter: retryAfter,
+    details: details,
   );
 
   @override
@@ -187,6 +193,10 @@ class ApiClient {
           ? fields.map((key, value) => MapEntry('$key', '$value'))
           : const {},
       traceId: decoded['trace_id'] as String?,
+      details: switch (details['details']) {
+        final Map<String, dynamic> d => d,
+        _ => const {},
+      },
       retryAfter: switch (int.tryParse(response.headers['retry-after'] ?? '')) {
         final seconds? when seconds >= 0 => Duration(seconds: seconds),
         _ => null,

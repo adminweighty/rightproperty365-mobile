@@ -9,6 +9,7 @@ import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import '../auth/presentation/auth_screens.dart' show FailureBox;
+import '../contacts/contacts_screens.dart';
 import 'lead_repository.dart';
 
 final _stamp = DateFormat('d MMM y, HH:mm');
@@ -187,6 +188,25 @@ class _LeadScreenState extends State<LeadScreen> {
                   },
             child: const Text('Add note'),
           ),
+        ),
+        const SizedBox(height: Space.x5),
+        OutlinedButton.icon(
+          key: const Key('lead-add-contact'),
+          onPressed: _busy
+              ? null
+              : () async {
+                  final services = AppScope.of(context);
+                  final work = await services.workspace.load();
+                  if (!context.mounted) return;
+                  await addToContacts(
+                    context,
+                    books: contactBooks(work, services.auth.user),
+                    itemId: widget.requestId,
+                    kind: 'PROPERTY_REQUEST',
+                  );
+                },
+          icon: const Icon(Icons.person_add_alt),
+          label: const Text('Add to contacts'),
         ),
         const SizedBox(height: Space.x5),
         const SectionHeading('History'),

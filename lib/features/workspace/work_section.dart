@@ -6,6 +6,7 @@ import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/tokens.dart';
 import '../../core/widgets/brand.dart';
+import '../contacts/contacts_screens.dart';
 import 'workspace.dart';
 
 /// The signed-in person's documents, leases and teams, on the Account tab.
@@ -78,6 +79,18 @@ class _WorkSectionState extends State<WorkSection> {
               subtitle: 'Saved signature and initials',
               onTap: () => open(Routes.mySignature),
             ),
+            if (contactBooks(work, AppScope.of(context).auth.user).isNotEmpty)
+              _Tile(
+                key: const Key('open-contacts'),
+                icon: Icons.contacts_outlined,
+                title: 'Contacts',
+                subtitle:
+                    'Buyers, tenants and owners, with notes and reminders',
+                onTap: () => context.push(
+                  Routes.contacts,
+                  extra: contactBooks(work, AppScope.of(context).auth.user),
+                ),
+              ),
             if (work.statisticsOrganisations.isNotEmpty)
               _Tile(
                 key: const Key('open-statistics'),
