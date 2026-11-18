@@ -23,6 +23,8 @@ import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/leases/lease_repository.dart';
 import 'package:rightproperty365/features/signing/signing_repository.dart';
+import 'package:rightproperty365/features/listings/data/api_listing_repository.dart';
+import 'package:rightproperty365/features/listings/data/listing.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
@@ -291,5 +293,48 @@ void main() {
     );
     // ignore: avoid_print
     print('video: ${tour.id} opens ${tour.openUrl}');
+  }, skip: skip);
+
+  test('map search and positions (API 0.29.0)', () async {
+    final search = ApiListingSearch(
+      ApiClient(baseUrl: _base!),
+      apiBase: _base!,
+    );
+    const all = ListingFilters();
+    final mappable = await search.mappable(all);
+    expect(mappable.listings, isNotEmpty);
+    expect(mappable.listings.every((l) => l.position != null), isTrue);
+    final counts = await search.counts(all);
+    expect(counts.mappable, lessThanOrEqualTo(counts.total));
+
+    // Harare only: everything returned lies inside the box.
+    const harare = MapBounds(
+      west: 30.9,
+      south: -17.95,
+      east: 31.2,
+      north: -17.7,
+    );
+    final inBox = await search.mappable(all, bounds: harare);
+    expect(inBox.listings, isNotEmpty);
+    for (final l in inBox.listings) {
+      expect(l.position!.latitude, inInclusiveRange(-17.95, -17.7));
+      expect(l.position!.longitude, inInclusiveRange(30.9, 31.2));
+    }
+
+    // The approximate sample is rounded to 2 decimals; the unplaced one has
+    // no position.
+    final plot = (await search.bySlug('one-acre-plot-murambi-mutare'))!;
+    expect(plot.position!.approximate, isTrue);
+    expect(plot.position!.latitude, -18.95);
+    final ruwa = await search.bySlug('residential-stand-ruwa');
+    expect(ruwa?.position, isNull);
+    // A bundled listing's position comes from the listing page call.
+    final details = ApiListingDetailsRepository(ApiClient(baseUrl: _base!));
+    expect(await details.location('four-bedroom-house-highlands'), isNotNull);
+    // ignore: avoid_print
+    print(
+      'map: ${mappable.listings.length} mappable of ${counts.total}; '
+      '${inBox.listings.length} in Harare',
+    );
   }, skip: skip);
 }

@@ -1,4 +1,5 @@
 import '../../../core/api/api_client.dart';
+import 'listing.dart';
 
 /// YouTube's privacy policy, linked next to every video tour.
 final youtubePrivacyUrl = Uri.parse('https://policies.google.com/privacy');
@@ -38,30 +39,47 @@ class VideoTour {
 }
 
 /// The parts of the public listing (`GET /v1/listings/{slug}`) that the
-/// bundled sample listings do not carry yet: the video tour.
+/// bundled sample listings do not carry: the video tour and the location.
+/// Both come from one request per listing.
 abstract interface class ListingDetailsRepository {
   /// The listing's video tour, or null when it has none, is no longer
   /// public, or the API cannot be reached (the listing page works without).
   Future<VideoTour?> videoTour(String slug);
+
+  /// Where the listing is, or null (no location, or no API).
+  Future<ListingLocation?> location(String slug);
 }
 
 class ApiListingDetailsRepository implements ListingDetailsRepository {
   ApiListingDetailsRepository(this._api);
 
   final ApiClient _api;
+  final _listings = <String, Future<Map<String, dynamic>?>>{};
 
-  @override
-  Future<VideoTour?> videoTour(String slug) async {
+  Future<Map<String, dynamic>?> _listing(String slug) =>
+      _listings[slug] ??= _fetch(slug);
+
+  Future<Map<String, dynamic>?> _fetch(String slug) async {
     try {
       final body = (await _api.get('/v1/listings/${Uri.encodeComponent(slug)}'))
           .body;
-      final listing = body['listing'] ?? body;
-      final video = (listing as Map<String, dynamic>)['video'];
-      return video is Map<String, dynamic> && video['provider'] == 'YOUTUBE'
-          ? VideoTour.fromJson(video)
-          : null;
+      return (body['listing'] ?? body) as Map<String, dynamic>;
     } on ApiFailure {
+      // Not cached, so the next visit asks again.
+      _listings.remove(slug);
       return null;
     }
   }
+
+  @override
+  Future<VideoTour?> videoTour(String slug) async {
+    final video = (await _listing(slug))?['video'];
+    return video is Map<String, dynamic> && video['provider'] == 'YOUTUBE'
+        ? VideoTour.fromJson(video)
+        : null;
+  }
+
+  @override
+  Future<ListingLocation?> location(String slug) async =>
+      ListingLocation.fromJson((await _listing(slug))?['location']);
 }

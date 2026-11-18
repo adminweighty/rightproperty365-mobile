@@ -12,7 +12,8 @@ enum DealType {
 enum ListingCategory {
   residential('Residential'),
   commercial('Commercial'),
-  land('Land');
+  land('Land'),
+  shortStay('Short stay');
 
   const ListingCategory(this.label);
   final String label;
@@ -33,13 +34,39 @@ class Advertiser {
 
 /// A bundled sample photo. Real photos will come from object storage.
 class ListingImage {
-  const ListingImage({required this.asset, required this.alt});
+  const ListingImage({this.asset = '', this.url, required this.alt});
 
-  /// Asset path, for example `assets/images/listing-house-borrowdale.jpg`.
+  /// Asset path, for example `assets/images/listing-house-borrowdale.jpg`;
+  /// empty for a photo only the API has.
   final String asset;
+
+  /// An uploaded photo served by the API, when there is no bundled one.
+  final String? url;
 
   /// What the photo shows, for screen readers.
   final String alt;
+}
+
+/// Where a listing is on the map (API 0.29.0). An approximate one is
+/// rounded by the API to about 1 km and is shown as an area, never a pin.
+class ListingLocation {
+  const ListingLocation({
+    required this.latitude,
+    required this.longitude,
+    this.approximate = false,
+  });
+
+  static ListingLocation? fromJson(Object? json) => json is Map<String, dynamic>
+      ? ListingLocation(
+          latitude: (json['latitude'] as num).toDouble(),
+          longitude: (json['longitude'] as num).toDouble(),
+          approximate: json['precision'] == 'APPROXIMATE',
+        )
+      : null;
+
+  final double latitude;
+  final double longitude;
+  final bool approximate;
 }
 
 class Listing {
@@ -68,7 +95,97 @@ class Listing {
     this.floorArea,
     this.landArea,
     this.featured = false,
+    this.position,
+    this.hasVideo = false,
   });
+
+  /// From the API's public `Listing` (search results and the listing
+  /// page). Photo URLs are relative to [apiBase]; the sample photos the API
+  /// serves from /assets/images/ are the ones bundled with the app.
+  factory Listing.fromApi(
+    Map<String, dynamic> json, {
+    required String apiBase,
+  }) {
+    String label(Object? value) => switch (value) {
+      {'label': final String l} => l,
+      {'name': final String n} => n,
+      final String s => s,
+      _ => '',
+    };
+    final price = json['price'] as Map<String, dynamic>;
+    final advertiser = json['advertiser'] as Map<String, dynamic>? ?? const {};
+    final display = advertiser['display'] as Map<String, dynamic>?;
+    final agent = advertiser['agent_display'] as Map<String, dynamic>?;
+    final photos = (json['photos'] as List?) ?? const [];
+    final photo = photos.isEmpty ? null : photos.first as Map<String, dynamic>;
+    final photoUrl = photo?['url'] as String?;
+    final variants = (photo?['variants'] as List?) ?? const [];
+    String? networkUrl;
+    var asset = '';
+    if (photoUrl != null && photoUrl.startsWith('/assets/images/')) {
+      asset = 'assets/images/${photoUrl.substring('/assets/images/'.length)}';
+    } else if (photoUrl != null) {
+      final medium = variants.cast<Map<String, dynamic>>().where(
+        (v) => (v['width'] as int? ?? 0) <= 1280,
+      );
+      final chosen = medium.isEmpty ? photoUrl : medium.first['url'] as String;
+      networkUrl = chosen.startsWith('http') ? chosen : '$apiBase$chosen';
+    }
+    final category = (json['category'] as Map<String, dynamic>?)?['code'];
+    return Listing(
+      id: json['id'] as String,
+      slug: json['slug'] as String,
+      image: ListingImage(
+        asset: asset,
+        url: networkUrl,
+        alt: photo?['alt'] as String? ?? label(json['title']),
+      ),
+      reference: json['reference'] as String? ?? '',
+      listedBy: label(agent?['name'] ?? display?['name'] ?? advertiser['name']),
+      publishedAt: DateTime.parse(
+        json['published_at'] as String? ?? '1970-01-01T00:00:00Z',
+      ),
+      title: json['title'] as String,
+      deal: (json['deal'] as Map<String, dynamic>?)?['code'] == 'rent'
+          ? DealType.rent
+          : DealType.sale,
+      category: switch (category) {
+        'commercial' => ListingCategory.commercial,
+        'land' => ListingCategory.land,
+        'short-stay' => ListingCategory.shortStay,
+        _ => ListingCategory.residential,
+      },
+      propertyType: label(json['property_type']),
+      price: Money(price['amount'] as String, price['currency'] as String),
+      pricePerMonth: json['price_period'] == 'month',
+      suburb: label(json['suburb']).isEmpty
+          ? label(json['city'])
+          : label(json['suburb']),
+      city: label(json['city']).isEmpty
+          ? label(json['country'])
+          : label(json['city']),
+      marketCode: json['market_code'] as String? ?? '',
+      bedrooms: json['bedrooms'] as int?,
+      bathrooms: json['bathrooms'] as int?,
+      floorArea: json['floor_area'] as int?,
+      landArea: json['land_area'] as int?,
+      summary: json['summary'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      features: [
+        for (final f in (json['features'] as List?) ?? const []) label(f),
+      ],
+      advertiser: Advertiser(
+        name: label(advertiser['name']),
+        kind: advertiser['type'] == 'agency'
+            ? AdvertiserKind.agency
+            : AdvertiserKind.privateSeller,
+        verified: advertiser['verified'] == true,
+      ),
+      featured: json['featured'] == true,
+      position: ListingLocation.fromJson(json['location']),
+      hasVideo: json['has_video'] == true,
+    );
+  }
 
   /// Parses one entry of assets/data/listings.json (the web's `Listing`).
   factory Listing.fromJson(Map<String, dynamic> json) {
@@ -140,6 +257,41 @@ class Listing {
   final List<String> features;
   final Advertiser advertiser;
   final bool featured;
+
+  /// Only listings from the API carry these (the bundled sample has none).
+  final ListingLocation? position;
+  final bool hasVideo;
+
+  /// The same listing placed at [where] (a bundled listing, located by the
+  /// API).
+  Listing withLocation(ListingLocation where) => Listing(
+    id: id,
+    slug: slug,
+    image: image,
+    reference: reference,
+    listedBy: listedBy,
+    publishedAt: publishedAt,
+    title: title,
+    deal: deal,
+    category: category,
+    propertyType: propertyType,
+    price: price,
+    pricePerMonth: pricePerMonth,
+    suburb: suburb,
+    city: city,
+    marketCode: marketCode,
+    summary: summary,
+    description: description,
+    features: features,
+    advertiser: advertiser,
+    bedrooms: bedrooms,
+    bathrooms: bathrooms,
+    floorArea: floorArea,
+    landArea: landArea,
+    featured: featured,
+    position: where,
+    hasVideo: hasVideo,
+  );
 
   String get location => '$suburb, $city';
 

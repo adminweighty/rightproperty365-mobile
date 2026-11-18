@@ -65,8 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: AsyncView<List<Listing>>(
         future: _listings!,
-        onRetry: () =>
-            setState(() => _listings = AppScope.of(context).listings.search()),
+        onRetry: () => setState(() {
+          _listings = AppScope.of(context).listings.search();
+        }),
         builder: (context, listings) =>
             _HomeContent(listings: listings, query: _query, onSearch: _search),
       ),

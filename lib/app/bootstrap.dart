@@ -6,11 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api/api_client.dart';
 import '../core/config.dart';
+import '../core/location.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/listings/data/api_listing_repository.dart';
 import '../features/listings/data/video_tour.dart';
 import '../features/saved/saved_listings.dart';
 import '../features/saved/saved_listings_repository.dart';
@@ -50,13 +52,22 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
   final activity = ActivityStore(
     PreferencesStore(await SharedPreferences.getInstance()),
   );
-  final listings = SampleListingRepository.fromJson(
-    await assets.loadString('assets/data/listings.json'),
+  final listingSearch = ApiListingSearch(api, apiBase: AppConfig.apiBaseUrl);
+  // Browsing stays on the bundled sample; a listing it does not have (one
+  // opened from the map) comes from the API.
+  final listings = SampleThenApiListingRepository(
+    SampleListingRepository.fromJson(
+      await assets.loadString('assets/data/listings.json'),
+    ),
+    listingSearch,
   );
 
   final services = AppServices(
     push: push,
     listingDetails: ApiListingDetailsRepository(api),
+    listingSearch: listingSearch,
+    mapTiles: AppConfig.mapTiles,
+    locate: locateWithGeolocator,
     openLink: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
     saved: SavedListings(
       repository: ApiSavedListingsRepository(api),

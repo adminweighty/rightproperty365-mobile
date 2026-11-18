@@ -11,6 +11,7 @@ import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
 import '../../saved/saved_widgets.dart';
+import 'listing_map_section.dart';
 import 'video_tour_section.dart';
 import '../../directory/data/profile.dart';
 import '../../directory/presentation/widgets/profile_widgets.dart';
@@ -46,9 +47,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Widget build(BuildContext context) {
     return AsyncView<Listing?>(
       future: _listing!,
-      onRetry: () => setState(
-        () => _listing = AppScope.of(context).listings.bySlug(widget.slug),
-      ),
+      onRetry: () => setState(() {
+        _listing = AppScope.of(context).listings.bySlug(widget.slug);
+      }),
       builder: (context, listing) {
         if (listing == null) {
           return Scaffold(
@@ -153,6 +154,7 @@ class _Detail extends StatelessWidget {
                   style: text.bodyLarge?.copyWith(color: c.muted),
                 ),
                 const SizedBox(height: Space.x6),
+                ListingMapSection(listing: listing),
                 VideoTourSection(slug: listing.slug, title: listing.title),
                 const SectionHeading('Features'),
                 const SizedBox(height: Space.x3),

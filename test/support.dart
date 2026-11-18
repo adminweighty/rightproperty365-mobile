@@ -17,6 +17,8 @@ import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
+import 'package:rightproperty365/core/location.dart';
+import 'package:rightproperty365/features/listings/data/api_listing_repository.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
@@ -306,7 +308,7 @@ class FakePdfRenderer implements PdfRenderer {
 
 /// Services wired with fakes for widget tests.
 class TestServices {
-  TestServices({MemoryTokenStore? tokens})
+  TestServices({MemoryTokenStore? tokens, this.mapTiles})
     : tokens = tokens ?? MemoryTokenStore(),
       api = ApiClient(baseUrl: 'http://api.test') {
     auth = AuthController(
@@ -314,6 +316,7 @@ class TestServices {
       tokens: this.tokens,
       api: api,
     );
+    listingSearch = ApiListingSearch(workApi, apiBase: 'http://api.test');
     saved = SavedListings(
       repository: ApiSavedListingsRepository(workApi),
       auth: auth,
@@ -323,11 +326,14 @@ class TestServices {
     services = AppServices(
       saved: saved,
       listingDetails: ApiListingDetailsRepository(workApi),
+      listingSearch: listingSearch,
+      mapTiles: mapTiles,
+      locate: () async => located,
       openLink: (url) async {
         opened.add(url);
         return canOpenLinks;
       },
-      listings: listings,
+      listings: SampleThenApiListingRepository(listings, listingSearch),
       directory: sampleDirectory(),
       propertyRequests: propertyRequests,
       businessEnquiries: businessEnquiries,
@@ -365,6 +371,13 @@ class TestServices {
   Uint8List? pickedImage;
 
   final listings = sampleListings();
+  late final ApiListingSearch listingSearch;
+
+  /// No map unless a test gives tiles to the constructor.
+  final MapTiles? mapTiles;
+
+  /// What "Near me" finds.
+  Located located = const Located.failed('Location is not allowed.');
 
   /// Links the app handed to the phone, and whether the phone could open
   /// them.

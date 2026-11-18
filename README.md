@@ -52,7 +52,7 @@ Plain HTTP is allowed in Android **debug** builds only (`android/app/src/debug/A
 
 ### Map tiles
 
-Map search and the listing map need a tile source. Set it with `--dart-define`; without it the map is off and search stays a list:
+Map search and the listing map need a tile source. Debug builds use OpenStreetMap's public tiles (as the website does outside production; their usage policy does not allow them in a published app). Other builds need it set with `--dart-define`; without it the map is off and search stays a list:
 
 ```bash
 flutter run --dart-define=MAP_TILE_URL=https://tiles.example.com/{z}/{x}/{y}.png --dart-define="MAP_ATTRIBUTION=© Example contributors"
@@ -163,6 +163,7 @@ lib/
     config.dart              API base URL, privacy notice version
     api/                     ApiClient (JSON, bearer token, error envelope), idempotency keys
     format.dart              Money and area formatting
+    location.dart            Near me (geolocator) and the map tile source
     market_time.dart         Times in the market's IANA time zone (package:timezone), named
     widgets/                 Brand outline, card, section heading, logo; badges; Reveal; AsyncView;
                              SearchableSelectField
@@ -253,6 +254,8 @@ These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` an
 - **Activity.** Signed in, My Enquiries is `GET /v1/me/property-requests` (the customer status: Received, In progress, Responded, Viewing scheduled, Closed; never the lead stage or notes) with each request's history, and My Viewings is `GET /v1/me/appointments` (upcoming and past) where the customer cancels, proposes another time or accepts the time the professional proposed. Requests sent as a guest are never linked to an account, so the phone also keeps what it sent (`ActivityStore`, `shared_preferences`: reference, title, recipient, date and receipt status, never the message or contact details) and lists those under "Sent from this phone". Saved properties are on the account (API 0.27.0, below).
 - **Saved properties (API 0.27.0).** A heart on every listing card (outside the card, so it is its own button) and on the listing page. Saving needs an account: a guest is told why, signs in, comes back to the same page and the property is saved. Hearts come from `GET /v1/me/saved-listings/ids`, changes are `PUT` / `DELETE /v1/me/saved-listings/{id}`, shown at once and undone with a message if refused. Saved Properties in Activity is `GET /v1/me/saved-listings`: available ones open their listing; expired, let, sold or withdrawn ones are greyed with the API's label, never linked, and can be removed. Properties saved on the phone before 0.27 are moved to the account at sign-in and then forgotten on the phone. Nothing saved is kept on the phone after sign-out.
 - **Video tours (API 0.28.0).** The listing page asks `GET /v1/listings/{slug}` for its `video` (the bundled sample listings share their slugs with the API) and, when there is one, shows "Video tour": YouTube's thumbnail as a poster and "Play the video tour (YouTube)", which hands over to the YouTube app or youtube.com (YouTube's official player) at the advertiser's start time. Nothing is played, downloaded or re-hosted in the app, and nothing loads from YouTube except the poster. A poster that cannot load (a removed video) becomes "This video can't be shown here" with Watch on YouTube; the privacy note and YouTube's privacy policy are next to it. No section without a video or without the API. An in-app embedded player would need a WebView package; the hand-off was chosen instead. The "Video tour" badge on cards waits for listings from the API (the bundled cards have no `has_video`).
+- **Map search (API 0.29.0).** Search has a List / Map switch when there is a tile source; the list is the default and always works. The map searches the API (`GET /v1/listings` with `has_location=true`, then `bbox` from "Search this area" after the map is moved; 48 per page, the API's limit, and it says when there are more). Exact locations are pins; approximate ones (rounded by the API to about 1 km) are a shaded 1 km area with a small button, never a pin. Every pin and area is a button named after its listing and price, and the same results are listed under the map. It says how many results have no location. "Near me" explains why first, then asks for permission (geolocator, low accuracy) and searches the area around the phone; refusal or location turned off is said plainly and nothing else changes. The tile provider's attribution is always shown. The listing page has a small "Location" map that does not move until tapped, with an "Approximate location" note; it is absent without a location or a tile source.
+- **Listings from the API, partly.** Home and the list view still browse the bundled sample. Map results come from the API, and a listing the sample does not have (London, Mauritius, short stays) opens from the API (`SampleThenApiListingRepository`), with uploaded photos from the API. Moving browsing and search to the API as well is the next step.
 - **Appointments for professionals.** Viewing Appointments (Account, Your work, for professional accounts) is `GET /v1/inbox/appointments` from the start of today, grouped by day. The detail shows the customer's contact and offers exactly what the API's flags allow: confirm (or accept the customer's time), propose another time, it took place, no-show, cancel with a reason. `SLOT_TAKEN` and `INVALID_STATE` are said in plain words. Assigning appointments to a member is on the website.
 - **Times.** Appointment times are shown in the market's time zone (`timezone`, for example Africa/Harare) and named, and a new time is picked in that zone and sent as UTC.
 - **Working a lead.** Work it on a listing enquiry opens `GET /v1/agent/property-requests/{id}`: move the lead stage to one of `allowed_stages` (`PATCH`, nobody is emailed), add internal notes (never shown to the customer) and read the history.
@@ -297,7 +300,7 @@ These are required by the specification and come later:
 - Onboarding for professional roles (details and document upload) in the app; it exists in the API and on the website.
 - There is no payment in the app, by design: subscriptions are recorded by Platform Administrators on the web
 - Push notifications and device token registration
-- Maps and photo galleries
+- Photo galleries
 - Real listing and directory data from the API
 - Bundled Inter font (the platform sans is used), localisation, release signing
 - Multi-factor authentication (not implemented by the backend yet)

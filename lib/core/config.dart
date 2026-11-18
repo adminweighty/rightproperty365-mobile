@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
+
+import 'location.dart';
+
 /// Build-time configuration, set with `--dart-define`.
 abstract final class AppConfig {
   /// Base URL of the RightProperty365 Go API, without a trailing slash.
@@ -25,4 +29,20 @@ abstract final class AppConfig {
 
   static bool get mapEnabled =>
       mapTileUrl.isNotEmpty && mapAttribution.isNotEmpty;
+
+  /// OpenStreetMap's public tiles, as the website uses outside production.
+  /// Their usage policy does not allow them for a published app, so they are
+  /// the default in debug builds only.
+  static const _osmTiles = MapTiles(
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors',
+  );
+
+  /// The map's tiles: the configured source, OpenStreetMap in a debug build,
+  /// or null (no map; search stays a list).
+  static MapTiles? get mapTiles => mapEnabled
+      ? const MapTiles(urlTemplate: mapTileUrl, attribution: mapAttribution)
+      : kDebugMode
+      ? _osmTiles
+      : null;
 }

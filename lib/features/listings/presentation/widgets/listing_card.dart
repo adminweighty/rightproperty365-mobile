@@ -35,11 +35,12 @@ class ListingPhoto extends StatelessWidget {
       aspectRatio: aspectRatio,
       child: Hero(
         tag: 'listing-photo-$heroScope-${listing.id}',
-        child: Image.asset(
-          listing.image.asset,
+        child: Image(
+          image: listing.image.asset.isEmpty && listing.image.url != null
+              ? ResizeImage(NetworkImage(listing.image.url!), width: 900)
+              // Decode near display size; the bundled photos are much larger.
+              : ResizeImage(AssetImage(listing.image.asset), width: 900),
           fit: BoxFit.cover,
-          // Decode near display size; the bundled photos are much larger.
-          cacheWidth: 900,
           semanticLabel: decorative ? null : listing.image.alt,
           excludeFromSemantics: decorative,
           errorBuilder: (context, _, _) => ColoredBox(

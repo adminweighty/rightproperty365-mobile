@@ -2,11 +2,13 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
+import '../core/location.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/listings/data/api_listing_repository.dart';
 import '../features/listings/data/video_tour.dart';
 import '../features/saved/saved_listings.dart';
 import '../features/auth/auth_controller.dart';
@@ -46,7 +48,22 @@ class AppServices {
     required this.saved,
     required this.listingDetails,
     required this.openLink,
+    required this.listingSearch,
+    this.mapTiles,
+    this.locate = _noLocation,
   });
+
+  static Future<Located> _noLocation() async =>
+      const Located.failed('Location is not available.');
+
+  /// Listings from the API, for the map.
+  final ApiListingSearch listingSearch;
+
+  /// The map's tile source; null means no map anywhere.
+  final MapTiles? mapTiles;
+
+  /// The phone's position, for Near me.
+  final Locate locate;
 
   /// What the public listing adds to the bundled sample listings (the
   /// video tour).
