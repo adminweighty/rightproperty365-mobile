@@ -29,7 +29,10 @@ class MapSearchView extends StatefulWidget {
 }
 
 class _MapSearchViewState extends State<MapSearchView> {
-  final _map = MapController();
+  /// One controller per map: a rebuilt map must not share it with the one
+  /// being disposed.
+  MapController _map = MapController();
+  Object? _mapKey;
   Future<MapSearchPage>? _page;
   Future<({int total, int mappable})>? _counts;
   LatLngBounds? _moved;
@@ -162,6 +165,11 @@ class _MapSearchViewState extends State<MapSearchView> {
           );
         }
         final listings = page?.listings ?? const <Listing>[];
+        final mapKey = (_fit, page == null);
+        if (mapKey != _mapKey) {
+          _mapKey = mapKey;
+          _map = MapController();
+        }
         return CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -170,8 +178,10 @@ class _MapSearchViewState extends State<MapSearchView> {
                 child: Stack(
                   children: [
                     ListingsMap(
-                      // A new map when the results change, so it fits them.
-                      key: ValueKey(_fit),
+                      // A new map when the filters change and once their
+                      // results arrive, so it fits them; searching an area
+                      // keeps the map where it is.
+                      key: ValueKey(mapKey),
                       tiles: widget.tiles,
                       listings: listings,
                       controller: _map,
