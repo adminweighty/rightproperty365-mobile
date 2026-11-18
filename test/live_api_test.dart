@@ -34,6 +34,7 @@ import 'package:rightproperty365/features/listings/data/listing.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
+import 'package:rightproperty365/features/venues/venue_repository.dart';
 
 final _base = Platform.environment['RP_LIVE_API'];
 final _password = Platform.environment['RP_LIVE_PASSWORD'] ?? '';
@@ -562,4 +563,90 @@ void main() {
     skip: skip,
     timeout: const Timeout(Duration(minutes: 3)),
   );
+
+  test('booking a showroom by the hour (API 0.33.0)', () async {
+    final guest = ApiClient(baseUrl: _base!);
+    final showroom = (await ApiListingSearch(
+      guest,
+      apiBase: _base!,
+    ).bySlug('glass-fronted-showroom-eastlea'))!;
+    final details = ApiListingDetailsRepository(guest);
+    final offer = (await details.hourly(showroom.slug))!;
+    expect(offer.enabled, isTrue);
+
+    final tenant = await signedIn('tenant@example.test');
+    final venues = VenueRepository(tenant);
+    final venue = await venues.availability(showroom.id, from: DateTime.now());
+    VenueQuote? quote;
+    for (final day in venue.days.where((d) => d.bookable)) {
+      final starts = venue.starts(day);
+      if (starts.isEmpty) continue;
+      final start = starts.last;
+      quote = await venues.quote(
+        showroom.id,
+        start,
+        start.add(Duration(minutes: venue.minMinutes)),
+      );
+      break;
+    }
+    expect(quote, isNotNull);
+    expect(quote!.lines.first.code, 'RATE');
+    expect(quote.notice, venueNoPaymentNotice);
+    final sent = await venues.request(
+      quote.id,
+      message: 'Live check',
+      attendees: 5,
+      privacyVersion: AppConfig.privacyNoticeVersion,
+    );
+    expect(sent.status, 'REQUESTED');
+    expect(sent.reference, startsWith('VB-'));
+    expect((await venues.mine()).map((b) => b.id), contains(sent.id));
+    final cancelled = await venues.cancelMine(sent.id, reason: 'Live check');
+    expect(cancelled.status, 'CANCELLED');
+
+    // The host: confirming the request that overlaps a confirmed booking
+    // loses, and the host can decline it.
+    final host = await signedIn('sample-showrooms@example.test');
+    final org = (await ApiWorkspaceRepository(host).load()).organisations.first;
+    final hosting = VenueRepository(host);
+    final requests = await hosting.hosted(org.id, status: 'REQUESTED');
+    var clashes = 0;
+    for (final r in requests) {
+      try {
+        await hosting.hostAction(org.id, r.id, 'confirm');
+      } on ApiFailure catch (failure) {
+        if (failure.code != 'SLOT_TAKEN') rethrow;
+        clashes++;
+        final declined = await hosting.hostAction(
+          org.id,
+          r.id,
+          'decline',
+          reason: 'That time is already booked',
+        );
+        expect(declined.status, 'DECLINED');
+      }
+    }
+    expect(clashes, greaterThanOrEqualTo(1));
+
+    // Not another customer's, not another organisation's.
+    await expectLater(
+      VenueRepository(await signedIn('consumer@example.test'))
+          .myBooking(sent.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    final other = await signedIn('agent-b@example.test');
+    final otherOrg = (await ApiWorkspaceRepository(
+      other,
+    ).load()).organisations.first;
+    await expectLater(
+      VenueRepository(other).hostedBooking(otherOrg.id, sent.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // ignore: avoid_print
+    print(
+      'venues: quoted ${quote.currency} ${quote.total} for '
+      '${quote.durationMinutes} min, sent ${sent.reference}, cancelled; '
+      '$clashes overlapping request(s) refused with SLOT_TAKEN and declined',
+    );
+  }, skip: skip);
 }

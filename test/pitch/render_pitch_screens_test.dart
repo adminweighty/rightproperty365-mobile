@@ -26,6 +26,7 @@ import 'package:rightproperty365/app/theme/app_theme.dart';
 import 'package:rightproperty365/app/router.dart';
 import 'package:rightproperty365/core/location.dart';
 import 'package:rightproperty365/features/contacts/contacts_repository.dart';
+import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/features/workspace/workspace.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -719,4 +720,106 @@ void main() {
 
   // Uses http so the import is kept for the fake API's types.
   test('render setup', () => expect(http.Response, isNotNull), skip: _skip);
+  testWidgets('07 hourly venue booking', (tester) async {
+    final test = TestServices();
+    Map<String, dynamic> r(String s, String e) => {
+      'start': s,
+      'end': e,
+      'local_start': s,
+      'local_end': e,
+    };
+    final days = [
+      for (var i = 0; i < 6; i++)
+        {
+          'date': '2026-11-${(25 + i).toString().padLeft(2, '0')}',
+          'weekday': (3 + i) % 7 + 1,
+          'closed': i == 4,
+          'note': null,
+          'open_ranges': i == 4
+              ? []
+              : [
+                  r(
+                    '2026-11-${25 + i}T06:00:00Z',
+                    '2026-11-${25 + i}T16:00:00Z',
+                  ),
+                ],
+          'booked': i == 1
+              ? [r('2026-11-26T08:00:00Z', '2026-11-26T12:30:00Z')]
+              : [],
+        },
+    ];
+    final quote = {
+      'quote_id': 'q-1',
+      'listing_id': 'venue-1',
+      'expires_at': '2026-11-19T10:30:00Z',
+      'currency': 'USD',
+      'lines': [
+        {
+          'code': 'RATE',
+          'kind': 'RATE',
+          'label': '3 h × USD 50.00',
+          'amount': '150.00',
+        },
+        {
+          'code': 'TAX',
+          'kind': 'PERCENT',
+          'label': 'VAT 15%',
+          'amount': '24.00',
+        },
+        {
+          'code': 'CLEAN',
+          'kind': 'FIXED',
+          'label': 'Cleaning',
+          'amount': '10.00',
+        },
+      ],
+      'subtotal': '160.00',
+      'deposit': '100.00',
+      'deposit_note': 'payable to the host if confirmed',
+      'total_excluding_deposit': '184.00',
+      'start': '2026-11-26T12:30:00Z',
+      'end': '2026-11-26T15:30:00Z',
+      'duration_minutes': 180,
+      'time_zone': 'Africa/Harare',
+      'local_start': '2026-11-26T14:30:00+02:00',
+      'local_end': '2026-11-26T17:30:00+02:00',
+      'mode': 'ENQUIRY',
+      'notice': venueNoPaymentNotice,
+    };
+    serve(test, {
+      'GET /v1/venues/venue-1/availability': (_) => {
+        'listing_id': 'venue-1',
+        'time_zone': 'Africa/Harare',
+        'currency': 'USD',
+        'rate_per_hour': '50.00',
+        'deposit': '100.00',
+        'deposit_note': 'payable to the host if confirmed',
+        'increment_minutes': 30,
+        'min_minutes': 120,
+        'max_minutes': 480,
+        'cleaning_buffer_minutes': 30,
+        'capacity': 1,
+        'cancellation_policy': 'Cancel up to 48 hours before at no cost.',
+        'free_cancellation_hours': 48,
+        'mode': 'ENQUIRY',
+        'notice': venueNoPaymentNotice,
+        'days': days,
+      },
+      'POST /v1/venues/venue-1/quotes': (_) => jsonResponse(201, quote),
+    });
+    await _pumpApp(tester, test);
+    _router(tester).push(
+      Routes.bookHourly('venue-1'),
+      extra: 'Glass-fronted showroom, Eastlea',
+    );
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('venue-day-2026-11-26')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('venue-start-14:30')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('venue-duration-180')));
+    await _settle(tester);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -380));
+    await _shoot(tester, '07-venue-booking-quote');
+  }, skip: _skip != null);
 }

@@ -102,6 +102,17 @@ class _WorkSectionState extends State<WorkSection> {
                   extra: contactBooks(work, AppScope.of(context).auth.user),
                 ),
               ),
+            if (contactBooks(work, AppScope.of(context).auth.user).isNotEmpty)
+              _Tile(
+                key: const Key('open-venue-bookings'),
+                icon: Icons.meeting_room_outlined,
+                title: 'Hourly bookings',
+                subtitle: 'Showroom and venue requests to confirm',
+                onTap: () => context.push(
+                  Routes.hostedVenueBookings,
+                  extra: contactBooks(work, AppScope.of(context).auth.user),
+                ),
+              ),
             if (work.statisticsOrganisations.isNotEmpty)
               _Tile(
                 key: const Key('open-statistics'),

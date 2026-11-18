@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
+import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
 import '../features/applications/received_applications.dart';
 import '../features/contacts/contacts_repository.dart';
@@ -53,6 +54,14 @@ abstract final class Routes {
   static const statistics = '/statistics';
   static const contacts = '/contacts';
   static const receivedApplications = '/received-applications';
+  static const hostedVenueBookings = '/hosted-venue-bookings';
+
+  static String bookHourly(String listingId) =>
+      '/venues/${Uri.encodeComponent(listingId)}/book';
+  static String myVenueBooking(String id) =>
+      '/my-venue-bookings/${Uri.encodeComponent(id)}';
+  static String hostedVenueBooking(String book, String id) =>
+      '/hosted-venue-bookings/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
 
   static String apply(String slug) => '/apply/${Uri.encodeComponent(slug)}';
   static String continueApplication(String id) =>
@@ -260,6 +269,39 @@ GoRouter buildRouter() => GoRouter(
         id: state.pathParameters['id']!,
         professional: false,
       ),
+    ),
+    GoRoute(
+      path: '/venues/:id/book',
+      builder: (context, state) => HourlyBookingScreen(
+        listingId: state.pathParameters['id']!,
+        title: state.extra as String? ?? 'Venue',
+      ),
+    ),
+    GoRoute(
+      path: '/my-venue-bookings/:id',
+      builder: (context, state) =>
+          VenueBookingScreen(id: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/hosted-venue-bookings',
+      builder: (context, state) => HostedVenueBookingsScreen(
+        books: state.extra as List<ContactBook>? ?? const [],
+      ),
+      routes: [
+        GoRoute(
+          path: ':book/:id',
+          builder: (context, state) => VenueBookingScreen(
+            id: state.pathParameters['id']!,
+            book:
+                state.extra as ContactBook? ??
+                ContactBook(
+                  id: state.pathParameters['book']!,
+                  name: '',
+                  canWrite: true,
+                ),
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/apply/:slug',

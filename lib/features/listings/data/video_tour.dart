@@ -1,4 +1,5 @@
 import '../../../core/api/api_client.dart';
+import '../../venues/venue_repository.dart' show HourlyOffer;
 import 'listing.dart';
 
 /// YouTube's privacy policy, linked next to every video tour.
@@ -51,6 +52,9 @@ abstract interface class ListingDetailsRepository {
 
   /// Whether the listing takes applications now; null when it takes none.
   Future<({bool open, String? formName})?> applications(String slug);
+
+  /// The listing's hourly booking offer (API 0.33.0); null when it has none.
+  Future<HourlyOffer?> hourly(String slug);
 }
 
 class ApiListingDetailsRepository implements ListingDetailsRepository {
@@ -81,6 +85,10 @@ class ApiListingDetailsRepository implements ListingDetailsRepository {
         ? VideoTour.fromJson(video)
         : null;
   }
+
+  @override
+  Future<HourlyOffer?> hourly(String slug) async =>
+      HourlyOffer.fromJson((await _listing(slug))?['hourly_booking']);
 
   @override
   Future<({bool open, String? formName})?> applications(String slug) async {

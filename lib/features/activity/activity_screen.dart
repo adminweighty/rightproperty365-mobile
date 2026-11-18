@@ -12,6 +12,7 @@ import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import '../applications/apply_screen.dart' show MyApplicationsView;
 import '../appointments/appointment_screens.dart';
+import '../venues/venue_screens.dart' show MyHourlyBookingsView;
 import '../saved/saved_widgets.dart';
 import 'activity_store.dart';
 import 'my_request_screen.dart';
@@ -35,7 +36,7 @@ class ActivityScreen extends StatelessWidget {
         final signedIn = services.auth.signedIn;
         return DefaultTabController(
           key: ValueKey(signedIn),
-          length: signedIn ? 4 : 2,
+          length: signedIn ? 5 : 2,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Activity'),
@@ -45,6 +46,7 @@ class ActivityScreen extends StatelessWidget {
                   const Tab(text: 'My Enquiries'),
                   if (signedIn) const Tab(text: 'My Viewings'),
                   if (signedIn) const Tab(text: 'My Applications'),
+                  if (signedIn) const Tab(text: 'Hourly Bookings'),
                   const Tab(text: 'Saved Properties'),
                 ],
               ),
@@ -56,6 +58,7 @@ class ActivityScreen extends StatelessWidget {
                   signedIn ? _AccountRequests(activity) : _Requests(activity),
                   if (signedIn) const MyViewingsView(),
                   if (signedIn) const MyApplicationsView(),
+                  if (signedIn) const MyHourlyBookingsView(),
                   const SavedTab(),
                 ],
               ),

@@ -22,6 +22,7 @@ import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
+import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/core/location.dart';
 import 'package:rightproperty365/features/listings/data/api_listing_repository.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
@@ -340,6 +341,7 @@ class TestServices {
       analytics: analytics,
       contacts: ContactsRepository(workApi),
       myApplications: MyApplicationsRepository(workApi),
+      venues: VenueRepository(workApi),
       agentApplications: AgentApplicationsRepository(workApi),
       pickApplicationFile: ({required camera, required accept}) async {
         pickedFrom.add(camera ? 'camera' : 'files');

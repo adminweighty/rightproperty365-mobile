@@ -18,6 +18,7 @@ import '../features/activity/my_requests_repository.dart';
 import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/venues/venue_repository.dart';
 import '../features/listings/data/api_listing_repository.dart';
 import '../features/listings/data/video_tour.dart';
 import '../features/saved/saved_listings.dart';
@@ -95,6 +96,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     myApplications: MyApplicationsRepository(api),
     agentApplications: AgentApplicationsRepository(api),
     pickApplicationFile: _pickApplicationFile,
+    venues: VenueRepository(api),
     analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,
