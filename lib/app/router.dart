@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
+import '../features/applications/apply_screen.dart';
+import '../features/applications/received_applications.dart';
 import '../features/contacts/contacts_repository.dart';
 import '../features/contacts/contacts_screens.dart';
 import '../features/workspace/workspace.dart';
@@ -50,6 +52,15 @@ abstract final class Routes {
   static const receivedAppointments = '/appointments';
   static const statistics = '/statistics';
   static const contacts = '/contacts';
+  static const receivedApplications = '/received-applications';
+
+  static String apply(String slug) => '/apply/${Uri.encodeComponent(slug)}';
+  static String continueApplication(String id) =>
+      '/my-applications/${Uri.encodeComponent(id)}/continue';
+  static String myApplication(String id) =>
+      '/my-applications/${Uri.encodeComponent(id)}';
+  static String receivedApplication(String organisation, String id) =>
+      '/received-applications/${Uri.encodeComponent(organisation)}/${Uri.encodeComponent(id)}';
 
   /// [book] is the organisation (or a direct owner's user) ID.
   static String contact(String book, String id) =>
@@ -249,6 +260,38 @@ GoRouter buildRouter() => GoRouter(
         id: state.pathParameters['id']!,
         professional: false,
       ),
+    ),
+    GoRoute(
+      path: '/apply/:slug',
+      builder: (context, state) =>
+          ApplyScreen(slug: state.pathParameters['slug']),
+    ),
+    GoRoute(
+      path: '/my-applications/:id',
+      builder: (context, state) =>
+          MyApplicationScreen(id: state.pathParameters['id']!),
+      routes: [
+        GoRoute(
+          path: 'continue',
+          builder: (context, state) =>
+              ApplyScreen(applicationId: state.pathParameters['id']),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/received-applications',
+      builder: (context, state) => ReceivedApplicationsScreen(
+        books: state.extra as List<ContactBook>? ?? const [],
+      ),
+      routes: [
+        GoRoute(
+          path: ':org/:id',
+          builder: (context, state) => ReceivedApplicationScreen(
+            organisationId: state.pathParameters['org']!,
+            id: state.pathParameters['id']!,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/contacts',

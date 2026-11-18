@@ -18,6 +18,7 @@ import 'package:rightproperty365/features/property_requests/data/property_reques
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/analytics/analytics_repository.dart';
+import 'package:rightproperty365/features/applications/applications_repository.dart';
 import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
 import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
@@ -483,4 +484,82 @@ void main() {
       '${linked.created ? "created" : "linked"} ${linked.detail.contact.name}',
     );
   }, skip: skip);
+
+  test(
+    'applying, and the agency deciding (API 0.32.0)',
+    () async {
+      final tenant = await signedIn('tenant@example.test');
+      final mine = MyApplicationsRepository(tenant);
+      final draft = (await mine.list()).firstWhere((a) => a.status == 'DRAFT');
+      var app = await mine.get(draft.id);
+      final form = app.form!;
+
+      // Answer every question that shows, as a person would.
+      final answers = <String, Object?>{};
+      for (final f in form.fields) {
+        if (f.type == 'file') continue;
+        answers[f.key] = switch (f.type) {
+          'number' => f.min ?? 1,
+          'date' => '2030-06-01',
+          'single_choice' => f.options.last.value,
+          'multiple_choice' => [f.options.first.value],
+          _ => 'Live check answer',
+        };
+      }
+      app = await mine.save(app.id, answers);
+      for (final f in form.fields.where((f) => f.type == 'file')) {
+        if (!form.visible(f, app.answers)) continue;
+        app = await mine.upload(app.id, f.key, (
+          bytes: '%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'.codeUnits,
+          name: 'payslip.pdf',
+        ));
+      }
+      expect(form.problems(app.answers), isEmpty);
+      final sent = await mine.submit(app.id);
+      expect(sent.reference, matches(RegExp(r'^RPA-APP-\d{4}-\d{6}$')));
+
+      final owner = await signedIn('estates.owner@example.test');
+      final org = (await ApiWorkspaceRepository(
+        owner,
+      ).load()).organisations.first;
+      final agency = AgentApplicationsRepository(owner);
+      final inbox = await agency.list(org.id, status: 'SUBMITTED');
+      expect(inbox.items.map((a) => a.id), contains(sent.id));
+      final opened = await agency.get(org.id, sent.id);
+      expect(opened.rendered, isNotEmpty);
+      expect(opened.applicantName, isNotNull);
+      await agency.decide(org.id, sent.id, 'UNDER_REVIEW', note: 'Live');
+      await agency.requestInfo(org.id, sent.id, 'A second payslip, please');
+
+      final asked = await mine.get(sent.id);
+      expect(asked.status, 'MORE_INFO');
+      expect(asked.infoRequest, 'A second payslip, please');
+      final again = await mine.submit(sent.id);
+      expect(again.status, 'SUBMITTED');
+      final shortlisted = await agency.decide(org.id, sent.id, 'SHORTLISTED');
+      expect(shortlisted.status, 'SHORTLISTED');
+
+      // Not another agency's, and not another customer's.
+      final other = await signedIn('agent-b@example.test');
+      final otherOrg = (await ApiWorkspaceRepository(
+        other,
+      ).load()).organisations.first;
+      await expectLater(
+        AgentApplicationsRepository(other).get(otherOrg.id, sent.id),
+        throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+      );
+      await expectLater(
+        MyApplicationsRepository(await signedIn('consumer@example.test'))
+            .get(sent.id),
+        throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+      );
+      // ignore: avoid_print
+      print(
+        'applications: ${sent.reference} on ${form.name} v${form.version}; '
+        'more info asked, sent again, now ${shortlisted.statusLabel}',
+      );
+    },
+    skip: skip,
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }

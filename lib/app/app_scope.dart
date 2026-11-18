@@ -6,6 +6,7 @@ import '../core/location.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
+import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/contacts/contacts_repository.dart';
@@ -54,6 +55,9 @@ class AppServices {
     required this.listingSearch,
     required this.analytics,
     required this.contacts,
+    required this.myApplications,
+    required this.agentApplications,
+    required this.pickApplicationFile,
     required this.analyticsReports,
     this.mapTiles,
     this.locate = _noLocation,
@@ -68,6 +72,18 @@ class AppServices {
 
   /// The agent CRM: contact books of the person's organisations.
   final ContactsRepository contacts;
+
+  /// Applications: the person's own, and those an organisation received.
+  final MyApplicationsRepository myApplications;
+  final AgentApplicationsRepository agentApplications;
+
+  /// A file for an application, from the camera or the phone's files;
+  /// null when the person cancels.
+  final Future<ChosenFile?> Function({
+    required bool camera,
+    required List<String> accept,
+  })
+  pickApplicationFile;
   final AnalyticsRepository analyticsReports;
 
   /// Listings from the API, for the map.

@@ -91,6 +91,17 @@ class _WorkSectionState extends State<WorkSection> {
                   extra: contactBooks(work, AppScope.of(context).auth.user),
                 ),
               ),
+            if (contactBooks(work, AppScope.of(context).auth.user).isNotEmpty)
+              _Tile(
+                key: const Key('open-applications'),
+                icon: Icons.assignment_outlined,
+                title: 'Applications',
+                subtitle: 'Review, shortlist and decide',
+                onTap: () => context.push(
+                  Routes.receivedApplications,
+                  extra: contactBooks(work, AppScope.of(context).auth.user),
+                ),
+              ),
             if (work.statisticsOrganisations.isNotEmpty)
               _Tile(
                 key: const Key('open-statistics'),

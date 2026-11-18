@@ -436,7 +436,8 @@ class _TextDialogState extends State<_TextDialog> {
         TextButton(
           key: const Key('dialog-confirm'),
           onPressed: () {
-            if (missing) {
+            // Read the text now: it may have changed since the last build.
+            if (widget.required && _text.text.trim().isEmpty) {
               setState(() => _tried = true);
               return;
             }

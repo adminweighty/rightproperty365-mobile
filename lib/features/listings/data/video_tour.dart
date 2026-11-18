@@ -48,6 +48,9 @@ abstract interface class ListingDetailsRepository {
 
   /// Where the listing is, or null (no location, or no API).
   Future<ListingLocation?> location(String slug);
+
+  /// Whether the listing takes applications now; null when it takes none.
+  Future<({bool open, String? formName})?> applications(String slug);
 }
 
 class ApiListingDetailsRepository implements ListingDetailsRepository {
@@ -77,6 +80,16 @@ class ApiListingDetailsRepository implements ListingDetailsRepository {
     return video is Map<String, dynamic> && video['provider'] == 'YOUTUBE'
         ? VideoTour.fromJson(video)
         : null;
+  }
+
+  @override
+  Future<({bool open, String? formName})?> applications(String slug) async {
+    final value = (await _listing(slug))?['applications'];
+    if (value is! Map<String, dynamic>) return null;
+    return (
+      open: value['open'] == true,
+      formName: value['form_name'] as String?,
+    );
   }
 
   @override

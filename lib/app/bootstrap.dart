@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleListener, WidgetsBinding;
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +12,7 @@ import '../core/location.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
+import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/contacts/contacts_repository.dart';
@@ -90,6 +92,9 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     listingSearch: listingSearch,
     analytics: analytics,
     contacts: ContactsRepository(api),
+    myApplications: MyApplicationsRepository(api),
+    agentApplications: AgentApplicationsRepository(api),
+    pickApplicationFile: _pickApplicationFile,
     analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,
@@ -125,6 +130,30 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
   // when the saved session has been checked.
   auth.restore();
   return services;
+}
+
+/// A photo (from the camera, asked for by the system) or a document for an
+/// application. Nothing is kept on the phone afterwards.
+Future<ChosenFile?> _pickApplicationFile({
+  required bool camera,
+  required List<String> accept,
+}) async {
+  if (camera) {
+    final photo = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      maxWidth: 2400,
+      maxHeight: 2400,
+      imageQuality: 85,
+    );
+    if (photo == null) return null;
+    return (bytes: await photo.readAsBytes(), name: photo.name);
+  }
+  final files = await FilePicker.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: [...accept, if (accept.contains('jpg')) 'jpeg'],
+  );
+  if (files.isEmpty) return null;
+  return (bytes: await files.first.readAsBytes(), name: files.first.name);
 }
 
 /// A photo of a signature, shrunk to the API's 2000 x 1000 pixel limit.

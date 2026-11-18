@@ -11,6 +11,7 @@ import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
 import '../../saved/saved_widgets.dart';
+import '../../applications/received_applications.dart' show ApplySection;
 import 'listing_map_section.dart';
 import 'video_tour_section.dart';
 import '../../analytics/analytics_tracker.dart';
@@ -162,6 +163,7 @@ class _Detail extends StatelessWidget {
                   style: text.bodyLarge?.copyWith(color: c.muted),
                 ),
                 const SizedBox(height: Space.x6),
+                ApplySection(slug: listing.slug),
                 ListingMapSection(listing: listing),
                 VideoTourSection(
                   slug: listing.slug,

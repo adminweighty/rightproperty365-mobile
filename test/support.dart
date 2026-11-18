@@ -15,6 +15,7 @@ import 'package:rightproperty365/core/terminology.dart';
 import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/analytics/analytics_repository.dart';
+import 'package:rightproperty365/features/applications/applications_repository.dart';
 import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
@@ -338,6 +339,12 @@ class TestServices {
       listingSearch: listingSearch,
       analytics: analytics,
       contacts: ContactsRepository(workApi),
+      myApplications: MyApplicationsRepository(workApi),
+      agentApplications: AgentApplicationsRepository(workApi),
+      pickApplicationFile: ({required camera, required accept}) async {
+        pickedFrom.add(camera ? 'camera' : 'files');
+        return pickedFile;
+      },
       analyticsReports: ApiAnalyticsRepository(workApi),
       mapTiles: mapTiles,
       locate: () async => located,
@@ -385,6 +392,10 @@ class TestServices {
   final listings = sampleListings();
   late final ApiListingSearch listingSearch;
   late final AnalyticsTracker analytics;
+
+  /// What the application file picker returns, and where it was asked from.
+  ChosenFile? pickedFile;
+  final pickedFrom = <String>[];
 
   /// No map unless a test gives tiles to the constructor.
   final MapTiles? mapTiles;

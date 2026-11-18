@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 
 /// A failed API call, built from the error envelope
 /// `{"error": {"code", "message", "fields"}, "trace_id"}` or from a transport
@@ -118,6 +119,35 @@ class ApiClient {
   Future<ApiResponse> deleteJson(String path, Map<String, dynamic> body) =>
       _send('DELETE', path, body: body);
 
+  /// Uploads one file as `multipart/form-data` (part [field]).
+  Future<ApiResponse> postFile(
+    String path, {
+    required String field,
+    required List<int> bytes,
+    required String fileName,
+    String? contentType,
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$path'))
+      ..headers.addAll({
+        'Accept': 'application/json',
+        if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',
+      })
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          field,
+          bytes,
+          filename: fileName,
+          contentType: contentType == null
+              ? null
+              : MediaType.parse(contentType),
+        ),
+      );
+    final response = await _complete(request, uploadTimeout);
+    return ApiResponse(response.statusCode, _decode(response.body));
+  }
+
+  static const uploadTimeout = Duration(seconds: 90);
+
   /// A file, such as a PDF, as bytes. Failures are read from the JSON error
   /// envelope like any other call.
   Future<Uint8List> getBytes(String path) async =>
@@ -162,10 +192,17 @@ class ApiClient {
       });
     if (body != null) request.body = jsonEncode(body);
 
+    return _complete(request, _timeout);
+  }
+
+  Future<http.Response> _complete(
+    http.BaseRequest request,
+    Duration timeout,
+  ) async {
     final http.Response response;
     try {
       response = await http.Response.fromStream(
-        await _http.send(request).timeout(_timeout),
+        await _http.send(request).timeout(timeout),
       );
     } on SocketException {
       throw const ApiFailure.network();
