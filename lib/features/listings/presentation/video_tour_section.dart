@@ -4,6 +4,7 @@ import '../../../app/app_scope.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/widgets/brand.dart';
+import '../../analytics/analytics_tracker.dart';
 import '../data/video_tour.dart';
 
 /// "Video tour" on the listing page, when the listing has one.
@@ -18,8 +19,12 @@ class VideoTourSection extends StatefulWidget {
     super.key,
     required this.slug,
     required this.title,
+    this.listingId,
     this.posterImage,
   });
+
+  /// For listing statistics (a play is counted as youtube_play_intent).
+  final String? listingId;
 
   final String slug;
   final String title;
@@ -80,7 +85,16 @@ class _VideoTourSectionState extends State<VideoTourSection> {
                           tour: tour,
                           title: widget.title,
                           image: widget.posterImage,
-                          onPlay: () => _open(tour.openUrl),
+                          onPlay: () {
+                            final id = widget.listingId;
+                            if (id != null) {
+                              AppScope.of(context).analytics.record(
+                                AnalyticsEventType.videoPlayIntent,
+                                id,
+                              );
+                            }
+                            _open(tour.openUrl);
+                          },
                           onFailed: () {
                             if (!_posterFailed && mounted) {
                               WidgetsBinding.instance.addPostFrameCallback((_) {

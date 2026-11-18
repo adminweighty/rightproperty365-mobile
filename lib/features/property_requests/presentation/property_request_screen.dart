@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../app/app_scope.dart';
+import '../../analytics/analytics_tracker.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/config.dart';
@@ -20,6 +21,9 @@ class PropertyRequestScreen extends StatefulWidget {
 }
 
 class _PropertyRequestScreenState extends State<PropertyRequestScreen> {
+  /// Sent once per request page, however often the form is sent again.
+  bool _contactCounted = false;
+
   Future<Listing?>? _listing;
 
   @override
@@ -42,7 +46,15 @@ class _PropertyRequestScreenState extends State<PropertyRequestScreen> {
               )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(Space.x4),
-                child: PropertyRequestForm(listing: listing),
+                child: PropertyRequestForm(
+                  listing: listing,
+                  onContact: () {
+                    if (_contactCounted) return;
+                    _contactCounted = true;
+                    AppScope.of(context).analytics
+                        .record(AnalyticsEventType.contactClick, listing.id);
+                  },
+                ),
               ),
       ),
     );
@@ -51,9 +63,12 @@ class _PropertyRequestScreenState extends State<PropertyRequestScreen> {
 
 /// A listing enquiry. Posts to POST /v1/property-requests.
 class PropertyRequestForm extends StatelessWidget {
-  const PropertyRequestForm({super.key, required this.listing});
+  const PropertyRequestForm({super.key, required this.listing, this.onContact});
 
   final Listing listing;
+
+  /// Called as the request is sent (listing statistics: contact_click).
+  final VoidCallback? onContact;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +85,7 @@ class PropertyRequestForm extends StatelessWidget {
           'Hello, I am interested in ${listing.reference}. Please send me more details.',
       showRequestType: true,
       onSubmit: (input) async {
+        onContact?.call();
         final receipt = await services.propertyRequests.submit(
           PropertyRequestDraft(
             listingId: listing.id,

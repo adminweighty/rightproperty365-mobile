@@ -8,6 +8,7 @@ import '../../../app/router.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/location.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../analytics/analytics_tracker.dart';
 import '../data/api_listing_repository.dart';
 import '../data/listing.dart';
 import 'listings_map.dart';
@@ -264,6 +265,8 @@ class _MapSearchViewState extends State<MapSearchView> {
                       child: ListingCard(
                         listing: listing,
                         heroScope: 'map-list',
+                        placement: AnalyticsPlacement.search,
+                        rank: listings.indexOf(listing),
                         onTap: () => _open(listing),
                       ),
                     ),

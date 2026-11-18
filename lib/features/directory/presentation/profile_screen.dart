@@ -14,6 +14,7 @@ import '../../enquiries/presentation/enquiry_form.dart';
 import '../../listings/data/listing.dart';
 import '../../listings/presentation/widgets/listing_card.dart';
 import '../data/business_enquiry_repository.dart';
+import '../../analytics/analytics_tracker.dart';
 import '../data/profile.dart';
 import 'widgets/profile_widgets.dart';
 
@@ -200,6 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: ListingCard(
                         listing: listing,
                         heroScope: 'profile-${profile.slug}',
+                        placement: AnalyticsPlacement.rail,
                         onTap: () => context.push(
                           Routes.listing(
                             listing.slug,

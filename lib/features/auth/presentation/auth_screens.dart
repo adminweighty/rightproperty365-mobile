@@ -109,6 +109,8 @@ class _SignedOut extends StatelessWidget {
           onPressed: () => context.push(Routes.register),
           child: const Text('Create an account'),
         ),
+        const SizedBox(height: Space.x6),
+        const CountVisitsSwitch(),
       ],
     );
   }
@@ -243,6 +245,7 @@ class _SignedIn extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push(Routes.accountManagement),
         ),
+        const CountVisitsSwitch(),
         const SizedBox(height: Space.x4),
         OutlinedButton(
           key: const Key('sign-out'),
@@ -250,6 +253,36 @@ class _SignedIn extends StatelessWidget {
           child: const Text('Sign out'),
         ),
       ],
+    );
+  }
+}
+
+/// Phones send no Do Not Track signal, so the app asks instead: off means
+/// this phone sends no listing statistics at all.
+class CountVisitsSwitch extends StatefulWidget {
+  const CountVisitsSwitch({super.key});
+
+  @override
+  State<CountVisitsSwitch> createState() => _CountVisitsSwitchState();
+}
+
+class _CountVisitsSwitchState extends State<CountVisitsSwitch> {
+  @override
+  Widget build(BuildContext context) {
+    final analytics = AppScope.of(context).analytics;
+    return SwitchListTile(
+      key: const Key('count-visits'),
+      contentPadding: EdgeInsets.zero,
+      value: !analytics.optedOut,
+      onChanged: (on) async {
+        await analytics.setOptedOut(!on);
+        if (mounted) setState(() {});
+      },
+      title: const Text('Count my visits anonymously'),
+      subtitle: const Text(
+        'Helps advertisers see how often their properties are viewed. '
+        'Nothing identifies you or this phone, and nothing is shared with other companies.',
+      ),
     );
   }
 }

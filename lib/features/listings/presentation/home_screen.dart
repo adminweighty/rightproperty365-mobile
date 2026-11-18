@@ -13,6 +13,7 @@ import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/reveal.dart';
 import '../../directory/presentation/directory_screens.dart';
+import '../../analytics/analytics_tracker.dart';
 import '../data/listing.dart';
 import 'widgets/listing_card.dart';
 
@@ -142,6 +143,7 @@ class _HomeContent extends StatelessWidget {
             ListingRail(
               listings: items,
               heroScope: scope,
+              placement: AnalyticsPlacement.home,
               onOpen: (listing) => open(listing, scope),
             ),
           ],

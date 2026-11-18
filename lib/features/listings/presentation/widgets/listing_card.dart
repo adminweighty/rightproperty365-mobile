@@ -7,6 +7,8 @@ import '../../../../core/format.dart';
 import '../../../../core/widgets/badge.dart';
 import '../../../../core/widgets/brand.dart';
 import '../../../saved/saved_widgets.dart';
+import '../../../analytics/analytics_tracker.dart';
+import '../../../analytics/impressions.dart';
 import '../../data/listing.dart';
 
 /// A listing photo cropped to [aspectRatio]. Wrapped in a [Hero] so it flies
@@ -146,11 +148,19 @@ class ListingCard extends StatelessWidget {
     required this.onTap,
     this.heroScope = 'list',
     this.compact = false,
+    this.placement,
+    this.rank = 0,
   });
 
   final Listing listing;
   final VoidCallback onTap;
   final String heroScope;
+
+  /// Where the card is shown, for listing statistics; null is not counted.
+  final AnalyticsPlacement? placement;
+
+  /// Its position in that list.
+  final int rank;
 
   /// For horizontal rows: no facts line, tighter text.
   final bool compact;
@@ -161,7 +171,7 @@ class ListingCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     // The heart sits outside the card, so it is its own button for screen
     // readers and its own tap target.
-    return Stack(
+    final card = Stack(
       children: [
         _card(c, text),
         Positioned(
@@ -175,6 +185,15 @@ class ListingCard extends StatelessWidget {
         ),
       ],
     );
+    final where = placement;
+    return where == null
+        ? card
+        : ImpressionTracker(
+            listingId: listing.id,
+            placement: where,
+            rank: rank,
+            child: card,
+          );
   }
 
   Widget _card(AppColors c, TextTheme text) {
@@ -257,10 +276,12 @@ class ListingRail extends StatelessWidget {
     required this.listings,
     required this.heroScope,
     required this.onOpen,
+    this.placement,
   });
 
   final List<Listing> listings;
   final String heroScope;
+  final AnalyticsPlacement? placement;
   final void Function(Listing listing) onOpen;
 
   @override
@@ -283,6 +304,8 @@ class ListingRail extends StatelessWidget {
               listing: listings[index],
               heroScope: heroScope,
               compact: true,
+              placement: placement,
+              rank: index,
               onTap: () => onOpen(listings[index]),
             ),
           ),

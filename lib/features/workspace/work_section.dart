@@ -78,6 +78,17 @@ class _WorkSectionState extends State<WorkSection> {
               subtitle: 'Saved signature and initials',
               onTap: () => open(Routes.mySignature),
             ),
+            if (work.statisticsOrganisations.isNotEmpty)
+              _Tile(
+                key: const Key('open-statistics'),
+                icon: Icons.insights_outlined,
+                title: 'Listing statistics',
+                subtitle: 'Views, enquiries and conversion',
+                onTap: () => context.push(
+                  Routes.statistics,
+                  extra: work.statisticsOrganisations,
+                ),
+              ),
             if (work.createsLeases)
               _Tile(
                 key: const Key('open-leases'),

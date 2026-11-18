@@ -13,6 +13,7 @@ import '../../../core/widgets/brand.dart';
 import '../../saved/saved_widgets.dart';
 import 'listing_map_section.dart';
 import 'video_tour_section.dart';
+import '../../analytics/analytics_tracker.dart';
 import '../../directory/data/profile.dart';
 import '../../directory/presentation/widgets/profile_widgets.dart';
 import '../data/listing.dart';
@@ -36,6 +37,7 @@ class ListingDetailScreen extends StatefulWidget {
 
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Future<Listing?>? _listing;
+  bool _viewCounted = false;
 
   @override
   void didChangeDependencies() {
@@ -51,6 +53,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         _listing = AppScope.of(context).listings.bySlug(widget.slug);
       }),
       builder: (context, listing) {
+        if (listing != null && !_viewCounted) {
+          // Once per listing page; the API also drops a repeat within 30 min.
+          _viewCounted = true;
+          AppScope.of(context).analytics
+              .record(AnalyticsEventType.detailView, listing.id);
+        }
         if (listing == null) {
           return Scaffold(
             appBar: AppBar(),
@@ -155,7 +163,11 @@ class _Detail extends StatelessWidget {
                 ),
                 const SizedBox(height: Space.x6),
                 ListingMapSection(listing: listing),
-                VideoTourSection(slug: listing.slug, title: listing.title),
+                VideoTourSection(
+                  slug: listing.slug,
+                  title: listing.title,
+                  listingId: listing.id,
+                ),
                 const SectionHeading('Features'),
                 const SizedBox(height: Space.x3),
                 for (final feature in listing.features)

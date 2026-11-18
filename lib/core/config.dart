@@ -13,6 +13,13 @@ abstract final class AppConfig {
     defaultValue: 'http://10.0.2.2:8080',
   );
 
+  /// The website, for pages the app hands over to (detailed reports, how
+  /// statistics are counted).
+  static const webBaseUrl = String.fromEnvironment(
+    'WEB_BASE_URL',
+    defaultValue: 'https://rightproperty365.com',
+  );
+
   /// Version of the privacy notice a customer consents to with a request.
   static const privacyNoticeVersion = '2026-11-draft';
 

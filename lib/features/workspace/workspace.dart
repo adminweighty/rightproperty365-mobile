@@ -13,6 +13,7 @@ class WorkOrganisation {
     this.canManageTeam = false,
     this.canAssignWork = false,
     this.canCreateLeases = false,
+    this.canManageListings = false,
   });
 
   factory WorkOrganisation.fromJson(Map<String, dynamic> json) =>
@@ -26,6 +27,7 @@ class WorkOrganisation {
         canManageTeam: json['can_manage_team'] == true,
         canAssignWork: json['can_assign_work'] == true,
         canCreateLeases: json['can_create_leases'] == true,
+        canManageListings: json['can_manage_listings'] == true,
       );
 
   final String id;
@@ -39,6 +41,9 @@ class WorkOrganisation {
   final bool canManageTeam;
   final bool canAssignWork;
   final bool canCreateLeases;
+
+  /// The person manages listings here, so may read their statistics.
+  final bool canManageListings;
 
   /// The roles this person may invite someone to: an owner any but owner, a
   /// manager agents and staff. The API checks it again.
@@ -91,6 +96,10 @@ class Workspace {
   List<WorkOrganisation> get assigningOrganisations => [
     for (final o in organisations)
       if (o.canAssignWork) o,
+  ];
+  List<WorkOrganisation> get statisticsOrganisations => [
+    for (final o in organisations)
+      if (o.canManageListings) o,
   ];
   List<WorkOrganisation> get leaseOrganisations => [
     for (final o in organisations)

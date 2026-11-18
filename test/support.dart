@@ -14,6 +14,9 @@ import 'package:rightproperty365/core/api/api_client.dart';
 import 'package:rightproperty365/core/terminology.dart';
 import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/activity/activity_store.dart';
+import 'package:rightproperty365/features/analytics/analytics_repository.dart';
+import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
@@ -317,6 +320,11 @@ class TestServices {
       api: api,
     );
     listingSearch = ApiListingSearch(workApi, apiBase: 'http://api.test');
+    analytics = AnalyticsTracker(
+      workApi,
+      store: MemoryStore(),
+      interval: Duration.zero,
+    );
     saved = SavedListings(
       repository: ApiSavedListingsRepository(workApi),
       auth: auth,
@@ -327,6 +335,8 @@ class TestServices {
       saved: saved,
       listingDetails: ApiListingDetailsRepository(workApi),
       listingSearch: listingSearch,
+      analytics: analytics,
+      analyticsReports: ApiAnalyticsRepository(workApi),
       mapTiles: mapTiles,
       locate: () async => located,
       openLink: (url) async {
@@ -372,6 +382,7 @@ class TestServices {
 
   final listings = sampleListings();
   late final ApiListingSearch listingSearch;
+  late final AnalyticsTracker analytics;
 
   /// No map unless a test gives tiles to the constructor.
   final MapTiles? mapTiles;
@@ -399,7 +410,12 @@ class TestServices {
 
 /// The whole app on [router], wired like the real one but with fakes and
 /// reduced motion (so the rotating home hero does not keep tests waiting).
-Widget appWith(TestServices test, GoRouter router) => AppScope(
+Widget appWith(TestServices test, GoRouter router) {
+  VisibilityDetectorController.instance.updateInterval = Duration.zero;
+  return _appWith(test, router);
+}
+
+Widget _appWith(TestServices test, GoRouter router) => AppScope(
   services: test.services,
   child: MaterialApp.router(
     theme: AppTheme.light(),
@@ -423,6 +439,8 @@ Future<void> pumpInApp(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+  // Impressions are checked at once, not on a timer.
+  VisibilityDetectorController.instance.updateInterval = Duration.zero;
 
   await tester.pumpWidget(
     AppScope(

@@ -17,7 +17,11 @@ import 'package:rightproperty365/features/property_requests/data/property_reques
 import 'package:rightproperty365/features/property_requests/data/property_request_repository.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
+import 'package:rightproperty365/features/analytics/analytics_repository.dart';
+import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
+import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
+import 'package:rightproperty365/features/workspace/workspace.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
 import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
@@ -335,6 +339,69 @@ void main() {
     print(
       'map: ${mappable.listings.length} mappable of ${counts.total}; '
       '${inBox.listings.length} in Harare',
+    );
+  }, skip: skip);
+
+  test('listing statistics: events in, report out (API 0.30.0)', () async {
+    const listing = '0195c0de-0000-7000-8000-000000000001'; // Tendai's
+    final guest = ApiClient(baseUrl: _base!);
+    final tracker = AnalyticsTracker(
+      guest,
+      store: MemoryStore(),
+      interval: Duration.zero,
+    );
+    tracker.record(AnalyticsEventType.detailView, listing);
+    tracker.record(
+      AnalyticsEventType.impression,
+      listing,
+      placement: AnalyticsPlacement.search,
+      rank: 0,
+    );
+    tracker.record(AnalyticsEventType.contactClick, listing);
+    await tracker.flush();
+    expect(tracker.queued, isEmpty);
+
+    // The same body straight to the API shows it is accepted, and that a
+    // repeated event_id is a duplicate.
+    final body = {
+      'schema': 1,
+      'events': [
+        {
+          'event_id': newEventId(),
+          'type': 'listing_detail_view',
+          'occurred_at': DateTime.now().toUtc().toIso8601String(),
+          'listing_id': listing,
+          'source': 'internal',
+          'device': 'mobile',
+          'session': 'live-check-session-0001',
+          'consent': {'analytics': true},
+        },
+      ],
+    };
+    final first = await guest.postJson('/v1/analytics/events', body);
+    final again = await guest.postJson('/v1/analytics/events', body);
+    expect(first.status, 202);
+    expect(again.body['duplicates'], 1);
+
+    final agent = await signedIn('agent@example.test');
+    final work = await ApiWorkspaceRepository(agent).load();
+    final org = work.statisticsOrganisations.first;
+    final report = await ApiAnalyticsRepository(agent)
+        .organisation(org.id, '24h');
+    expect(report.nearRealTime, isTrue);
+    expect(report.total('views'), greaterThanOrEqualTo(1));
+    expect(report.total('contact_clicks'), greaterThanOrEqualTo(1));
+    expect(report.assignedOnly, isTrue);
+    // Another organisation's report is not this agent's to read.
+    await expectLater(
+      ApiAnalyticsRepository(agent)
+          .organisation('0195c0de-0000-7000-8000-00000000b099', '30d'),
+      throwsA(isA<ApiFailure>()),
+    );
+    // ignore: avoid_print
+    print(
+      'analytics: ${report.total("views")} views, '
+      '${report.total("contact_clicks")} contact clicks in 24h for ${org.name}',
     );
   }, skip: skip);
 }

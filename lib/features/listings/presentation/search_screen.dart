@@ -6,6 +6,8 @@ import '../../../app/router.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/brand.dart';
+import '../../analytics/analytics_tracker.dart';
+import '../../analytics/impressions.dart';
 import '../data/listing.dart';
 import 'map_search_view.dart';
 import 'widgets/listing_card.dart';
@@ -84,133 +86,137 @@ class _SearchScreenState extends State<SearchScreen> {
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Search')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Space.x4,
-              Space.x4,
-              Space.x4,
-              Space.x2,
-            ),
-            child: BrandSearchField(controller: _query, onSubmitted: _load),
-          ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: Space.x4),
-            child: Row(
-              children: [
-                for (final deal in DealType.values)
-                  Padding(
-                    padding: const EdgeInsets.only(right: Space.x2),
-                    child: FilterChip(
-                      label: Text(deal.label),
-                      selected: _deal == deal,
-                      onSelected: (selected) {
-                        _deal = selected ? deal : null;
-                        _load();
-                      },
-                    ),
-                  ),
-                for (final category in categories)
-                  Padding(
-                    padding: const EdgeInsets.only(right: Space.x2),
-                    child: FilterChip(
-                      label: Text(category.label),
-                      selected: _category == category,
-                      onSelected: (selected) {
-                        _category = selected ? category : null;
-                        _load();
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (tiles != null)
+      body: ImpressionScope(
+        child: Column(
+          children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 Space.x4,
-                Space.x2,
                 Space.x4,
-                0,
+                Space.x4,
+                Space.x2,
               ),
-              child: SegmentedButton<bool>(
-                key: const Key('search-view'),
-                segments: const [
-                  ButtonSegment(
-                    value: false,
-                    label: Text('List'),
-                    icon: Icon(Icons.view_list_outlined),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text('Map'),
-                    icon: Icon(Icons.map_outlined),
-                  ),
+              child: BrandSearchField(controller: _query, onSubmitted: _load),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: Space.x4),
+              child: Row(
+                children: [
+                  for (final deal in DealType.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: Space.x2),
+                      child: FilterChip(
+                        label: Text(deal.label),
+                        selected: _deal == deal,
+                        onSelected: (selected) {
+                          _deal = selected ? deal : null;
+                          _load();
+                        },
+                      ),
+                    ),
+                  for (final category in categories)
+                    Padding(
+                      padding: const EdgeInsets.only(right: Space.x2),
+                      child: FilterChip(
+                        label: Text(category.label),
+                        selected: _category == category,
+                        onSelected: (selected) {
+                          _category = selected ? category : null;
+                          _load();
+                        },
+                      ),
+                    ),
                 ],
-                selected: {_map},
-                onSelectionChanged: (v) => setState(() {
-                  _map = v.first;
-                  if (!_map && _category == ListingCategory.shortStay) {
-                    _category = null;
-                    _load();
-                  }
-                }),
               ),
             ),
-          const SizedBox(height: Space.x2),
-          const Divider(),
-          if (showMap)
-            Expanded(
-              child: MapSearchView(filters: _filters, tiles: tiles),
-            )
-          else
-            Expanded(
-              child: AsyncView<List<Listing>>(
-                future: _results!,
-                onRetry: _load,
-                builder: (context, listings) {
-                  if (listings.isEmpty) {
-                    return MessageView(
-                      icon: Icons.search_off,
-                      title: 'No properties match that search',
-                      body: 'Try a nearby suburb, a different category, or clear the filters to see everything.',
-                      actionLabel: 'Clear filters',
-                      onAction: _clear,
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(Space.x4),
-                    itemCount: listings.length + 1,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: Space.x4),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Semantics(
-                          liveRegion: true,
-                          child: Text(
-                            listings.length == 1
-                                ? '1 property found'
-                                : '${listings.length} properties found',
-                            style: text.bodyMedium,
+            if (tiles != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Space.x4,
+                  Space.x2,
+                  Space.x4,
+                  0,
+                ),
+                child: SegmentedButton<bool>(
+                  key: const Key('search-view'),
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      label: Text('List'),
+                      icon: Icon(Icons.view_list_outlined),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text('Map'),
+                      icon: Icon(Icons.map_outlined),
+                    ),
+                  ],
+                  selected: {_map},
+                  onSelectionChanged: (v) => setState(() {
+                    _map = v.first;
+                    if (!_map && _category == ListingCategory.shortStay) {
+                      _category = null;
+                      _load();
+                    }
+                  }),
+                ),
+              ),
+            const SizedBox(height: Space.x2),
+            const Divider(),
+            if (showMap)
+              Expanded(
+                child: MapSearchView(filters: _filters, tiles: tiles),
+              )
+            else
+              Expanded(
+                child: AsyncView<List<Listing>>(
+                  future: _results!,
+                  onRetry: _load,
+                  builder: (context, listings) {
+                    if (listings.isEmpty) {
+                      return MessageView(
+                        icon: Icons.search_off,
+                        title: 'No properties match that search',
+                        body: 'Try a nearby suburb, a different category, or clear the filters to see everything.',
+                        actionLabel: 'Clear filters',
+                        onAction: _clear,
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(Space.x4),
+                      itemCount: listings.length + 1,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: Space.x4),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              listings.length == 1
+                                  ? '1 property found'
+                                  : '${listings.length} properties found',
+                              style: text.bodyMedium,
+                            ),
+                          );
+                        }
+                        final listing = listings[index - 1];
+                        return ListingCard(
+                          listing: listing,
+                          heroScope: 'search',
+                          placement: AnalyticsPlacement.search,
+                          rank: index - 1,
+                          onTap: () => context.push(
+                            Routes.listing(listing.slug, heroScope: 'search'),
                           ),
                         );
-                      }
-                      final listing = listings[index - 1];
-                      return ListingCard(
-                        listing: listing,
-                        heroScope: 'search',
-                        onTap: () => context.push(
-                          Routes.listing(listing.slug, heroScope: 'search'),
-                        ),
-                      );
-                    },
-                  );
-                },
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

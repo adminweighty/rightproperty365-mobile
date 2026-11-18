@@ -10,6 +10,7 @@ import '../../core/api/api_client.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
+import '../analytics/analytics_tracker.dart';
 import '../listings/data/listing.dart';
 import '../listings/presentation/widgets/listing_card.dart';
 import 'saved_listings_repository.dart';
@@ -221,6 +222,8 @@ class _SavedTabState extends State<SavedTab> {
                           ? ListingCard(
                               listing: byId[item.listingId]!,
                               heroScope: 'saved',
+                              placement: AnalyticsPlacement.saved,
+                              rank: items.indexOf(item),
                               onTap: () => context.push(
                                 Routes.listing(item.slug!, heroScope: 'saved'),
                               ),

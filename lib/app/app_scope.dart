@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 import '../core/location.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
+import '../features/analytics/analytics_repository.dart';
+import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
@@ -49,12 +51,19 @@ class AppServices {
     required this.listingDetails,
     required this.openLink,
     required this.listingSearch,
+    required this.analytics,
+    required this.analyticsReports,
     this.mapTiles,
     this.locate = _noLocation,
   });
 
   static Future<Located> _noLocation() async =>
       const Located.failed('Location is not available.');
+
+  /// First-party listing statistics: the events this phone sends, and the
+  /// reports professionals read.
+  final AnalyticsTracker analytics;
+  final AnalyticsRepository analyticsReports;
 
   /// Listings from the API, for the map.
   final ApiListingSearch listingSearch;

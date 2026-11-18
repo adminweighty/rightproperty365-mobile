@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
+import '../features/analytics/statistics_screen.dart';
+import '../features/workspace/workspace.dart';
 import '../features/appointments/appointment_screens.dart';
 import '../features/auth/presentation/delete_account_screen.dart';
 import '../features/inbox/lead_screen.dart';
@@ -44,6 +46,7 @@ abstract final class Routes {
   static const accountManagement = '/account-management';
   static const deleteAccount = '/account-management/delete';
   static const receivedAppointments = '/appointments';
+  static const statistics = '/statistics';
 
   static String receivedAppointment(String id) =>
       '/appointments/${Uri.encodeComponent(id)}';
@@ -236,6 +239,12 @@ GoRouter buildRouter() => GoRouter(
       builder: (context, state) => AppointmentScreen(
         id: state.pathParameters['id']!,
         professional: false,
+      ),
+    ),
+    GoRoute(
+      path: '/statistics',
+      builder: (context, state) => StatisticsScreen(
+        organisations: state.extra as List<WorkOrganisation>? ?? const [],
       ),
     ),
     GoRoute(

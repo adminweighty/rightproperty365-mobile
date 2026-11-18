@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener, WidgetsBinding;
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +10,8 @@ import '../core/config.dart';
 import '../core/location.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
+import '../features/analytics/analytics_repository.dart';
+import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
@@ -31,6 +34,10 @@ import '../features/listings/data/listing_repository.dart';
 import '../features/property_requests/data/property_request_repository.dart';
 import 'app_scope.dart';
 
+// Kept for the life of the app.
+// ignore: unused_element
+AppLifecycleListener? _lifecycle;
+
 /// Builds the production services: sample listings and directory from bundled
 /// JSON, and the Go API for enquiries and identity.
 Future<AppServices> bootstrap({AssetBundle? bundle}) async {
@@ -49,8 +56,22 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     if (!auth.signedIn) push.deleteToken();
   });
 
-  final activity = ActivityStore(
-    PreferencesStore(await SharedPreferences.getInstance()),
+  final preferences = PreferencesStore(await SharedPreferences.getInstance());
+  final activity = ActivityStore(preferences);
+  final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
+  final analytics = AnalyticsTracker(
+    api,
+    store: preferences,
+    device:
+        view != null &&
+            view.physicalSize.shortestSide / view.devicePixelRatio >= 600
+        ? 'tablet'
+        : 'mobile',
+  );
+  // What is waiting goes out when the app leaves the screen.
+  _lifecycle = AppLifecycleListener(
+    onInactive: analytics.flush,
+    onHide: analytics.flush,
   );
   final listingSearch = ApiListingSearch(api, apiBase: AppConfig.apiBaseUrl);
   // Browsing stays on the bundled sample; a listing it does not have (one
@@ -66,6 +87,8 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     push: push,
     listingDetails: ApiListingDetailsRepository(api),
     listingSearch: listingSearch,
+    analytics: analytics,
+    analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,
     openLink: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
