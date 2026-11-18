@@ -10,6 +10,8 @@ import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/saved/saved_listings.dart';
+import '../features/saved/saved_listings_repository.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/token_store.dart';
@@ -43,11 +45,22 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     if (!auth.signedIn) push.deleteToken();
   });
 
+  final activity = ActivityStore(
+    PreferencesStore(await SharedPreferences.getInstance()),
+  );
+  final listings = SampleListingRepository.fromJson(
+    await assets.loadString('assets/data/listings.json'),
+  );
+
   final services = AppServices(
     push: push,
-    listings: SampleListingRepository.fromJson(
-      await assets.loadString('assets/data/listings.json'),
+    saved: SavedListings(
+      repository: ApiSavedListingsRepository(api),
+      auth: auth,
+      activity: activity,
+      listings: listings,
     ),
+    listings: listings,
     directory: SampleDirectoryRepository.fromJson(
       await assets.loadString('assets/data/directory.json'),
     ),
@@ -65,9 +78,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     myAppointments: ApiMyAppointmentsRepository(api),
     receivedAppointments: ApiReceivedAppointmentsRepository(api),
     leads: ApiLeadRepository(api),
-    activity: ActivityStore(
-      PreferencesStore(await SharedPreferences.getInstance()),
-    ),
+    activity: activity,
   );
 
   // Not awaited: the app opens straight away and the account area updates

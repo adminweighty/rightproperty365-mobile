@@ -7,6 +7,7 @@ import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/saved/saved_listings.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/directory/data/business_enquiry_repository.dart';
 import '../features/directory/data/directory_repository.dart';
@@ -41,7 +42,11 @@ class AppServices {
     required this.receivedAppointments,
     required this.leads,
     this.push = const NoPushMessaging(),
+    required this.saved,
   });
+
+  /// The signed-in account's saved properties (hearts and the Saved tab).
+  final SavedListings saved;
 
   /// Push messaging on this device; off when the build has no Firebase
   /// project.

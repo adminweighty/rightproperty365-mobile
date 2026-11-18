@@ -6,6 +6,7 @@ import '../../../../app/theme/tokens.dart';
 import '../../../../core/format.dart';
 import '../../../../core/widgets/badge.dart';
 import '../../../../core/widgets/brand.dart';
+import '../../../saved/saved_widgets.dart';
 import '../../data/listing.dart';
 
 /// A listing photo cropped to [aspectRatio]. Wrapped in a [Hero] so it flies
@@ -157,6 +158,25 @@ class ListingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final text = Theme.of(context).textTheme;
+    // The heart sits outside the card, so it is its own button for screen
+    // readers and its own tap target.
+    return Stack(
+      children: [
+        _card(c, text),
+        Positioned(
+          right: Space.x2,
+          top: Space.x2,
+          child: SaveHeart(
+            listingId: listing.id,
+            title: listing.title,
+            onPhoto: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _card(AppColors c, TextTheme text) {
     return BrandCard(
       onTap: onTap,
       emphasised: listing.featured,

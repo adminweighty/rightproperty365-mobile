@@ -10,9 +10,8 @@ import '../../core/terminology.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
-import '../listings/data/listing.dart';
-import '../listings/presentation/widgets/listing_card.dart';
 import '../appointments/appointment_screens.dart';
+import '../saved/saved_widgets.dart';
 import 'activity_store.dart';
 import 'my_request_screen.dart';
 import 'my_requests_repository.dart';
@@ -54,7 +53,7 @@ class ActivityScreen extends StatelessWidget {
                 children: [
                   signedIn ? _AccountRequests(activity) : _Requests(activity),
                   if (signedIn) const MyViewingsView(),
-                  _Saved(activity),
+                  const SavedTab(),
                 ],
               ),
             ),
@@ -313,113 +312,6 @@ class _RequestCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Saved extends StatefulWidget {
-  const _Saved(this.activity);
-
-  final ActivityStore activity;
-
-  @override
-  State<_Saved> createState() => _SavedState();
-}
-
-class _SavedState extends State<_Saved> {
-  Future<List<Listing>>? _listings;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _listings ??= AppScope.of(context).listings.search();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final slugs = widget.activity.savedSlugs;
-    if (slugs.isEmpty) {
-      return MessageView(
-        icon: Icons.bookmark_border,
-        title: 'Nothing saved yet',
-        body: 'Tap the bookmark on a property to keep it here. Saved properties stay on this phone.',
-        actionLabel: 'Browse properties',
-        onAction: () => context.go(Routes.search()),
-      );
-    }
-
-    return AsyncView<List<Listing>>(
-      future: _listings!,
-      builder: (context, listings) {
-        // Saved order, skipping listings that are no longer published.
-        final bySlug = {for (final listing in listings) listing.slug: listing};
-        final saved = [for (final slug in slugs) ?bySlug[slug]];
-        final gone = slugs.length - saved.length;
-        return ListView(
-          padding: const EdgeInsets.all(Space.x4),
-          children: [
-            if (gone > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: Space.x4),
-                child: Text(
-                  gone == 1
-                      ? '1 saved property is no longer available.'
-                      : '$gone saved properties are no longer available.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            for (final listing in saved)
-              Padding(
-                padding: const EdgeInsets.only(bottom: Space.x4),
-                child: ListingCard(
-                  listing: listing,
-                  heroScope: 'saved',
-                  onTap: () => context.push(
-                    Routes.listing(listing.slug, heroScope: 'saved'),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// Bookmark toggle for a listing, for app bars.
-class SaveListingButton extends StatelessWidget {
-  const SaveListingButton({super.key, required this.slug});
-
-  final String slug;
-
-  @override
-  Widget build(BuildContext context) {
-    final activity = AppScope.of(context).activity;
-    return ListenableBuilder(
-      listenable: activity,
-      builder: (context, _) {
-        final saved = activity.isSaved(slug);
-        return IconButton(
-          key: const Key('save-listing'),
-          tooltip: saved ? 'Remove from saved' : 'Save property',
-          isSelected: saved,
-          icon: const Icon(Icons.bookmark_border),
-          selectedIcon: const Icon(Icons.bookmark),
-          onPressed: () async {
-            await activity.toggleSaved(slug);
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(
-                    saved ? 'Removed from saved' : 'Saved to Activity',
-                  ),
-                ),
-              );
-          },
-        );
-      },
     );
   }
 }

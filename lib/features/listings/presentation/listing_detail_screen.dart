@@ -10,7 +10,7 @@ import '../../../core/terminology.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/badge.dart';
 import '../../../core/widgets/brand.dart';
-import '../../activity/activity_screen.dart';
+import '../../saved/saved_widgets.dart';
 import '../../directory/data/profile.dart';
 import '../../directory/presentation/widgets/profile_widgets.dart';
 import '../data/listing.dart';
@@ -81,7 +81,7 @@ class _Detail extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(listing.suburb),
-        actions: [SaveListingButton(slug: listing.slug)],
+        actions: [SaveHeart(listingId: listing.id, title: listing.title)],
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(

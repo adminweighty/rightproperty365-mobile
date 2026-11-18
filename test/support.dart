@@ -17,6 +17,8 @@ import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
+import 'package:rightproperty365/features/saved/saved_listings.dart';
+import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
@@ -311,8 +313,15 @@ class TestServices {
       tokens: this.tokens,
       api: api,
     );
+    saved = SavedListings(
+      repository: ApiSavedListingsRepository(workApi),
+      auth: auth,
+      activity: activity,
+      listings: listings,
+    );
     services = AppServices(
-      listings: sampleListings(),
+      saved: saved,
+      listings: listings,
       directory: sampleDirectory(),
       propertyRequests: propertyRequests,
       businessEnquiries: businessEnquiries,
@@ -349,6 +358,8 @@ class TestServices {
   final pdf = FakePdfRenderer();
   Uint8List? pickedImage;
 
+  final listings = sampleListings();
+  late final SavedListings saved;
   final inbox = FakeInbox();
   final storage = MemoryStore();
   late final activity = ActivityStore(storage);

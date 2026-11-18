@@ -23,6 +23,7 @@ import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/leases/lease_repository.dart';
 import 'package:rightproperty365/features/signing/signing_repository.dart';
+import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 
 final _base = Platform.environment['RP_LIVE_API'];
@@ -249,5 +250,28 @@ void main() {
           .login('sales.agent@example.test', _password),
       throwsA(isA<ApiFailure>()),
     );
+  }, skip: skip);
+
+  test('saved properties follow the account (API 0.27.0)', () async {
+    final saved = ApiSavedListingsRepository(
+      await signedIn('tenant@example.test'),
+    );
+    const id = '0195c0de-0000-7000-8000-000000000002';
+    await saved.save(id);
+    await saved.save(id); // Saving again changes nothing.
+    expect(await saved.ids(), contains(id));
+    final page = await saved.list();
+    final item = page.items.firstWhere((i) => i.listingId == id);
+    expect(item.available, isTrue);
+    expect(item.slug, isNotNull);
+    await expectLater(
+      saved.save('0195c0de-0000-7000-8000-0000000000ff'),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    await saved.remove(id);
+    await saved.remove(id); // Removing again is not an error.
+    expect(await saved.ids(), isNot(contains(id)));
+    // ignore: avoid_print
+    print('saved: ${item.title} (${item.reference}) saved and removed');
   }, skip: skip);
 }

@@ -143,6 +143,13 @@ class ActivityStore extends ChangeNotifier {
     await _persistRequests();
   }
 
+  /// Forgets the saves kept on this phone, once they are on the account.
+  Future<void> clearSaved() async {
+    _saved.clear();
+    notifyListeners();
+    await _store.write(_savedKey, jsonEncode(_saved));
+  }
+
   /// Forgets everything kept on this phone: used when the account is deleted.
   Future<void> clearAll() async {
     _saved.clear();

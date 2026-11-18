@@ -10,7 +10,6 @@ import 'package:rightproperty365/features/auth/data/auth_repository.dart';
 import 'package:rightproperty365/features/auth/presentation/recovery_screens.dart';
 import 'package:rightproperty365/features/directory/data/profile.dart';
 import 'package:rightproperty365/features/directory/presentation/profile_screen.dart';
-import 'package:rightproperty365/features/listings/presentation/listing_detail_screen.dart';
 import 'package:rightproperty365/features/property_requests/presentation/property_request_screen.dart';
 
 import 'support.dart';
@@ -458,26 +457,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(test.activity.requests, isEmpty);
-    });
-
-    testWidgets('saving a property from its page lists it under Saved', (
-      tester,
-    ) async {
-      final test = TestServices();
-      final listing = sampleListings().listings[1];
-      await pumpInApp(tester, test, ListingDetailScreen(slug: listing.slug));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('save-listing')));
-      await tester.pumpAndSettle();
-      expect(test.activity.isSaved(listing.slug), isTrue);
-
-      await pumpInApp(tester, test, const ActivityScreen());
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Saved Properties'));
-      await tester.pumpAndSettle();
-
-      expect(find.text(listing.title), findsOneWidget);
     });
   });
 }
