@@ -232,6 +232,18 @@ class _SignedIn extends StatelessWidget {
           style: text.bodySmall,
         ),
         const SizedBox(height: Space.x6),
+        const SectionHeading('Settings'),
+        const SizedBox(height: Space.x2),
+        ListTile(
+          key: const Key('open-account-management'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.manage_accounts_outlined),
+          title: const Text('Account Management'),
+          subtitle: const Text('Password and deleting your account'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.accountManagement),
+        ),
+        const SizedBox(height: Space.x4),
         OutlinedButton(
           key: const Key('sign-out'),
           onPressed: () => AppScope.of(context).auth.signOut(),

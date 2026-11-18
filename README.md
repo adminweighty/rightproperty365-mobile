@@ -64,6 +64,12 @@ flutter test
 flutter build apk --debug
 ```
 
+`test/live_api_test.dart` runs the app's own repositories against a running API and is skipped unless `RP_LIVE_API` is set. Use it with the backend in development mode (in-memory stores, sample accounts, log mailer; see the backend's `docs/sample-accounts.md`). It changes data: it sends a request, accepts an appointment, moves a lead, signs a lease with a landlord stamp and deletes `sales.agent@example.test`. Restart the API before running it again. Never point it at production.
+
+```bash
+RP_LIVE_API=http://localhost:8080 RP_LIVE_PASSWORD=<DEV_SEED_PASSWORD> RP_LIVE_CODE=1234 flutter test test/live_api_test.dart
+```
+
 ## Keeping in step with the web
 
 Listings, directory profiles and photos are **sample data mirrored from the web repository**. Do not edit `assets/data` or `assets/images` by hand. After the web's `src/lib/data/listings.ts`, `directory.ts` or photos change, run:
@@ -124,6 +130,7 @@ lib/
     config.dart              API base URL, privacy notice version
     api/                     ApiClient (JSON, bearer token, error envelope), idempotency keys
     format.dart              Money and area formatting
+    market_time.dart         Times in the market's IANA time zone (package:timezone), named
     widgets/                 Brand outline, card, section heading, logo; badges; Reveal; AsyncView;
                              SearchableSelectField
   features/
@@ -132,9 +139,11 @@ lib/
     enquiries/               Shared contact model, receipt and the enquiry form
     property_requests/       Listing request model, repository and screen
     auth/                    User model, auth repository, token store, controller; sign-in, register,
-                             account, confirm email, forgot and reset password
-    activity/                ActivityStore (on-device) and the Activity screen: requests and saved
-    inbox/                   Enquiries received by professionals, with assigning to a team member
+                             account, Account Management and Delete Account, confirm email, forgot and reset password
+    activity/                ActivityStore (on-device), the account's own requests (my_requests_repository.dart)
+                             and the Activity screen: My Enquiries, My Viewings, Saved Properties
+    appointments/            Viewings and consultations: the customer's and the received side, one detail screen
+    inbox/                   Enquiries received by professionals, assigning, and working a lead (stage, notes)
     workspace/               Dashboard (organisations, capabilities, counters) and the account's "Your work" section
     team/                    Team members, roles, invitations, accepting an invitation, the assign sheet
     leases/                  Lease models and repository; list, detail (send, cancel, delete, PDF) and the draft form
@@ -149,7 +158,7 @@ assets/
   brand/                     Logo and app icon sources
   fonts/signature/           Great Vibes, Kaushan Script, Allura and their OFL licences (copied from the web)
 tool/sync_web_data.mjs       Mirrors the web sample data and photos
-test/                        Data, repository, auth and screen tests
+test/                        Data, repository, auth and screen tests; live_api_test.dart (opt-in, see Checks)
 ```
 
 ## Real-estate terminology
@@ -182,7 +191,7 @@ Every role name shown in the app comes from `lib/core/terminology.dart`, so the 
 
 ## Teams, leases and signing
 
-These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` and `/sign/[token]`, on API 0.26.0.
+These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` and `/sign/[token]`, on API 0.26.0 (and 0.26.1's `can_edit` on listings when the API sends it).
 
 - **What shows comes from the dashboard.** `GET /v1/me/dashboard` decides the "Your work" tiles on the Account tab: Documents to sign and My signature for everyone signed in, Leases when `capabilities.creates_leases`, a Team tile per organisation with `can_manage_team`, and Join a team for professional accounts. The API checks every action again.
 - **Teams.** Members with their role, job title, open enquiries and status; an Agency Principal or Administrator changes a role (only to the API's `allowed_roles`), the job title, suspends, reactivates or removes, and invites by email with a role (an owner: administrator, agent or staff; an administrator: agent or staff). Pending invitations can be cancelled. Refusals such as `ROLE_NOT_ALLOWED` or `LAST_OWNER` are said in plain words (`teamMessage`).
@@ -207,7 +216,12 @@ These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` an
 - **Sponsored is always labelled.** Sponsored profiles sort first and carry a "Sponsored" badge.
 - **Idempotency.** Enquiry repositories reuse the key when unchanged content is retried and create a new one when the content changes.
 - **Sessions.** Sign-in uses `token_delivery: "bearer"`. The token is kept in the Android Keystore / iOS Keychain (`flutter_secure_storage`) and sent as `Authorization: Bearer`. When signed in, enquiries omit name and email and the API uses the account. Roles decide what is shown only; the API authorises every request.
-- **Activity is kept on the phone.** Saved properties and the requests sent from this phone are stored with `shared_preferences` (`ActivityStore`). A stored request holds the reference, title, recipient, date and receipt status only, never the message or contact details. The API has no endpoint yet for a customer's own activity, so this does not follow the account to another device and statuses are not refreshed after sending. When that endpoint exists, put an API implementation behind the same screen.
+- **Activity.** Signed in, My Enquiries is `GET /v1/me/property-requests` (the customer status: Received, In progress, Responded, Viewing scheduled, Closed; never the lead stage or notes) with each request's history, and My Viewings is `GET /v1/me/appointments` (upcoming and past) where the customer cancels, proposes another time or accepts the time the professional proposed. Requests sent as a guest are never linked to an account, so the phone also keeps what it sent (`ActivityStore`, `shared_preferences`: reference, title, recipient, date and receipt status, never the message or contact details) and lists those under "Sent from this phone". Saved properties are kept on the phone only; the API has no saved-properties endpoint.
+- **Appointments for professionals.** Viewing Appointments (Account, Your work, for professional accounts) is `GET /v1/inbox/appointments` from the start of today, grouped by day. The detail shows the customer's contact and offers exactly what the API's flags allow: confirm (or accept the customer's time), propose another time, it took place, no-show, cancel with a reason. `SLOT_TAKEN` and `INVALID_STATE` are said in plain words. Assigning appointments to a member is on the website.
+- **Times.** Appointment times are shown in the market's time zone (`timezone`, for example Africa/Harare) and named, and a new time is picked in that zone and sent as UTC.
+- **Working a lead.** Work it on a listing enquiry opens `GET /v1/agent/property-requests/{id}`: move the lead stage to one of `allowed_stages` (`PATCH`, nobody is emailed), add internal notes (never shown to the customer) and read the history.
+- **Deleting the account.** Account, Settings, Account Management, Delete Account explains what deletion removes and keeps, asks for the password again and a confirmation, then calls `DELETE /v1/me`. On success the token and everything the phone kept are removed. `INVALID_PASSWORD` is shown on the field; `SOLE_OWNER` (the only owner of an organisation with members) and `ADMIN_ACCOUNT_CANNOT_SELF_DELETE` are explained. Name, email and password changes are on the website.
+- **Platform administrators** cannot sign in to the app: the API answers `INVALID_CREDENTIALS` for them at the customer sign-in, and the message says that administrators sign in on the website.
 - **Account emails never reveal whether an address is registered.** Registration, resend and reset screens say "if this address has an account", matching the API.
 - **Money** is a decimal string with an ISO 4217 code, always shown with the code (`USD 385,000`). **Times** are sent to the API in UTC.
 - **Motion.** Entrance animations (`Reveal`), the rotating hero, the stat count-up and outline transitions are switched off when the OS asks for reduced motion.
@@ -227,7 +241,9 @@ These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` an
 - Signing: documents to sign, guided signing over the PDF pages, Adopt your signature (type, draw, upload), Adopt your stamp (generated company stamp with a live preview), the emailed code and consent, decline; saved signature, initials and stamp
 - Solicitors directory (empty until solicitor profiles exist)
 - Email confirmation (by link or by pasting it, with resend) and password reset (request and set new password)
-- Activity: requests sent from this phone with their references, and saved properties
+- Activity: My Enquiries with live status and history, My Viewings (cancel, propose a time, accept), requests sent from this phone, and saved properties
+- Viewing Appointments for professionals (confirm, propose a time, completed, no-show, cancel) and working a lead (stage and internal notes)
+- Account Management and Delete Account (`DELETE /v1/me`)
 - Light and dark themes, official launcher icon and splash screen
 
 ## Not built yet
@@ -235,8 +251,8 @@ These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` an
 These are required by the specification and come later:
 
 - Website links opening the app automatically (App Links and Universal Links). See "Email links" above for what the website and Apple set-up still need.
-- Activity synced with the account: live request status, agent replies, applications and viewings. This needs a customer activity endpoint in the API.
-- Replying to enquiries, changing their stage, viewing appointments and calendars, rental applications, listing management and listing statistics.
+- Rental applications (the API has no applications yet), agent replies inside the app (replies go by email, phone or WhatsApp), and saved properties that follow the account (no API endpoint).
+- A month calendar view for appointments (the list is an agenda by day), assigning appointments, business-enquiry status changes, listing management and listing statistics.
 - Team join requests and the team audit trail (the API has them; the website shows them).
 - Uploaded-PDF agreements (other than leases), placing fields, and designing, copying and publishing lease templates: done on the website.
 - Saving or sharing a PDF to the phone's files; the app shows PDFs on screen only.
@@ -245,7 +261,6 @@ These are required by the specification and come later:
 - Onboarding for professional roles (details and document upload) in the app; it exists in the API and on the website.
 - There is no payment in the app, by design: subscriptions are recorded by Platform Administrators on the web
 - Push notifications and device token registration
-- In-app account deletion (required by both app stores)
 - Maps, photo galleries, YouTube tours
 - Real listing and directory data from the API
 - Bundled Inter font (the platform sans is used), localisation, release signing

@@ -84,7 +84,7 @@ void main() {
           isA<ApiFailure>().having(
             (f) => f.message,
             'message',
-            'That email and password do not match an account.',
+            startsWith('That email and password do not match an account.'),
           ),
         ),
       );

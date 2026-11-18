@@ -14,6 +14,9 @@ import 'package:rightproperty365/core/api/api_client.dart';
 import 'package:rightproperty365/core/terminology.dart';
 import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/activity/activity_store.dart';
+import 'package:rightproperty365/features/activity/my_requests_repository.dart';
+import 'package:rightproperty365/features/appointments/appointment_repository.dart';
+import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
 import 'package:rightproperty365/features/auth/data/auth_models.dart';
 import 'package:rightproperty365/features/auth/data/auth_repository.dart';
@@ -193,6 +196,16 @@ class FakeAuthRepository implements AuthRepository {
     };
   }
 
+  ApiFailure? deleteFailure;
+  String? deletedWith;
+
+  @override
+  Future<AccountDeletion> deleteAccount(String password) async {
+    deletedWith = password;
+    if (deleteFailure != null) throw deleteFailure!;
+    return const AccountDeletion(organisationsLeft: 1);
+  }
+
   @override
   Future<void> logout() async {
     logouts++;
@@ -312,6 +325,10 @@ class TestServices {
       signing: ApiSigningRepository(workApi),
       pdf: pdf,
       pickSignatureImage: () async => pickedImage,
+      myRequests: ApiMyRequestsRepository(workApi),
+      myAppointments: ApiMyAppointmentsRepository(workApi),
+      receivedAppointments: ApiReceivedAppointmentsRepository(workApi),
+      leads: ApiLeadRepository(workApi),
     );
   }
 

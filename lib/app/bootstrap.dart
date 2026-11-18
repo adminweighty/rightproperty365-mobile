@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api/api_client.dart';
 import '../core/config.dart';
 import '../features/activity/activity_store.dart';
+import '../features/activity/my_requests_repository.dart';
+import '../features/appointments/appointment_repository.dart';
+import '../features/inbox/lead_repository.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/token_store.dart';
@@ -49,6 +52,10 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     signing: ApiSigningRepository(api),
     pdf: const PlatformPdfRenderer(),
     pickSignatureImage: _pickSignatureImage,
+    myRequests: ApiMyRequestsRepository(api),
+    myAppointments: ApiMyAppointmentsRepository(api),
+    receivedAppointments: ApiReceivedAppointmentsRepository(api),
+    leads: ApiLeadRepository(api),
     activity: ActivityStore(
       PreferencesStore(await SharedPreferences.getInstance()),
     ),

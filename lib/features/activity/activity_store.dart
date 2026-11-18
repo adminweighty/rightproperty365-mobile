@@ -81,9 +81,9 @@ class SentRequest {
 
 /// Saved properties and the requests sent from this phone.
 ///
-/// This is kept on the device only. The API has no endpoint yet for a
-/// customer's own activity, so nothing here follows the account to another
-/// device and request statuses are not updated after sending.
+/// This is kept on the device only, so it also covers enquiries sent as a
+/// guest. Requests sent while signed in, with their live status, come from
+/// the API instead (`MyRequestsRepository`).
 class ActivityStore extends ChangeNotifier {
   ActivityStore(this._store) {
     _saved.addAll(_readList(_savedKey).cast<String>());
@@ -140,6 +140,15 @@ class ActivityStore extends ChangeNotifier {
       _requests.removeRange(maxRequests, _requests.length);
     }
     notifyListeners();
+    await _persistRequests();
+  }
+
+  /// Forgets everything kept on this phone: used when the account is deleted.
+  Future<void> clearAll() async {
+    _saved.clear();
+    _requests.clear();
+    notifyListeners();
+    await _store.write(_savedKey, jsonEncode(_saved));
     await _persistRequests();
   }
 

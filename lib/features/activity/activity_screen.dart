@@ -12,36 +12,186 @@ import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import '../listings/data/listing.dart';
 import '../listings/presentation/widgets/listing_card.dart';
+import '../appointments/appointment_screens.dart';
 import 'activity_store.dart';
+import 'my_request_screen.dart';
+import 'my_requests_repository.dart';
 
-/// The customer's requests and saved properties.
+/// The customer's requests, viewings and saved properties.
 ///
-/// Both are kept on this phone (see [ActivityStore]). The screen says so, and
-/// shows the status from each receipt without claiming it is up to date.
+/// Signed in, enquiries and viewings come from the API with their live
+/// status. As a guest, only what this phone sent is listed (see
+/// [ActivityStore]), with the status from each receipt, which is not updated.
 class ActivityScreen extends StatelessWidget {
   const ActivityScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final activity = AppScope.of(context).activity;
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Activity'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'My Enquiries'),
-              Tab(text: 'Saved Properties'),
+    final services = AppScope.of(context);
+    final activity = services.activity;
+    return ListenableBuilder(
+      listenable: services.auth,
+      builder: (context, _) {
+        final signedIn = services.auth.signedIn;
+        return DefaultTabController(
+          key: ValueKey(signedIn),
+          length: signedIn ? 3 : 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Activity'),
+              bottom: TabBar(
+                isScrollable: signedIn,
+                tabs: [
+                  const Tab(text: 'My Enquiries'),
+                  if (signedIn) const Tab(text: 'My Viewings'),
+                  const Tab(text: 'Saved Properties'),
+                ],
+              ),
+            ),
+            body: ListenableBuilder(
+              listenable: activity,
+              builder: (context, _) => TabBarView(
+                children: [
+                  signedIn ? _AccountRequests(activity) : _Requests(activity),
+                  if (signedIn) const MyViewingsView(),
+                  _Saved(activity),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Signed in: the requests the account sent, with their live status, then
+/// anything this phone sent as a guest.
+class _AccountRequests extends StatefulWidget {
+  const _AccountRequests(this.activity);
+
+  final ActivityStore activity;
+
+  @override
+  State<_AccountRequests> createState() => _AccountRequestsState();
+}
+
+class _AccountRequestsState extends State<_AccountRequests> {
+  Future<({List<MyRequest> items, int total})>? _requests;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _requests ??= AppScope.of(context).myRequests.list();
+  }
+
+  Future<void> _reload() async {
+    final next = AppScope.of(context).myRequests.list();
+    setState(() {
+      _requests = next;
+    });
+    await next.then<void>((_) {}, onError: (_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return FutureBuilder<({List<MyRequest> items, int total})>(
+      future: _requests,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Center(
+            child: Semantics(
+              label: 'Loading',
+              child: const CircularProgressIndicator(),
+            ),
+          );
+        }
+        final mine = snapshot.data?.items ?? const <MyRequest>[];
+        final references = {for (final r in mine) r.reference};
+        // Guest enquiries from this phone are never linked to the account.
+        final fromPhone = [
+          for (final r in widget.activity.requests)
+            if (!references.contains(r.reference)) r,
+        ];
+        return RefreshIndicator(
+          onRefresh: _reload,
+          child: ListView(
+            padding: const EdgeInsets.all(Space.x4),
+            children: [
+              if (snapshot.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Space.x4),
+                  child: Column(
+                    children: [
+                      Text(
+                        'We could not load the enquiries on your account.',
+                        style: text.titleMedium,
+                      ),
+                      TextButton(
+                        onPressed: _reload,
+                        child: const Text('Try again'),
+                      ),
+                    ],
+                  ),
+                )
+              else if (mine.isEmpty && fromPhone.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: Space.x6),
+                  child: Column(
+                    children: [
+                      Text('No enquiries yet', style: text.titleMedium),
+                      const SizedBox(height: Space.x2),
+                      Text(
+                        'Enquiries you send while signed in appear here, with their status as '
+                        'the Estate Agent, Landlord or Property Seller works on them.',
+                        style: text.bodyLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      TextButton(
+                        onPressed: () => context.go(Routes.search()),
+                        child: const Text('Find a property'),
+                      ),
+                    ],
+                  ),
+                )
+              else if (mine.isNotEmpty) ...[
+                Text(
+                  'Statuses update as your enquiries are worked on. Pull down to refresh.',
+                  style: text.bodyMedium,
+                ),
+                const SizedBox(height: Space.x4),
+                for (final r in mine)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.x3),
+                    child: MyRequestCard(
+                      r,
+                      onTap: () async {
+                        await context.push(Routes.myRequest(r.id));
+                        if (mounted) _reload();
+                      },
+                    ),
+                  ),
+              ],
+              if (fromPhone.isNotEmpty) ...[
+                const SizedBox(height: Space.x4),
+                const SectionHeading('Sent from this phone'),
+                const SizedBox(height: Space.x2),
+                Text(
+                  'Sent as a guest or to a business. Their status is from when they were sent.',
+                  style: text.bodyMedium,
+                ),
+                const SizedBox(height: Space.x3),
+                for (final r in fromPhone)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.x3),
+                    child: _RequestCard(r),
+                  ),
+              ],
             ],
           ),
-        ),
-        body: ListenableBuilder(
-          listenable: activity,
-          builder: (context, _) =>
-              TabBarView(children: [_Requests(activity), _Saved(activity)]),
-        ),
-      ),
+        );
+      },
     );
   }
 }

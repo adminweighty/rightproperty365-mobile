@@ -503,7 +503,10 @@ class ApiLeaseRepository implements LeaseRepository {
       final body = (await _api.get('/v1/me/listings?page_size=48')).body;
       return [
         for (final item in (body['items'] as List?) ?? const [])
-          LeaseListing.fromJson(item as Map<String, dynamic>),
+          // API 0.26.1: an agent may draft leases only for the listings they
+          // may edit. Older answers have no can_edit and are all offered.
+          if ((item as Map<String, dynamic>)['can_edit'] != false)
+            LeaseListing.fromJson(item),
       ];
     } on ApiFailure catch (failure) {
       // No listings to choose from; the address can still be typed.

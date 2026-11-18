@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 
 import '../features/activity/activity_store.dart';
+import '../features/activity/my_requests_repository.dart';
+import '../features/appointments/appointment_repository.dart';
+import '../features/inbox/lead_repository.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/directory/data/business_enquiry_repository.dart';
 import '../features/directory/data/directory_repository.dart';
@@ -32,7 +35,19 @@ class AppServices {
     required this.signing,
     required this.pdf,
     required this.pickSignatureImage,
+    required this.myRequests,
+    required this.myAppointments,
+    required this.receivedAppointments,
+    required this.leads,
   });
+
+  /// The signed-in Property Seeker's own requests and viewings.
+  final MyRequestsRepository myRequests;
+  final MyAppointmentsRepository myAppointments;
+
+  /// The professional side: appointments received and working a request.
+  final ReceivedAppointmentsRepository receivedAppointments;
+  final LeadRepository leads;
 
   final WorkspaceRepository workspace;
   final TeamRepository team;

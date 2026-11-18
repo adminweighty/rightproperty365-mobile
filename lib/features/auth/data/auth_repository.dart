@@ -39,6 +39,10 @@ abstract interface class AuthRepository {
   /// Revokes the current session on the server.
   Future<void> logout();
 
+  /// Deletes the signed-in account (DELETE /v1/me) after the person types
+  /// their password again. The account is anonymised and every session ends.
+  Future<AccountDeletion> deleteAccount(String password);
+
   /// The roles a person may choose at sign-up today, with the API's label
   /// and group heading for each (GET /v1/reference/account_roles), in
   /// display order.
@@ -93,7 +97,8 @@ class ApiAuthRepository implements AuthRepository {
     } on ApiFailure catch (failure) {
       throw switch (failure.code) {
         'INVALID_CREDENTIALS' => failure.withMessage(
-          'That email and password do not match an account.',
+          'That email and password do not match an account. '
+          'Platform Administrators sign in on the website instead.',
         ),
         'EMAIL_NOT_VERIFIED' => failure.withMessage(
           'Confirm your email address first. Use the link we sent when you registered.',
@@ -245,6 +250,33 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     await _api.postJson('/v1/auth/logout', const {});
+  }
+
+  @override
+  Future<AccountDeletion> deleteAccount(String password) async {
+    try {
+      final response = await _api.deleteJson('/v1/me', {'password': password});
+      return AccountDeletion.fromJson(response.body);
+    } on ApiFailure catch (failure) {
+      throw switch (failure.code) {
+        'INVALID_PASSWORD' => ApiFailure(
+          status: failure.status,
+          code: failure.code,
+          message: 'That password is not right.',
+          fields: const {'password': 'That password is not right.'},
+          traceId: failure.traceId,
+        ),
+        'SOLE_OWNER' => failure.withMessage(
+          'You are the only owner of an organisation that still has members. '
+          'Make another member an owner, or remove the members, on the website first.',
+        ),
+        'ADMIN_ACCOUNT_CANNOT_SELF_DELETE' => failure.withMessage(
+          'An account with a platform role cannot be deleted here. Ask a Super Administrator.',
+        ),
+        _ when failure.status == 429 => failure.withMessage(_tooManyAttempts),
+        _ => failure,
+      };
+    }
   }
 
   @override

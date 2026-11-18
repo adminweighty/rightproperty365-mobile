@@ -166,3 +166,23 @@ class User {
   final List<String> platformRoles;
   final List<Membership> memberships;
 }
+
+/// What deleting an account did (`AccountDeleted`).
+class AccountDeletion {
+  const AccountDeletion({
+    this.organisationsLeft = 0,
+    this.listingsWithdrawn = 0,
+    this.subscriptionsCancelled = 0,
+  });
+
+  factory AccountDeletion.fromJson(Map<String, dynamic> json) =>
+      AccountDeletion(
+        organisationsLeft: json['organisations_left'] as int? ?? 0,
+        listingsWithdrawn: json['listings_withdrawn'] as int? ?? 0,
+        subscriptionsCancelled: json['subscriptions_cancelled'] as int? ?? 0,
+      );
+
+  final int organisationsLeft;
+  final int listingsWithdrawn;
+  final int subscriptionsCancelled;
+}

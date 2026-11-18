@@ -18,7 +18,8 @@ import 'inbox_repository.dart';
 /// Landlord, Property Seller or other professional.
 ///
 /// An Agency Principal or administrator can give a listing enquiry to a team
-/// member. Replies and stage changes are not offered here yet.
+/// member, and anyone who sees a listing enquiry can work it (lead stage and
+/// internal notes). Replies go by the customer's chosen contact method.
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
 
@@ -136,6 +137,7 @@ class _InboxScreenState extends State<InboxScreen> {
                               enquiries[index - 1].requestId == null
                           ? null
                           : () => _assign(enquiries[index - 1]),
+                      onChanged: _reload,
                     ),
             ),
           );
@@ -146,10 +148,13 @@ class _InboxScreenState extends State<InboxScreen> {
 }
 
 class _EnquiryCard extends StatelessWidget {
-  const _EnquiryCard(this.enquiry, {this.onAssign});
+  const _EnquiryCard(this.enquiry, {this.onAssign, this.onChanged});
 
   final ReceivedEnquiry enquiry;
   final VoidCallback? onAssign;
+
+  /// Called on return from working the request, to show its new stage.
+  final VoidCallback? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -243,6 +248,15 @@ class _EnquiryCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (enquiry.requestId != null)
+                  TextButton(
+                    key: Key('open-lead-${enquiry.reference}'),
+                    onPressed: () async {
+                      await context.push(Routes.lead(enquiry.requestId!));
+                      onChanged?.call();
+                    },
+                    child: const Text('Work it'),
+                  ),
                 if (slug != null)
                   TextButton(
                     onPressed: () =>

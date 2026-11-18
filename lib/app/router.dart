@@ -1,6 +1,10 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/activity/activity_screen.dart';
+import '../features/activity/my_request_screen.dart';
+import '../features/appointments/appointment_screens.dart';
+import '../features/auth/presentation/delete_account_screen.dart';
+import '../features/inbox/lead_screen.dart';
 import '../features/auth/presentation/auth_screens.dart';
 import '../features/auth/presentation/recovery_screens.dart';
 import '../features/auth/presentation/register_screen.dart';
@@ -37,6 +41,18 @@ abstract final class Routes {
   static const documentsToSign = '/signing';
   static const mySignature = '/signature';
   static const joinTeam = '/invitations';
+  static const accountManagement = '/account-management';
+  static const deleteAccount = '/account-management/delete';
+  static const receivedAppointments = '/appointments';
+
+  static String receivedAppointment(String id) =>
+      '/appointments/${Uri.encodeComponent(id)}';
+  static String myAppointment(String id) =>
+      '/my-appointments/${Uri.encodeComponent(id)}';
+  static String myRequest(String id) =>
+      '/my-requests/${Uri.encodeComponent(id)}';
+  static String lead(String requestId) =>
+      '/inbox/${Uri.encodeComponent(requestId)}';
 
   static String team(String organisationId) =>
       '/team/${Uri.encodeComponent(organisationId)}';
@@ -191,7 +207,52 @@ GoRouter buildRouter() => GoRouter(
       path: '/sign-in',
       builder: (context, state) => const SignInScreen(),
     ),
-    GoRoute(path: '/inbox', builder: (context, state) => const InboxScreen()),
+    GoRoute(
+      path: '/inbox',
+      builder: (context, state) => const InboxScreen(),
+      routes: [
+        GoRoute(
+          path: ':id',
+          builder: (context, state) =>
+              LeadScreen(requestId: state.pathParameters['id']!),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/appointments',
+      builder: (context, state) => const ReceivedAppointmentsScreen(),
+      routes: [
+        GoRoute(
+          path: ':id',
+          builder: (context, state) => AppointmentScreen(
+            id: state.pathParameters['id']!,
+            professional: true,
+          ),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/my-appointments/:id',
+      builder: (context, state) => AppointmentScreen(
+        id: state.pathParameters['id']!,
+        professional: false,
+      ),
+    ),
+    GoRoute(
+      path: '/my-requests/:id',
+      builder: (context, state) =>
+          MyRequestScreen(id: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/account-management',
+      builder: (context, state) => const AccountManagementScreen(),
+      routes: [
+        GoRoute(
+          path: 'delete',
+          builder: (context, state) => const DeleteAccountScreen(),
+        ),
+      ],
+    ),
     GoRoute(
       path: '/team/:id',
       builder: (context, state) =>

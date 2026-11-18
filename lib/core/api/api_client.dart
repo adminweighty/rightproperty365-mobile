@@ -107,6 +107,11 @@ class ApiClient {
     Map<String, String> headers = const {},
   }) => _send('DELETE', path, headers: headers);
 
+  /// A DELETE with a JSON body, such as the password that confirms deleting
+  /// an account.
+  Future<ApiResponse> deleteJson(String path, Map<String, dynamic> body) =>
+      _send('DELETE', path, body: body);
+
   /// A file, such as a PDF, as bytes. Failures are read from the JSON error
   /// envelope like any other call.
   Future<Uint8List> getBytes(String path) async =>

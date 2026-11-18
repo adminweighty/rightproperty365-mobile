@@ -90,6 +90,14 @@ class AuthController extends ChangeNotifier {
     await _forget();
   }
 
+  /// Deletes the account. On success the API has already ended every
+  /// session, so the token is only forgotten here. Throws [ApiFailure].
+  Future<AccountDeletion> deleteAccount(String password) async {
+    final result = await _repository.deleteAccount(password);
+    await _forget();
+    return result;
+  }
+
   /// Always signs out locally, even if the server cannot be told.
   Future<void> signOut() async {
     try {

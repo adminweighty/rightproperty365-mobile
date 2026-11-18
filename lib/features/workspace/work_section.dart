@@ -63,6 +63,14 @@ class _WorkSectionState extends State<WorkSection> {
               emphasised: waiting > 0,
               onTap: () => open(Routes.documentsToSign),
             ),
+            if (widget.professional)
+              _Tile(
+                key: const Key('open-appointments'),
+                icon: Icons.event_outlined,
+                title: 'Viewing Appointments',
+                subtitle: 'Confirm, reschedule or cancel viewings',
+                onTap: () => open(Routes.receivedAppointments),
+              ),
             _Tile(
               key: const Key('open-signature'),
               icon: Icons.gesture,
