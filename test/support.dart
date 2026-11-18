@@ -17,6 +17,7 @@ import 'package:rightproperty365/features/activity/activity_store.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
+import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/auth/auth_controller.dart';
@@ -321,6 +322,11 @@ class TestServices {
     );
     services = AppServices(
       saved: saved,
+      listingDetails: ApiListingDetailsRepository(workApi),
+      openLink: (url) async {
+        opened.add(url);
+        return canOpenLinks;
+      },
       listings: listings,
       directory: sampleDirectory(),
       propertyRequests: propertyRequests,
@@ -359,6 +365,11 @@ class TestServices {
   Uint8List? pickedImage;
 
   final listings = sampleListings();
+
+  /// Links the app handed to the phone, and whether the phone could open
+  /// them.
+  final opened = <Uri>[];
+  bool canOpenLinks = true;
   late final SavedListings saved;
   final inbox = FakeInbox();
   final storage = MemoryStore();

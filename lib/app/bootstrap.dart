@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +11,7 @@ import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/listings/data/video_tour.dart';
 import '../features/saved/saved_listings.dart';
 import '../features/saved/saved_listings_repository.dart';
 import '../features/auth/auth_controller.dart';
@@ -54,6 +56,8 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
 
   final services = AppServices(
     push: push,
+    listingDetails: ApiListingDetailsRepository(api),
+    openLink: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
     saved: SavedListings(
       repository: ApiSavedListingsRepository(api),
       auth: auth,

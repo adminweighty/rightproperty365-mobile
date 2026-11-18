@@ -7,6 +7,7 @@ import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
+import '../features/listings/data/video_tour.dart';
 import '../features/saved/saved_listings.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/directory/data/business_enquiry_repository.dart';
@@ -43,7 +44,17 @@ class AppServices {
     required this.leads,
     this.push = const NoPushMessaging(),
     required this.saved,
+    required this.listingDetails,
+    required this.openLink,
   });
+
+  /// What the public listing adds to the bundled sample listings (the
+  /// video tour).
+  final ListingDetailsRepository listingDetails;
+
+  /// Opens a link outside the app (the YouTube app, the browser); false
+  /// when nothing on the phone can open it.
+  final Future<bool> Function(Uri url) openLink;
 
   /// The signed-in account's saved properties (hearts and the Saved tab).
   final SavedListings saved;

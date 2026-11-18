@@ -23,6 +23,7 @@ import 'package:rightproperty365/features/inbox/inbox_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/leases/lease_repository.dart';
 import 'package:rightproperty365/features/signing/signing_repository.dart';
+import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 
@@ -273,5 +274,22 @@ void main() {
     expect(await saved.ids(), isNot(contains(id)));
     // ignore: avoid_print
     print('saved: ${item.title} (${item.reference}) saved and removed');
+  }, skip: skip);
+
+  test('a listing with a video tour (API 0.28.0)', () async {
+    final details = ApiListingDetailsRepository(ApiClient(baseUrl: _base!));
+    // The seeded London house has a stand-in tour starting 30 s in.
+    final tour = await details.videoTour(
+      'three-bedroom-terraced-house-kensington',
+    );
+    expect(tour, isNotNull);
+    expect(tour!.openUrl.queryParameters['t'], '30s');
+    expect(tour.thumbnailUrl.host, 'i.ytimg.com');
+    expect(
+      await details.videoTour('four-bedroom-family-home-borrowdale'),
+      isNull,
+    );
+    // ignore: avoid_print
+    print('video: ${tour.id} opens ${tour.openUrl}');
   }, skip: skip);
 }
