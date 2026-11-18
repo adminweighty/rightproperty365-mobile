@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Needed in release builds to call the RightProperty365 API. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: asked only when the person turns notifications on, after
+         signing in, never at first launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Map search "Near me" only: asked when the button is tapped, with the
+         reason shown first. The app works fully if it is refused. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
         android:label="RightProperty365"
         android:name="${applicationName}"
@@ -67,6 +74,12 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- Opening a YouTube tour in the YouTube app or the browser, and
+             links handed off to the website. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

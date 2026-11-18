@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
+import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
@@ -39,7 +40,12 @@ class AppServices {
     required this.myAppointments,
     required this.receivedAppointments,
     required this.leads,
+    this.push = const NoPushMessaging(),
   });
+
+  /// Push messaging on this device; off when the build has no Firebase
+  /// project.
+  final PushMessaging push;
 
   /// The signed-in Property Seeker's own requests and viewings.
   final MyRequestsRepository myRequests;

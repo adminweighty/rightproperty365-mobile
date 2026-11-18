@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api/api_client.dart';
 import '../core/config.dart';
+import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/appointment_repository.dart';
@@ -35,7 +36,15 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     api: api,
   );
 
+  final push = await FirebasePushMessaging.start();
+  // FR-045: nothing tied to the account stays on the phone after sign-out,
+  // the push token included.
+  auth.addListener(() {
+    if (!auth.signedIn) push.deleteToken();
+  });
+
   final services = AppServices(
+    push: push,
     listings: SampleListingRepository.fromJson(
       await assets.loadString('assets/data/listings.json'),
     ),

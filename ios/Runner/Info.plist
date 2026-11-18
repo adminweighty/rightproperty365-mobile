@@ -15,7 +15,15 @@
 		<key>CFBundleInfoDictionaryVersion</key>
 		<string>6.0</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>To upload a picture of your signature when you sign a document.</string>
+		<string>To add a picture of your signature, a receipt, or a document for an application or a maintenance request.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>To photograph a receipt, a document for an application, or a maintenance problem.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>To show properties near you when you tap Near me. Your location is not stored.</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>youtube</string>
+		</array>
 		<key>CFBundleName</key>
 		<string>rightproperty365</string>
 		<key>CFBundlePackageType</key>

@@ -50,6 +50,39 @@ Leave `DEMO_SIGNING_CODE` out of production builds.
 
 Plain HTTP is allowed in Android **debug** builds only (`android/app/src/debug/AndroidManifest.xml`). Release builds require HTTPS. iOS has no cleartext exception configured yet: if the simulator blocks `http://localhost`, add a debug-only App Transport Security exception rather than a global one. This has not been tested, because iOS cannot be built on Windows.
 
+### Map tiles
+
+Map search and the listing map need a tile source. Set it with `--dart-define`; without it the map is off and search stays a list:
+
+```bash
+flutter run --dart-define=MAP_TILE_URL=https://tiles.example.com/{z}/{x}/{y}.png --dart-define="MAP_ATTRIBUTION=© Example contributors"
+```
+
+Use the same source and attribution as the website. A provider key, if any, goes in the URL at build time and is never committed.
+
+### Push notifications
+
+Push runs through Firebase Cloud Messaging, configured with `--dart-define`, so no `google-services.json` or `GoogleService-Info.plist` is committed. Without these values push is off and nothing else changes.
+
+```bash
+flutter run --dart-define=FIREBASE_API_KEY=... --dart-define=FIREBASE_APP_ID=... --dart-define=FIREBASE_SENDER_ID=... --dart-define=FIREBASE_PROJECT_ID=...
+```
+
+What the owner of the Firebase project supplies:
+- a Firebase project with an Android app for `com.rightproperty365.rightproperty365`: its API key, app ID, sender ID and project ID;
+- for iOS, an iOS app in the same project (`FIREBASE_IOS_APP_ID`) and an APNs authentication key uploaded to it (needs an Apple developer account), plus the Push Notifications capability in Xcode (needs a Mac);
+- the server side (sending, device registration) is the API's.
+
+The phone asks for notification permission only when the person turns notifications on after signing in, never at first launch. The push identifier is removed on sign-out and account deletion.
+
+### Permissions
+
+| Permission | When it is asked | Why |
+| --- | --- | --- |
+| Notifications (Android 13+, iOS) | When notifications are turned on, after sign-in | Enquiry, appointment and application updates |
+| Location (while in use) | When "Near me" is tapped on map search, after the reason is shown | Properties near you; the app works fully if refused |
+| Camera, photos | When a receipt, document or maintenance photo is added | Upload; nothing is kept on the phone |
+
 ## Checks
 
 ```bash
