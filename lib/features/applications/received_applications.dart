@@ -369,13 +369,22 @@ class _ReceivedApplicationScreenState extends State<ReceivedApplicationScreen> {
                           for (final file in f.files)
                             Row(
                               children: [
-                                const ExcludeSemantics(
-                                  child: Icon(Icons.attach_file, size: 18),
+                                ExcludeSemantics(
+                                  child: Icon(
+                                    file.scan.isInfected
+                                        ? Icons.gpp_bad_outlined
+                                        : file.scan.isPending
+                                        ? Icons.hourglass_top
+                                        : Icons.attach_file,
+                                    size: 18,
+                                  ),
                                 ),
                                 const SizedBox(width: Space.x1),
                                 Expanded(
                                   child: Text(
-                                    file.fileName,
+                                    file.scan.notice == null
+                                        ? file.fileName
+                                        : '${file.fileName}\n${file.scan.notice}',
                                     style: text.bodyLarge,
                                   ),
                                 ),

@@ -945,8 +945,27 @@ class _LedgerEntryScreenState extends State<LedgerEntryScreen> {
                 for (final a in d.attachments)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.receipt_long_outlined),
+                    leading: Icon(
+                      a.scan.isInfected
+                          ? Icons.gpp_bad_outlined
+                          : a.scan.isPending
+                          ? Icons.hourglass_top
+                          : Icons.receipt_long_outlined,
+                    ),
                     title: Text(a.fileName),
+                    subtitle: a.scan.notice == null
+                        ? null
+                        : Text(a.scan.notice!),
+                  ),
+                if (d.attachments.any((a) => a.scan.isPending))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const Key('receipts-check'),
+                      onPressed: _reload,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Check again'),
+                    ),
                   ),
                 Text('Open receipts on the website.', style: text.bodySmall),
               ],

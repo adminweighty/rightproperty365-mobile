@@ -45,6 +45,7 @@ import 'package:rightproperty365/features/properties/rent_repository.dart';
 import 'package:rightproperty365/features/team/team_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
+import 'package:rightproperty365/core/api/scan.dart';
 
 final _base = Platform.environment['RP_LIVE_API'];
 final _password = Platform.environment['RP_LIVE_PASSWORD'] ?? '';
@@ -526,6 +527,8 @@ void main() {
         ));
       }
       expect(form.problems(app.answers), isEmpty);
+      // API 0.41.0 with the scanner off (the default): no scan_status.
+      expect(app.files.map((f) => f.scan), everyElement(ScanStatus.none));
       final sent = await mine.submit(app.id);
       expect(sent.reference, matches(RegExp(r'^RPA-APP-\d{4}-\d{6}$')));
 
@@ -705,6 +708,7 @@ void main() {
     expect(detail.entry.isReversed, isTrue);
     expect(detail.related.map((r) => r.id), contains(reversal.id));
     expect(detail.attachments.single.fileName, 'receipt.png');
+    expect(detail.attachments.single.scan, ScanStatus.none);
     await expectLater(
       books.reverse(org.id, entry.id, 'Again'),
       throwsA(

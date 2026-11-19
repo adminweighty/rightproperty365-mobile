@@ -2,6 +2,8 @@
 /// the answers to it, and an application's status.
 library;
 
+import '../../core/api/scan.dart';
+
 const applicationFileTypes = ['pdf', 'jpg', 'png', 'webp', 'heic', 'docx'];
 const maxFileBytes = 10 * 1024 * 1024;
 
@@ -219,6 +221,7 @@ class ApplicationFile {
     required this.field,
     required this.fileName,
     required this.size,
+    this.scan = ScanStatus.none,
   });
 
   factory ApplicationFile.fromJson(Map<String, dynamic> json) =>
@@ -227,12 +230,16 @@ class ApplicationFile {
         field: json['field'] as String? ?? '',
         fileName: json['file_name'] as String? ?? 'file',
         size: json['size'] as int? ?? 0,
+        scan: ScanStatus.parse(json['scan_status']),
       );
 
   final String id;
   final String field;
   final String fileName;
   final int size;
+
+  /// The virus check (API 0.41.0); none when scanning is off.
+  final ScanStatus scan;
 }
 
 typedef ApplicationEvent = ({

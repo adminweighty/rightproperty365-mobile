@@ -84,6 +84,9 @@ const offlinePaths = [
 
 bool keptOffline(String path) {
   final p = path.split('?').first;
+  // Files are never kept: one may since have failed its virus check
+  // (API 0.41.0), and the app keeps no personal files on the phone.
+  if (p.contains('/files/')) return false;
   for (final allowed in offlinePaths) {
     if (allowed == '/v1/me'
         ? p == allowed

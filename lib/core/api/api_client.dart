@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 
 import 'offline.dart';
+import 'scan.dart';
 
 /// A failed API call, built from the error envelope
 /// `{"error": {"code", "message", "fields"}, "trace_id"}` or from a transport
@@ -285,7 +286,14 @@ class ApiClient {
     throw ApiFailure(
       status: response.statusCode,
       code: details['code'] as String? ?? 'HTTP_${response.statusCode}',
-      message: details['message'] as String? ?? _fallbackMessage,
+      // An upload's scan failure in the app's own plain words (a 409 on a
+      // download keeps the API's).
+      message:
+          (response.statusCode == 409
+              ? null
+              : scanFailureMessages[details['code']]) ??
+          details['message'] as String? ??
+          _fallbackMessage,
       fields: fields is Map
           ? fields.map((key, value) => MapEntry('$key', '$value'))
           : const {},

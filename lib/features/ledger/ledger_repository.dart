@@ -1,4 +1,5 @@
 import '../../core/api/api_client.dart';
+import '../../core/api/scan.dart';
 import '../applications/applications_repository.dart'
     show ChosenFile, fileContentType;
 
@@ -285,7 +286,7 @@ class LedgerDraft {
 typedef LedgerEntryDetail = ({
   LedgerEntry entry,
   List<({String text, String author, DateTime at})> notes,
-  List<({String id, String fileName})> attachments,
+  List<({String id, String fileName, ScanStatus scan})> attachments,
   List<LedgerEntry> related,
 });
 
@@ -387,6 +388,7 @@ class LedgerRepository {
           (
             id: (a as Map<String, dynamic>)['id'] as String,
             fileName: a['file_name'] as String? ?? 'file',
+            scan: ScanStatus.parse(a['scan_status']),
           ),
       ],
       related: [

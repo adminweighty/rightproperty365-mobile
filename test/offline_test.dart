@@ -76,6 +76,8 @@ void main() {
       expect(keptOffline('/v1/me'), isTrue);
       expect(keptOffline('/v1/me/tenancies/t-1/dues'), isTrue);
       expect(keptOffline('/v1/meeting'), isFalse);
+      expect(keptOffline('/v1/me/applications/app-1'), isTrue);
+      expect(keptOffline('/v1/me/applications/app-1/files/f-1'), isFalse);
     });
 
     test(

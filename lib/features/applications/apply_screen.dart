@@ -133,6 +133,49 @@ class _ApplicationFormState extends State<_ApplicationForm> {
   final Map<String, TextEditingController> _text = {};
   Map<String, String> _errors = {};
   Timer? _autosave;
+
+  /// While a file is being checked for viruses, the application is read
+  /// again every few seconds (a minute at most) to show the outcome.
+  Timer? _scanCheck;
+  int _scanChecks = 0;
+
+  bool get _scanning => _app.files.any((f) => f.scan.isPending);
+
+  void _watchScans() {
+    _scanCheck?.cancel();
+    if (!_scanning || _scanChecks >= 12) return;
+    _scanCheck = Timer(const Duration(seconds: 5), () async {
+      _scanChecks++;
+      await _checkScans(quiet: true);
+      if (mounted) _watchScans();
+    });
+  }
+
+  /// Reads the application again for the files' virus-check outcome.
+  Future<void> _checkScans({bool quiet = false}) async {
+    try {
+      final fresh = await _repo.get(_app.id);
+      if (!mounted) return;
+      setState(() {
+        _app = fresh;
+        for (final f in _form.fields.where((f) => f.type == 'file')) {
+          _answers[f.key] = fresh.answers[f.key];
+        }
+      });
+    } on ApiFailure catch (failure) {
+      if (!quiet && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _watchScans();
+  }
+
   String _saveState = '';
   int _step = 0;
   bool _busy = false;
@@ -145,6 +188,7 @@ class _ApplicationFormState extends State<_ApplicationForm> {
 
   @override
   void dispose() {
+    _scanCheck?.cancel();
     _autosave?.cancel();
     // A last save of anything typed, so a closed draft keeps it.
     if (_unsaved.isNotEmpty) {
@@ -268,6 +312,8 @@ class _ApplicationFormState extends State<_ApplicationForm> {
         _answers[field.key] = updated.answers[field.key];
         _errors.remove(field.key);
       });
+      _scanChecks = 0;
+      _watchScans();
     } on ApiFailure catch (failure) {
       messenger.showSnackBar(SnackBar(content: Text(failure.message)));
     } finally {
@@ -520,7 +566,10 @@ class _ApplicationFormState extends State<_ApplicationForm> {
       'multiple_choice' => (value as List).map(label).join(', '),
       'file' => [
         for (final f in _app.files)
-          if ((value as List).contains(f.id)) f.fileName,
+          if ((value as List).contains(f.id))
+            f.scan.notice == null
+                ? f.fileName
+                : '${f.fileName} (${f.scan.isPending ? 'being checked for viruses' : 'removed: failed the virus check'})',
       ].join(', '),
       'date' => _dateLabel('$value'),
       _ => '$value',
@@ -676,10 +725,19 @@ class _ApplicationFormState extends State<_ApplicationForm> {
               ),
               for (final f in files)
                 ListTile(
+                  key: Key('file-${f.id}'),
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.insert_drive_file_outlined),
+                  leading: Icon(
+                    f.scan.isInfected
+                        ? Icons.gpp_bad_outlined
+                        : f.scan.isPending
+                        ? Icons.hourglass_top
+                        : Icons.insert_drive_file_outlined,
+                  ),
                   title: Text(f.fileName),
-                  subtitle: Text('${(f.size / 1024).ceil()} KB'),
+                  subtitle: Text(
+                    f.scan.notice ?? '${(f.size / 1024).ceil()} KB',
+                  ),
                   trailing: _editable
                       ? IconButton(
                           tooltip: 'Remove ${f.fileName}',
@@ -687,6 +745,16 @@ class _ApplicationFormState extends State<_ApplicationForm> {
                           onPressed: () => _removeFile(field, f),
                         )
                       : null,
+                ),
+              if (files.any((f) => f.scan.isPending))
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: Key('answer-${field.key}-check'),
+                    onPressed: _checkScans,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Check again'),
+                  ),
                 ),
               if (_uploading == field.key)
                 const Padding(
