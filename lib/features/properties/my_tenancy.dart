@@ -7,6 +7,7 @@ import '../../core/widgets/brand.dart';
 import 'properties_repository.dart';
 import 'properties_screens.dart' show TenancyDetails;
 import 'rent_repository.dart' show RentScope;
+import 'inspection_screens.dart' show MyInspectionsScreen;
 import 'maintenance_screens.dart' show MyMaintenanceScreen;
 import 'rent_screens.dart' show RentSummaryCard;
 
@@ -77,6 +78,17 @@ class _MyTenancyViewState extends State<MyTenancyView> {
                           ),
                           icon: const Icon(Icons.build_outlined),
                           label: const Text('Repairs'),
+                        ),
+                        const SizedBox(height: Space.x2),
+                        OutlinedButton.icon(
+                          key: Key('my-inspections-${t.id}'),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => MyInspectionsScreen(tenancy: t),
+                            ),
+                          ),
+                          icon: const Icon(Icons.fact_check_outlined),
+                          label: const Text('Inspection reports'),
                         ),
                       ],
                     ),

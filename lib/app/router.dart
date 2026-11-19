@@ -8,6 +8,7 @@ import '../features/notifications/notifications_screens.dart';
 import '../features/properties/properties_repository.dart';
 import '../features/properties/properties_screens.dart';
 import '../features/properties/maintenance_screens.dart';
+import '../features/properties/inspection_screens.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
@@ -65,6 +66,10 @@ abstract final class Routes {
   static const notifications = '/notifications';
   static const properties = '/properties';
   static const maintenance = '/maintenance';
+  static const inspections = '/inspections';
+
+  static String inspection(String book, String id) =>
+      '/inspections/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
 
   static String maintenanceRequest(String book, String id) =>
       '/maintenance/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
@@ -341,6 +346,21 @@ GoRouter buildRouter() => GoRouter(
               },
             ),
           ],
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/inspections',
+      builder: (context, state) => InspectionsScreen(
+        books: state.extra as List<ContactBook>? ?? const [],
+      ),
+      routes: [
+        GoRoute(
+          path: ':book/:id',
+          builder: (context, state) => InspectionScreen(
+            book: _bookFrom(state),
+            id: state.pathParameters['id']!,
+          ),
         ),
       ],
     ),

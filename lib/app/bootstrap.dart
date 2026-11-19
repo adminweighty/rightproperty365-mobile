@@ -24,6 +24,7 @@ import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/properties/properties_repository.dart';
+import '../features/properties/inspection_repository.dart';
 import '../features/properties/maintenance_repository.dart';
 import '../features/properties/rent_repository.dart';
 import '../features/notifications/notification_centre.dart';
@@ -119,6 +120,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     properties: PropertiesRepository(api),
     rent: RentRepository(api),
     maintenance: MaintenanceRepository(api),
+    inspections: InspectionRepository(api),
     notifications: notifications,
     notificationCentre: notificationCentre,
     analyticsReports: ApiAnalyticsRepository(api),

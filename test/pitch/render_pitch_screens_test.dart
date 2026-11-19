@@ -40,6 +40,9 @@ import '../ledger_test.dart'
     as ledger
     show cashbookJson, entryJson, optionsJson, page;
 import '../maintenance_test.dart' as mt show optionsJson, pageJson, requestJson;
+import '../inspections_test.dart'
+    as it
+    show inspectionJson, optionsJson, pageJson;
 import '../map_search_test.dart' as maps show apiListing;
 import '../rent_test.dart'
     as rt
@@ -1187,5 +1190,129 @@ void main() {
     await _shoot(tester, '10-maintenance-request');
     await tester.drag(find.byType(Scrollable).last, const Offset(0, -700));
     await _shoot(tester, '10-maintenance-costs-history');
+  }, skip: _skip != null);
+
+  testWidgets('10 inspections', (tester) async {
+    final test = TestServices();
+    const base = '/v1/agent/organisations/org-1/inspections';
+    // A move-out in progress, compared with the move-in.
+    final moveOut = it.inspectionJson(type: 'MOVE_OUT');
+    moveOut['reference'] = 'RPI-2026-000014';
+    moveOut['areas'] = [
+      {
+        'id': 'a-1',
+        'label': 'Kitchen',
+        'position': 1,
+        'items': [
+          {
+            'id': 'k-1',
+            'label': 'Sink and taps',
+            'position': 1,
+            'status': 'OK',
+            'status_label': 'OK',
+            'note': 'Washer replaced, no drip',
+            'photos': [],
+            'baseline': {
+              'status': 'ATTENTION',
+              'status_label': 'Needs attention',
+              'note': 'Cold tap drips slightly',
+            },
+          },
+          {
+            'id': 'k-2',
+            'label': 'Cupboards and drawers',
+            'position': 2,
+            'status': 'ATTENTION',
+            'status_label': 'Needs attention',
+            'note': 'One drawer runner loose',
+            'photos': [],
+            'baseline': {'status': 'OK', 'status_label': 'OK', 'note': ''},
+          },
+          {
+            'id': 'k-3',
+            'label': 'Stove and oven',
+            'position': 3,
+            'status': null,
+            'status_label': null,
+            'note': '',
+            'photos': [],
+            'baseline': {'status': 'OK', 'status_label': 'OK', 'note': ''},
+          },
+        ],
+      },
+    ];
+    moveOut['progress'] = {
+      'items': 32,
+      'done': 21,
+      'ok': 18,
+      'attention': 2,
+      'damaged': 1,
+      'na': 0,
+    };
+    serve(test, {
+      'GET $base': (_) => {
+        ...it.pageJson([
+          {...moveOut, 'progress': moveOut['progress']},
+          {
+            ...it.inspectionJson(id: 'i-2', status: 'SCHEDULED'),
+            'reference': 'RPI-2026-900002',
+            'scheduled_for': '2026-11-26T07:00:00Z',
+            'property': {
+              'id': 'p-2',
+              'name': 'Borrowdale Cottage',
+              'archived': false,
+            },
+            'unit': null,
+            'progress': {
+              'items': 32,
+              'done': 0,
+              'ok': 0,
+              'attention': 0,
+              'damaged': 0,
+              'na': 0,
+            },
+          },
+          {
+            ...it.inspectionJson(
+              id: 'i-0',
+              status: 'COMPLETED',
+              type: 'MOVE_IN',
+            ),
+            'reference': 'RPI-2026-900001',
+            'scheduled_for': '2026-10-01T08:00:00Z',
+            'completed_at': '2026-10-01T09:30:00Z',
+            'progress': {
+              'items': 32,
+              'done': 32,
+              'ok': 27,
+              'attention': 2,
+              'damaged': 1,
+              'na': 2,
+            },
+          },
+        ]),
+        'status_counts': {
+          'SCHEDULED': 1,
+          'IN_PROGRESS': 1,
+          'COMPLETED': 1,
+          'CANCELLED': 0,
+        },
+      },
+      'GET $base/options': (_) => it.optionsJson(),
+      'GET $base/i-1': (_) => {'inspection': moveOut},
+    });
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await _pumpApp(tester, test);
+    const book = ContactBook(
+      id: 'org-1',
+      name: 'Sample Estates',
+      canWrite: true,
+    );
+    _router(tester).push(Routes.inspections, extra: const [book]);
+    await _shoot(tester, '10-inspections-list');
+    _router(tester).push(Routes.inspection('org-1', 'i-1'), extra: book);
+    await _settle(tester);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+    await _shoot(tester, '10-inspection-move-out');
   }, skip: _skip != null);
 }

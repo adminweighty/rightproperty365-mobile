@@ -36,6 +36,7 @@ import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
+import 'package:rightproperty365/features/properties/inspection_repository.dart';
 import 'package:rightproperty365/features/properties/maintenance_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
@@ -1178,6 +1179,147 @@ void main() {
       'timeline items, ${one.costTotals.single}; new request triaged, assigned '
       '(${first.enquiryReference}, once), costed, photographed, cancelled; '
       'tenant sees ${list.length}',
+    );
+  }, skip: skip);
+
+  test('inspections (API 0.36.3)', () async {
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final repo = InspectionRepository(owner);
+    final options = await repo.options(org.id);
+    expect(options.templates.map((t) => t.code), ['residential', 'commercial']);
+    expect(options.templates.first.items, 32);
+
+    final seeded = await repo.list(org.id);
+    final moveIn = seeded.items.firstWhere(
+      (i) => i.reference == 'RPI-2026-900001',
+    );
+    final routine = seeded.items.firstWhere(
+      (i) => i.reference == 'RPI-2026-900002',
+    );
+    expect(moveIn.status, 'COMPLETED');
+    expect(routine.status, 'SCHEDULED');
+
+    // A move-out of the Flat 1 tenancy, compared with its move-in.
+    final flat1 = (await PropertiesRepository(owner).tenancies(
+      org.id,
+      status: 'ACTIVE',
+    )).items.firstWhere((t) => t.place == 'Avondale Court, Flat 1');
+    final made = await repo.create(
+      org.id,
+      propertyId: flat1.propertyId!,
+      tenancyId: flat1.id,
+      type: 'MOVE_OUT',
+      scheduledFor: DateTime.now().add(const Duration(hours: 1)),
+      template: 'residential',
+    );
+    expect(made.status, 'SCHEDULED');
+    expect(made.baselineReference, 'RPI-2026-900001');
+    final items = [for (final a in made.areas) ...a.items];
+    final sink = made.areas
+        .firstWhere((a) => a.label == 'Kitchen')
+        .items
+        .firstWhere((i) => i.label == 'Sink and taps');
+    expect(sink.baselineNote, 'Cold tap drips slightly');
+
+    // The first finding starts it; a bad file is refused; a PNG becomes JPEG.
+    final started = await repo.saveFindings(org.id, made.id, [
+      FindingChange(sink.id, status: 'ATTENTION', note: 'Live check'),
+    ]);
+    expect(started.status, 'IN_PROGRESS');
+    await expectLater(
+      repo.addPhoto(org.id, made.id, sink.id, (
+        bytes: utf8.encode('not an image'),
+        name: 'x.jpg',
+      )),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 415)),
+    );
+    await repo.addPhoto(org.id, made.id, sink.id, (
+      bytes: base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      ),
+      name: 'sink.png',
+    ));
+    final withPhoto = await repo.get(org.id, made.id);
+    final photo = [for (final a in withPhoto.areas) ...a.items]
+        .firstWhere((i) => i.id == sink.id)
+        .photos
+        .single;
+    expect((await repo.bytes(photo.url)).take(2), [0xFF, 0xD8]);
+
+    // Refused while items are missing; then every item, then complete.
+    await expectLater(
+      repo.complete(org.id, made.id),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.code,
+          'code',
+          'INSPECTION_INCOMPLETE',
+        ),
+      ),
+    );
+    await repo.saveFindings(org.id, made.id, [
+      for (final i in items)
+        if (i.id != sink.id) FindingChange(i.id, status: 'OK'),
+    ]);
+    final done = await repo.complete(
+      org.id,
+      made.id,
+      summary: 'Live check',
+      agentName: 'Live check',
+    );
+    expect(done.status, 'COMPLETED');
+    expect(done.canRecord, isFalse);
+    await expectLater(
+      repo.saveFindings(org.id, made.id, [
+        FindingChange(sink.id, status: 'OK'),
+      ]),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 409)),
+    );
+    final pdf = await repo.bytes(done.reportUrl!);
+    expect(String.fromCharCodes(pdf.take(4)), '%PDF');
+    final draft = await repo.get(org.id, routine.id);
+    expect(
+      String.fromCharCodes((await repo.bytes(draft.reportUrl!)).take(4)),
+      '%PDF',
+    );
+
+    // Staff read only; another agency's book is not found.
+    final staff = await InspectionRepository(
+      await signedIn('agency.staff@example.test'),
+    ).get(org.id, routine.id);
+    expect(staff.canRecord || staff.canComplete || staff.canStart, isFalse);
+    await expectLater(
+      InspectionRepository(await signedIn('agent-b@example.test')).list(org.id),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'BOOK_NOT_FOUND'),
+      ),
+    );
+
+    // The tenant: completed ones only, with the PDF; not the scheduled one.
+    final tenantApi = await signedIn('tenant@example.test');
+    final mine = (await PropertiesRepository(tenantApi).myTenancies()).single;
+    final theirs = InspectionRepository(tenantApi);
+    final reports = await theirs.mine(mine.id);
+    expect(
+      reports.map((i) => i.reference),
+      containsAll(['RPI-2026-900001', done.reference]),
+    );
+    expect(reports.every((i) => i.status == 'COMPLETED'), isTrue);
+    final theirPdf = await theirs.bytes(reports.first.reportUrl!);
+    expect(String.fromCharCodes(theirPdf.take(4)), '%PDF');
+    await expectLater(
+      theirs.myInspection(mine.id, routine.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // ignore: avoid_print
+    print(
+      'inspections: ${seeded.total} seeded; move-out ${done.reference} '
+      'compared with ${done.baselineReference}, 415 refused, JPEG back, '
+      'incomplete refused, completed, frozen (409), PDFs; tenant sees '
+      '${reports.length}',
     );
   }, skip: skip);
 }

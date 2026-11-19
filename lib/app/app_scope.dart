@@ -14,6 +14,7 @@ import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/properties/properties_repository.dart';
+import '../features/properties/inspection_repository.dart';
 import '../features/properties/maintenance_repository.dart';
 import '../features/properties/rent_repository.dart';
 import '../features/notifications/notification_centre.dart';
@@ -70,6 +71,7 @@ class AppServices {
     required this.properties,
     required this.rent,
     required this.maintenance,
+    required this.inspections,
     required this.notifications,
     required this.notificationCentre,
     required this.analyticsReports,
@@ -104,6 +106,9 @@ class AppServices {
 
   /// Maintenance requests: the manager's and the tenant's.
   final MaintenanceRepository maintenance;
+
+  /// Inspections: the manager's and the tenant's completed reports.
+  final InspectionRepository inspections;
 
   /// The in-app notification centre and preferences (API 0.35.0).
   final NotificationsRepository notifications;
