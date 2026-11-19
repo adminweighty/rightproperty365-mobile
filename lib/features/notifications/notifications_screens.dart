@@ -11,6 +11,7 @@ import '../../core/push/push_messaging.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/brand.dart';
 import '../auth/presentation/auth_screens.dart' show FailureBox;
+import 'marketing_card.dart';
 import 'notification_links.dart';
 import 'notifications_repository.dart';
 
@@ -395,6 +396,7 @@ class _NotificationPreferencesScreenState
     final text = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Notification settings')),
+      // Also the marketing choice: News and offers, at the top.
       body: AsyncView<List<NotificationPreference>>(
         future: _loading!,
         onRetry: () => setState(() => _loading = _get()),
@@ -403,6 +405,8 @@ class _NotificationPreferencesScreenState
           return ListView(
             padding: const EdgeInsets.all(Space.x4),
             children: [
+              const MarketingCard(),
+              const SizedBox(height: Space.x3),
               const PushCard(),
               const SizedBox(height: Space.x3),
               Text(

@@ -20,6 +20,7 @@ import '../features/directory/data/reviews_repository.dart';
 import '../features/properties/inspection_repository.dart';
 import '../features/properties/maintenance_repository.dart';
 import '../features/properties/rent_repository.dart';
+import '../features/notifications/marketing_repository.dart';
 import '../features/notifications/notification_centre.dart';
 import '../features/notifications/notifications_repository.dart';
 import '../features/venues/venue_repository.dart';
@@ -78,6 +79,7 @@ class AppServices {
     required this.reviews,
     required this.connectivity,
     required this.addToCalendar,
+    required this.marketing,
     required this.notifications,
     required this.notificationCentre,
     required this.analyticsReports,
@@ -125,6 +127,9 @@ class AppServices {
   /// Puts a confirmed appointment or booking in the phone's calendar (the
   /// person confirms it there). False when nothing could take it.
   final Future<bool> Function(CalendarEvent event) addToCalendar;
+
+  /// News and offers: the marketing opt-in (API 0.37.1).
+  final MarketingRepository marketing;
 
   /// The in-app notification centre and preferences (API 0.35.0).
   final NotificationsRepository notifications;

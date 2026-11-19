@@ -30,6 +30,7 @@ import '../features/directory/data/reviews_repository.dart';
 import '../features/properties/inspection_repository.dart';
 import '../features/properties/maintenance_repository.dart';
 import '../features/properties/rent_repository.dart';
+import '../features/notifications/marketing_repository.dart';
 import '../features/notifications/notification_centre.dart';
 import '../features/notifications/notifications_repository.dart';
 import '../features/venues/venue_repository.dart';
@@ -136,6 +137,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     inspections: InspectionRepository(api),
     reviews: ReviewsRepository(api),
     connectivity: connectivity,
+    marketing: MarketingRepository(api),
     addToCalendar: PhoneCalendar(
       openLink: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
     ).add,

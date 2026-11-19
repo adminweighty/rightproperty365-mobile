@@ -134,7 +134,8 @@ class _SignedOut extends StatelessWidget {
           leading: const Icon(Icons.tune),
           title: const Text('Notification settings'),
           subtitle: const Text(
-            'Email and push for each kind, and push on this phone',
+            'News and offers, email and push for each kind, and push on this '
+            'phone',
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push(Routes.notificationPreferences),

@@ -28,6 +28,7 @@ import 'package:rightproperty365/features/directory/data/reviews_repository.dart
 import 'package:rightproperty365/features/properties/inspection_repository.dart';
 import 'package:rightproperty365/features/properties/maintenance_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
+import 'package:rightproperty365/features/notifications/marketing_repository.dart';
 import 'package:rightproperty365/features/notifications/notification_centre.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/core/push/push_messaging.dart';
@@ -377,6 +378,7 @@ class TestServices {
       inspections: InspectionRepository(workApi),
       reviews: ReviewsRepository(workApi),
       connectivity: connectivity,
+      marketing: MarketingRepository(workApi),
       addToCalendar: (event) async {
         calendar.add(event);
         return true;
