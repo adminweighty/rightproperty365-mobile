@@ -1,0 +1,60 @@
+# iOS on a macOS runner: the checks the Windows machine cannot run.
+#
+# Builds the app for iPhone without signing (no Apple team, certificate or
+# provisioning profile is involved) and runs the analyzer and the tests.
+# A passing run shows the iOS project, its Swift packages / pods and the
+# Dart code compile for iOS. It does not show that the app runs on an
+# iPhone, that push (APNs) or Universal Links work, or that it can be
+# signed and uploaded: those need the Apple developer account.
+name: iOS build
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # The version this app is developed with (flutter --version).
+          flutter-version: 3.50.0
+          cache: true
+
+      - name: Flutter and Xcode versions
+        run: |
+          flutter --version
+          xcodebuild -version
+
+      - name: Packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
+      - name: Build for iPhone, unsigned
+        run: flutter build ios --release --no-codesign
+
+      - name: Keep the unsigned app for a week
+        uses: actions/upload-artifact@v4
+        with:
+          name: Runner-unsigned
+          path: build/ios/iphoneos/Runner.app
+          retention-days: 7

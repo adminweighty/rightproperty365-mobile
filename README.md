@@ -101,6 +101,17 @@ flutter build apk --debug
 RP_LIVE_API=http://localhost:8080 RP_LIVE_PASSWORD=<DEV_SEED_PASSWORD> RP_LIVE_CODE=1234 flutter test test/live_api_test.dart
 ```
 
+### iOS (GitHub Actions)
+
+There is no Mac here, so iOS is checked on GitHub's macOS runners: `.github/workflows/ios.yml` runs on every push to `dev` and `main`, on pull requests and by hand (Actions, iOS build, Run workflow). With Flutter 3.50.0 it runs `flutter analyze`, `flutter test` and `flutter build ios --release --no-codesign`, and keeps the unsigned `Runner.app` for 7 days. The deployment target is iOS 15.0 (Firebase's minimum).
+
+A green run shows the iOS project, its packages and the Dart code compile for iPhone. It does **not** show:
+- that the app installs and runs on an iPhone or simulator (the job builds for devices, unsigned, and runs no UI);
+- signing, provisioning or upload to App Store Connect (needs the Apple team, a distribution certificate and a profile);
+- push: the Push Notifications capability and the APNs key in Firebase are not set up;
+- Universal Links: the Associated Domains entitlement is in the project, but only a signed build with an App ID that has the capability, plus the website's `apple-app-site-association`, can use it;
+- the iPhone calendar falls back to Google Calendar's page (no native EventKit sheet yet).
+
 ## Keeping in step with the web
 
 Listings, directory profiles and photos are **sample data mirrored from the web repository**. Do not edit `assets/data` or `assets/images` by hand. After the web's `src/lib/data/listings.ts`, `directory.ts` or photos change, run:
