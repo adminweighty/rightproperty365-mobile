@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../core/widgets/offline_banner.dart';
 import '../features/notifications/notification_bell.dart';
 import 'app_scope.dart';
 import 'router.dart';
@@ -31,6 +32,8 @@ class _RightPropertyAppState extends State<RightPropertyApp> {
     // Back on screen: the count and the phone's permission may have changed.
     _lifecycle = AppLifecycleListener(
       onResume: () {
+        final connectivity = widget.services.connectivity;
+        if (!connectivity.online) connectivity.retry();
         widget.services.notificationCentre.refresh();
         widget.services.notificationCentre.refreshPushState();
       },
@@ -57,6 +60,10 @@ class _RightPropertyAppState extends State<RightPropertyApp> {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         routerConfig: _router,
+        builder: (context, child) => OfflineBanner(
+          connectivity: widget.services.connectivity,
+          child: child!,
+        ),
       ),
     );
   }

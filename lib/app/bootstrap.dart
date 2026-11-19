@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api/api_client.dart';
 import '../core/config.dart';
 import '../core/location.dart';
+import '../core/api/offline.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
@@ -58,7 +59,16 @@ AppLifecycleListener? _lifecycle;
 /// JSON, and the Go API for enquiries and identity.
 Future<AppServices> bootstrap({AssetBundle? bundle}) async {
   final assets = bundle ?? rootBundle;
-  final api = ApiClient(baseUrl: AppConfig.apiBaseUrl);
+  final connectivity = Connectivity();
+  final responseCache = PreferencesResponseCache(
+    await SharedPreferences.getInstance(),
+  );
+  final api = ApiClient(
+    baseUrl: AppConfig.apiBaseUrl,
+    cache: responseCache,
+    connectivity: connectivity,
+  );
+  connectivity.probe = api.ping;
   final auth = AuthController(
     repository: ApiAuthRepository(api),
     tokens: const SecureTokenStore(),
@@ -80,6 +90,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     locale: () => PlatformDispatcher.instance.locale.toLanguageTag(),
   );
   auth.deviceTokenForSignOut = notificationCentre.tokenForSignOut;
+  forgetAtSignOut(auth, () => auth.signedIn, responseCache);
 
   final activity = ActivityStore(preferences);
   final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
@@ -123,6 +134,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     maintenance: MaintenanceRepository(api),
     inspections: InspectionRepository(api),
     reviews: ReviewsRepository(api),
+    connectivity: connectivity,
     notifications: notifications,
     notificationCentre: notificationCentre,
     analyticsReports: ApiAnalyticsRepository(api),
@@ -141,6 +153,8 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
       auth: auth,
       activity: activity,
       listings: listings,
+      store: preferences,
+      connectivity: connectivity,
     ),
     listings: listings,
     directory: SampleDirectoryRepository.fromJson(

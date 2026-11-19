@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 
 import '../core/location.dart';
+import '../core/api/offline.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
@@ -74,6 +75,7 @@ class AppServices {
     required this.maintenance,
     required this.inspections,
     required this.reviews,
+    required this.connectivity,
     required this.notifications,
     required this.notificationCentre,
     required this.analyticsReports,
@@ -114,6 +116,9 @@ class AppServices {
 
   /// Reviews of service providers: published, written, received.
   final ReviewsRepository reviews;
+
+  /// Whether the API was reachable at the last attempt.
+  final Connectivity connectivity;
 
   /// The in-app notification centre and preferences (API 0.35.0).
   final NotificationsRepository notifications;

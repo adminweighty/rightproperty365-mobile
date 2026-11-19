@@ -75,7 +75,17 @@ class SaveHeart extends StatelessWidget {
 
     try {
       final now = await saved.toggle(listingId);
-      say(now ? 'Saved to Activity' : 'Removed from saved');
+      say(
+        saved.isPending(listingId)
+            ? (now
+                  ? 'Saved on this phone. It is added to your account when you '
+                        'are back online.'
+                  : 'Removed on this phone. Your account is updated when you '
+                        'are back online.')
+            : now
+            ? 'Saved to Activity'
+            : 'Removed from saved',
+      );
     } on ApiFailure catch (failure) {
       say(failure.message);
     }

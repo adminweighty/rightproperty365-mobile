@@ -31,6 +31,7 @@ import 'package:rightproperty365/features/properties/rent_repository.dart';
 import 'package:rightproperty365/features/notifications/notification_centre.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/core/push/push_messaging.dart';
+import 'package:rightproperty365/core/api/offline.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/core/location.dart';
 import 'package:rightproperty365/features/listings/data/api_listing_repository.dart';
@@ -344,6 +345,8 @@ class TestServices {
       auth: auth,
       activity: activity,
       listings: listings,
+      store: savedStore,
+      connectivity: connectivity,
     );
     notificationCentre = NotificationCentre(
       repository: NotificationsRepository(workApi),
@@ -372,6 +375,7 @@ class TestServices {
       maintenance: MaintenanceRepository(workApi),
       inspections: InspectionRepository(workApi),
       reviews: ReviewsRepository(workApi),
+      connectivity: connectivity,
       agentApplications: AgentApplicationsRepository(workApi),
       pickApplicationFile: ({required camera, required accept}) async {
         pickedFrom.add(camera ? 'camera' : 'files');
@@ -413,12 +417,17 @@ class TestServices {
   final workRequests = <http.Request>[];
   late final workApi = ApiClient(
     baseUrl: 'http://api.test',
+    connectivity: connectivity,
     httpClient: MockClient((request) {
       workRequests.add(request);
       return workHandler(request);
     }),
   );
   final pdf = FakePdfRenderer();
+
+  /// Offline: whether the API answered, and the saves waiting for it.
+  final connectivity = Connectivity();
+  final savedStore = MemoryStore();
 
   /// Push on this "phone": off unless a test sets a fake.
   PushMessaging push = const NoPushMessaging();

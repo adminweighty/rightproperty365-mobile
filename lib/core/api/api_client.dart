@@ -6,6 +6,8 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 
+import 'offline.dart';
+
 /// A failed API call, built from the error envelope
 /// `{"error": {"code", "message", "fields"}, "trace_id"}` or from a transport
 /// failure (status 0).
@@ -25,6 +27,26 @@ class ApiFailure implements Exception {
         status: 0,
         code: 'NETWORK_ERROR',
         message: 'We could not reach RightProperty365. Check your connection and try again.',
+      );
+
+  /// A change that could not leave the phone: nothing was sent.
+  const ApiFailure.notSent()
+    : this(
+        status: 0,
+        code: 'NETWORK_ERROR',
+        message:
+            'You are offline or RightProperty365 cannot be reached. Nothing '
+            'was sent: try again when you are connected.',
+      );
+
+  /// A change sent with no answer in time: it may or may not have arrived.
+  const ApiFailure.noAnswer()
+    : this(
+        status: 0,
+        code: 'NETWORK_TIMEOUT',
+        message:
+            'We did not hear back in time. Check whether it went through '
+            'before trying again.',
       );
 
   final int status;
@@ -60,17 +82,30 @@ class ApiFailure implements Exception {
 }
 
 class ApiResponse {
-  const ApiResponse(this.status, this.body);
+  const ApiResponse(this.status, this.body, {this.savedAt});
   final int status;
   final Map<String, dynamic> body;
+
+  /// Set when the answer is this phone's copy, shown offline.
+  final DateTime? savedAt;
 }
 
 /// Thin JSON wrapper over `package:http`. Throws [ApiFailure] for anything
 /// that is not a 2xx response.
 class ApiClient {
-  ApiClient({required String baseUrl, http.Client? httpClient})
-    : _baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
-      _http = httpClient ?? http.Client();
+  ApiClient({
+    required String baseUrl,
+    http.Client? httpClient,
+    this.cache,
+    this.connectivity,
+  }) : _baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
+       _http = httpClient ?? http.Client();
+
+  /// The last answers to [keptOffline] requests, shown when offline.
+  ResponseCache? cache;
+
+  /// Told whether each request got through.
+  Connectivity? connectivity;
 
   final String _baseUrl;
   final http.Client _http;
@@ -83,7 +118,31 @@ class ApiClient {
   static const _fallbackMessage =
       'Something went wrong on our side. Please try again.';
 
-  Future<ApiResponse> get(String path) => _send('GET', path);
+  /// A GET. Offline, a [keptOffline] path answers with this phone's last
+  /// copy (with [ApiResponse.savedAt]) instead of failing.
+  Future<ApiResponse> get(String path) async {
+    final keep = cache != null && keptOffline(path);
+    try {
+      final response = await _exchange('GET', path);
+      if (keep) unawaited(cache!.write(path, response.body));
+      return ApiResponse(response.statusCode, _decode(response.body));
+    } on ApiFailure catch (failure) {
+      final copy = keep && failure.isNetwork ? cache!.read(path) : null;
+      if (copy == null) rethrow;
+      connectivity?.servedFromCopy(copy.savedAt);
+      return ApiResponse(200, _decode(copy.body), savedAt: copy.savedAt);
+    }
+  }
+
+  /// Whether the API answers at all (for "try again" while offline).
+  Future<bool> ping() async {
+    try {
+      await _exchange('GET', '/healthz', accept: '*/*');
+      return true;
+    } on ApiFailure catch (failure) {
+      return !failure.isNetwork;
+    }
+  }
 
   Future<ApiResponse> postJson(
     String path,
@@ -205,12 +264,13 @@ class ApiClient {
         await _http.send(request).timeout(timeout),
       );
     } on SocketException {
-      throw const ApiFailure.network();
+      throw _unreachable(request, timedOut: false);
     } on TimeoutException {
-      throw const ApiFailure.network();
+      throw _unreachable(request, timedOut: true);
     } on http.ClientException {
-      throw const ApiFailure.network();
+      throw _unreachable(request, timedOut: false);
     }
+    connectivity?.reachable();
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response;
@@ -239,6 +299,12 @@ class ApiClient {
         _ => null,
       },
     );
+  }
+
+  ApiFailure _unreachable(http.BaseRequest request, {required bool timedOut}) {
+    connectivity?.unreachable();
+    if (request.method == 'GET') return const ApiFailure.network();
+    return timedOut ? const ApiFailure.noAnswer() : const ApiFailure.notSent();
   }
 
   Map<String, dynamic> _decode(String body) {
