@@ -24,6 +24,7 @@ import '../features/analytics/analytics_repository.dart';
 import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/listings/manage/my_listings.dart';
 import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
@@ -184,6 +185,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     pdf: const PlatformPdfRenderer(),
     pickSignatureImage: _pickSignatureImage,
     myRequests: ApiMyRequestsRepository(api),
+    myListings: MyListingsRepository(api),
     myAppointments: ApiMyAppointmentsRepository(api),
     receivedAppointments: ApiReceivedAppointmentsRepository(api),
     leads: ApiLeadRepository(api),

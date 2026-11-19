@@ -59,6 +59,7 @@ class Workspace {
   const Workspace({
     this.organisations = const [],
     this.createsLeases = false,
+    this.managesListings = false,
     this.documentsWaitingForYou = 0,
   });
 
@@ -81,12 +82,17 @@ class Workspace {
           WorkOrganisation.fromJson(item as Map<String, dynamic>),
       ],
       createsLeases: capabilities['creates_leases'] == true,
+      managesListings: capabilities['manages_listings'] == true,
       documentsWaitingForYou: count('agreements.waiting_for_you'),
     );
   }
 
   final List<WorkOrganisation> organisations;
   final bool createsLeases;
+
+  /// `/v1/me/listings` is open to the person (an agency member or an
+  /// approved owner).
+  final bool managesListings;
   final int documentsWaitingForYou;
 
   List<WorkOrganisation> get teamsToManage => [

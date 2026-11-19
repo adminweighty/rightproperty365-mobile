@@ -42,6 +42,8 @@ import '../features/listings/presentation/search_screen.dart';
 import '../features/property_requests/presentation/property_request_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/legal/legal_screens.dart';
+import '../features/listings/manage/my_listings.dart' show ExpiryState;
+import '../features/listings/manage/my_listings_screens.dart';
 import '../features/developments/development_screens.dart';
 
 /// Route locations. Build them here so paths are written in one place.
@@ -89,6 +91,11 @@ abstract final class Routes {
       '/tenancies/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
   static const notificationPreferences = '/notification-preferences';
   static const legalUpdates = '/legal-updates';
+
+  /// The listings the person manages (API 0.45.0); `?expiry=` filters.
+  static const myListings = '/my-listings';
+  static String myListing(String id) =>
+      '/my-listings/${Uri.encodeComponent(id)}';
 
   /// Development projects (API 0.44.0), at the website's own paths.
   static const developments = '/developments';
@@ -426,6 +433,22 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/notification-preferences',
       builder: (context, state) => const NotificationPreferencesScreen(),
+    ),
+    GoRoute(
+      path: '/my-listings',
+      builder: (context, state) => MyListingsScreen(
+        filter: switch (state.uri.queryParameters['expiry']) {
+          final String wire => ExpiryState.from(wire),
+          null => null,
+        },
+      ),
+      routes: [
+        GoRoute(
+          path: ':id',
+          builder: (context, state) =>
+              MyListingScreen(id: state.pathParameters['id']!),
+        ),
+      ],
     ),
     GoRoute(
       path: '/legal-updates',

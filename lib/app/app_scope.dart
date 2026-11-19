@@ -11,6 +11,7 @@ import '../features/analytics/analytics_repository.dart';
 import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/listings/manage/my_listings.dart';
 import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
@@ -59,6 +60,7 @@ class AppServices {
     required this.pdf,
     required this.pickSignatureImage,
     required this.myRequests,
+    required this.myListings,
     required this.myAppointments,
     required this.receivedAppointments,
     required this.leads,
@@ -183,6 +185,9 @@ class AppServices {
 
   /// The signed-in Property Seeker's own requests and viewings.
   final MyRequestsRepository myRequests;
+
+  /// The listings the person manages, with expiry and relist (API 0.45.0).
+  final MyListingsRepository myListings;
   final MyAppointmentsRepository myAppointments;
 
   /// The professional side: appointments received and working a request.

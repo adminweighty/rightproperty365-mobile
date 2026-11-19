@@ -326,12 +326,19 @@ void main() {
       expect(await where('/account/venue-bookings'), '/activity?tab=bookings');
       expect(await where('/account'), Routes.account);
       expect(await where('/account/notifications'), Routes.notifications);
+      // Listing review and expiry notices (API 0.45.0).
+      expect(await where('/agent/listings/l-1'), Routes.myListing('l-1'));
+      expect(await where('/agent/listings'), Routes.myListings);
     });
 
     test('pages the app has not got open on the website', () async {
       expect(
-        await where('/agent/listings/l-1'),
-        'web https://rightproperty365.com/agent/listings/l-1',
+        await where('/agent/listings/l-1/availability'),
+        'web https://rightproperty365.com/agent/listings/l-1/availability',
+      );
+      expect(
+        await where('/agent/listings/new'),
+        'web https://rightproperty365.com/agent/listings/new',
       );
       expect(
         await where('/account/subscription'),
@@ -355,10 +362,10 @@ void main() {
           itemJson(),
           itemJson(
             id: 'n-2',
-            type: 'LISTING_REVIEWED',
-            title: 'Listing approved',
-            body: 'RP-ZW-10001',
-            link: '/agent/listings/l-1',
+            type: 'SUBSCRIPTION_INVOICE',
+            title: 'Subscription invoice issued',
+            body: 'RPS-2026-000001',
+            link: '/account/subscription',
             read: true,
           ),
         ]),
@@ -393,14 +400,14 @@ void main() {
 
       await tester.tap(find.byKey(const Key('notification-n-2')));
       await settle(tester);
-      // Already read: no read call; the website opens for the review.
+      // Already read: no read call; the website opens the subscription.
       expect(
         test.workRequests.where((r) => r.url.path.endsWith('/read')),
         isEmpty,
       );
       expect(
         test.opened.single.toString(),
-        'https://rightproperty365.com/agent/listings/l-1',
+        'https://rightproperty365.com/account/subscription',
       );
     });
 

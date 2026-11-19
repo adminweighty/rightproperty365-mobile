@@ -165,6 +165,14 @@ class _WorkSectionState extends State<WorkSection> {
                   extra: contactBooks(work, AppScope.of(context).auth.user),
                 ),
               ),
+            if (work.managesListings)
+              _Tile(
+                key: const Key('open-my-listings'),
+                icon: Icons.home_work_outlined,
+                title: 'My listings',
+                subtitle: 'Expiry dates and relisting',
+                onTap: () => open(Routes.myListings),
+              ),
             if (work.statisticsOrganisations.isNotEmpty)
               _Tile(
                 key: const Key('open-statistics'),
