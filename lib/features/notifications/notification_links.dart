@@ -90,7 +90,8 @@ Future<LinkTarget> resolveNotificationLink(
       return all == null
           ? website
           : InApp(Routes.hostedVenueBookings, extra: all);
-    case ('account', 'venue-bookings', _):
+    // Booking emails sent before API 0.39.0 linked /account/hourly-bookings.
+    case ('account', 'venue-bookings' || 'hourly-bookings', _):
       return const InApp('${Routes.activity}?tab=bookings', replace: true);
     case ('agent', 'maintenance', 3):
       final all = await books();

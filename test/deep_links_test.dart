@@ -108,6 +108,19 @@ void main() {
       expect(await where('/agent/properties'), Routes.properties);
     });
 
+    test('hourly bookings, from emails and calendar entries', () async {
+      // The website path goes through the opener, then to the bookings tab.
+      expect(
+        go('/account/venue-bookings'),
+        '/open?to=%2Faccount%2Fvenue-bookings',
+      );
+      expect(await where('/account/venue-bookings'), '/activity?tab=bookings');
+      // The path older booking emails used.
+      expect(await where('/account/hourly-bookings'), '/activity?tab=bookings');
+      // A host's calendar entry links the hosted bookings.
+      expect(await where('/agent/venue-bookings'), Routes.hostedVenueBookings);
+    });
+
     test('pages the app has not got open the website', () async {
       expect(
         await where('/agent/forms/f-1'),
