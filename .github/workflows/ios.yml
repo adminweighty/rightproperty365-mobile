@@ -44,15 +44,19 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
+        id: analyze
         run: flutter analyze
 
+      # Run on UTC, as the runner is: the development machine is UTC+2, so
+      # together they catch code that leans on the phone's own time zone.
       - name: Tests
+        id: tests
         run: flutter test --file-reporter json:build/test-report.json
 
       # Job logs need a GitHub sign-in to read; annotations do not. Each
       # failing test becomes an annotation with its name and error.
       - name: Failing tests as annotations
-        if: failure()
+        if: failure() && steps.tests.outcome == 'failure'
         run: |
           python3 - <<'PY'
           import json
@@ -74,10 +78,15 @@ jobs:
               print(f'::error title=test/{where}: {name[:120]}::{message}')
           PY
 
+      # Also when tests fail (the job still fails), so every run says
+      # whether the app compiles for iPhone.
       - name: Build for iPhone, unsigned
+        id: build
+        if: ${{ !cancelled() && steps.analyze.outcome == 'success' }}
         run: flutter build ios --release --no-codesign
 
       - name: Keep the unsigned app for a week
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: Runner-unsigned

@@ -107,7 +107,7 @@ See [docs/release/README.md](docs/release/README.md). Release builds are signed 
 
 ### iOS (GitHub Actions)
 
-There is no Mac here, so iOS is checked on GitHub's macOS runners: `.github/workflows/ios.yml` runs on every push to `dev` and `main`, on pull requests and by hand (Actions, iOS build, Run workflow). With Flutter 3.50.0 it runs `flutter analyze`, `flutter test` and `flutter build ios --release --no-codesign`, and keeps the unsigned `Runner.app` for 7 days. The deployment target is iOS 15.0 (Firebase's minimum).
+There is no Mac here, so iOS is checked on GitHub's macOS runners: `.github/workflows/ios.yml` runs on every push to `dev` and `main`, on pull requests and by hand (Actions, iOS build, Run workflow). With Flutter 3.50.0 it runs `flutter analyze`, `flutter test` and `flutter build ios --release --no-codesign`, and keeps the unsigned `Runner.app` for 7 days. The build runs even when tests fail (the job still fails), so every run says whether the app compiles for iPhone; failing tests are listed as annotations on the run page, readable without signing in. The runner is on UTC and the development machine on UTC+2, which catches code that leans on the phone's own time zone; to run the tests as UTC on Windows, set `TZ=UTC0` (`TZ=UTC0 flutter test`). The deployment target is iOS 15.0 (Firebase's minimum).
 
 A green run shows the iOS project, its packages and the Dart code compile for iPhone. It does **not** show:
 - that the app installs and runs on an iPhone or simulator (the job builds for devices, unsigned, and runs no UI);

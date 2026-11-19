@@ -10,6 +10,7 @@ import 'package:rightproperty365/features/auth/presentation/delete_account_scree
 import 'package:rightproperty365/features/enquiries/data/enquiry.dart';
 import 'package:rightproperty365/features/inbox/lead_screen.dart';
 import 'package:rightproperty365/features/leases/lease_repository.dart';
+import 'package:rightproperty365/features/markets/data/market.dart';
 
 import 'support.dart';
 import 'work_test.dart' show bodyOf, failure, serve, settle;
@@ -176,6 +177,21 @@ Map<String, dynamic> leadJson({
 
 void main() {
   group('market time', () {
+    test('knows the zone of every market, whatever the phone is set to', () {
+      // Africa/Harare and Africa/Gaborone are tzdata links, which the
+      // bundled data leaves out; they must still resolve.
+      for (final market in markets) {
+        expect(MarketTime.knows(market.timezone), isTrue, reason: market.code);
+      }
+      for (final zone in MarketTime.aliasTargets) {
+        expect(MarketTime.knows(zone), isTrue, reason: zone);
+      }
+      expect(
+        MarketTime.inZone(DateTime.utc(2030, 3, 2, 8), 'Africa/Gaborone').hour,
+        10,
+      );
+    });
+
     test('shows times in the market and names it', () {
       final utc = DateTime.utc(2030, 3, 2, 8);
       expect(MarketTime.inZone(utc, 'Africa/Harare').hour, 10);
