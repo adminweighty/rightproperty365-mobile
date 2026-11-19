@@ -24,6 +24,7 @@ class ReceivedEnquiry {
     this.businessId,
     this.repliedAt,
     this.assignedTo,
+    this.awaitingReply = false,
   });
 
   /// From GET /v1/agent/property-requests (`OrganisationPropertyRequest`).
@@ -40,6 +41,7 @@ class ReceivedEnquiry {
       requestId: json['request_id'] as String?,
       assignedTo:
           (json['assigned_to'] as Map<String, dynamic>?)?['name'] as String?,
+      awaitingReply: json['awaiting_reply'] == true,
       status: json['status'] as String,
       stageLabel: json['stage_label'] as String?,
       message: json['message'] as String,
@@ -92,6 +94,9 @@ class ReceivedEnquiry {
 
   /// The team member the request is assigned to; null in the agency inbox.
   final String? assignedTo;
+
+  /// Property requests: the customer wrote last (API 0.46.0).
+  final bool awaitingReply;
   final String status;
 
   /// The lead stage's wording from the API (property requests only).

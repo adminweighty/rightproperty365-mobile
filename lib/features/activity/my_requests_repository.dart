@@ -1,5 +1,6 @@
 import '../../core/api/api_client.dart';
 import '../property_requests/data/property_request.dart';
+import '../property_requests/data/request_message.dart';
 
 /// A property request as the Property Seeker who sent it sees it
 /// (`CustomerPropertyRequest`): the customer status, never the lead stage,
@@ -18,6 +19,10 @@ class MyRequest {
     this.listingTitle,
     this.preferredSlotUtc,
     this.timeline = const [],
+    this.messages = const [],
+    this.canReply = false,
+    this.messageCount = 0,
+    this.unreadReply = false,
   });
 
   factory MyRequest.fromJson(Map<String, dynamic> json) {
@@ -45,6 +50,10 @@ class MyRequest {
             at: DateTime.parse(entry['at'] as String),
           ),
       ],
+      messages: RequestMessage.listFrom(json['messages']),
+      canReply: json['can_reply'] == true,
+      messageCount: (json['message_count'] as num?)?.toInt() ?? 0,
+      unreadReply: json['unread_reply'] == true,
     );
   }
 
@@ -67,6 +76,20 @@ class MyRequest {
   /// Only on a single request: when its status changed, oldest first.
   final List<({String label, bool received, DateTime at})> timeline;
 
+  /// Only on a single request: the conversation, oldest first (API 0.46.0).
+  final List<RequestMessage> messages;
+
+  /// The customer may answer: the professional has written and the request
+  /// is not closed.
+  final bool canReply;
+
+  /// On list rows.
+  final int messageCount;
+
+  /// On list rows: the last message is the professional's and is newer than
+  /// the customer's last look at the request.
+  final bool unreadReply;
+
   String get typeLabel => type == 'STAY_REQUEST'
       ? 'Request to stay'
       : RequestType.values
@@ -83,8 +106,12 @@ abstract interface class MyRequestsRepository {
   /// Newest first: the latest 50.
   Future<({List<MyRequest> items, int total})> list();
 
-  /// One request with its status history.
+  /// One request with its status history and conversation. Opening it marks
+  /// the replies read.
   Future<MyRequest> get(String id);
+
+  /// Answers the professional (1 to 2000 characters).
+  Future<RequestMessage> reply(String id, String body);
 }
 
 class ApiMyRequestsRepository implements MyRequestsRepository {
@@ -111,4 +138,12 @@ class ApiMyRequestsRepository implements MyRequestsRepository {
     );
     return MyRequest.fromJson(response.body['request'] as Map<String, dynamic>);
   }
+
+  @override
+  Future<RequestMessage> reply(String id, String body) async => messageOf(
+    await _api.postJson(
+      '/v1/me/property-requests/${Uri.encodeComponent(id)}/messages',
+      {'body': body.trim()},
+    ),
+  );
 }

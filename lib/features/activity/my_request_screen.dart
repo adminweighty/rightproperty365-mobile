@@ -9,6 +9,7 @@ import '../../app/theme/tokens.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
+import '../property_requests/presentation/request_thread.dart';
 import 'my_requests_repository.dart';
 
 final _stamp = DateFormat('d MMM y, HH:mm');
@@ -34,7 +35,8 @@ class MyRequestCard extends StatelessWidget {
       key: Key('my-request-${request.reference}'),
       onTap: onTap,
       semanticLabel:
-          '$title. ${request.typeLabel}. ${request.statusLabel}. ${request.reference}',
+          '$title. ${request.typeLabel}. ${request.statusLabel}. '
+          '${request.unreadReply ? 'New reply. ' : ''}${request.reference}',
       child: Padding(
         padding: const EdgeInsets.all(Space.x4),
         child: Column(
@@ -56,6 +58,16 @@ class MyRequestCard extends StatelessWidget {
               style: text.bodyMedium,
             ),
             Text(request.reference, style: text.bodySmall),
+            if (request.unreadReply)
+              Padding(
+                padding: const EdgeInsets.only(top: Space.x2),
+                child: AppBadge(
+                  'New reply',
+                  key: Key('new-reply-${request.reference}'),
+                  tone: BadgeTone.accent,
+                  icon: Icons.mark_chat_unread_outlined,
+                ),
+              ),
           ],
         ),
       ),
@@ -82,6 +94,10 @@ class _MyRequestScreenState extends State<MyRequestScreen> {
     _request ??= AppScope.of(context).myRequests.get(widget.id);
   }
 
+  void _reload() => setState(() {
+    _request = AppScope.of(context).myRequests.get(widget.id);
+  });
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -90,9 +106,7 @@ class _MyRequestScreenState extends State<MyRequestScreen> {
       appBar: AppBar(title: const Text('Your enquiry')),
       body: AsyncView<MyRequest>(
         future: _request!,
-        onRetry: () => setState(() {
-          _request = AppScope.of(context).myRequests.get(widget.id);
-        }),
+        onRetry: _reload,
         builder: (context, r) => ListView(
           padding: const EdgeInsets.all(Space.x4),
           children: [
@@ -124,11 +138,11 @@ class _MyRequestScreenState extends State<MyRequestScreen> {
             Text(r.message, style: text.bodyLarge),
             const SizedBox(height: Space.x2),
             Text(
-              'Replies come by ${switch (r.contactMethod) {
+              'You asked to be contacted by ${switch (r.contactMethod) {
                 'PHONE' => 'phone call',
                 'WHATSAPP' => 'WhatsApp',
                 _ => 'email',
-              }}.',
+              }}. Written replies also appear in the conversation below.',
               style: text.bodyMedium,
             ),
             if (r.listingSlug != null)
@@ -141,6 +155,24 @@ class _MyRequestScreenState extends State<MyRequestScreen> {
                   child: const Text('View the property'),
                 ),
               ),
+            const SizedBox(height: Space.x4),
+            const SectionHeading('Conversation'),
+            const SizedBox(height: Space.x2),
+            RequestThread(
+              key: const Key('my-request-thread'),
+              messages: r.messages,
+              emptyText: "You'll see the agent's reply here.",
+              blockedText: r.canReply || r.status != 'CLOSED'
+                  ? null
+                  : 'This request is closed, so it cannot be answered here.',
+              onSend: r.canReply
+                  ? (body) async {
+                      final requests = AppScope.of(context).myRequests;
+                      await requests.reply(widget.id, body);
+                      if (mounted) _reload();
+                    }
+                  : null,
+            ),
             if (r.timeline.isNotEmpty) ...[
               const SizedBox(height: Space.x4),
               const SectionHeading('History'),
@@ -165,7 +197,9 @@ class _MyRequestScreenState extends State<MyRequestScreen> {
     'RECEIVED' =>
       'Your enquiry has been received. Nobody has worked on it yet.',
     'IN_PROGRESS' => 'Someone is working on your enquiry.',
-    'RESPONDED' => 'They have contacted you. Check your email or phone.',
+    'RESPONDED' =>
+      'They have responded. See the conversation below, and check your '
+          'email or phone.',
     'VIEWING_SCHEDULED' => 'A viewing has been arranged. See your viewings.',
     _ => 'This enquiry is closed.',
   };

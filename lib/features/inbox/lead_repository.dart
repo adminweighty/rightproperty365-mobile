@@ -1,4 +1,5 @@
 import '../../core/api/api_client.dart';
+import '../property_requests/data/request_message.dart';
 import 'inbox_repository.dart';
 
 /// A received property request in full (`ReceivedPropertyRequest`): the
@@ -10,6 +11,7 @@ class Lead {
     required this.allowedStages,
     required this.timeline,
     required this.notes,
+    this.messages = const [],
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) => Lead(
@@ -39,6 +41,7 @@ class Lead {
           at: DateTime.parse(n['created_at'] as String),
         ),
     ],
+    messages: RequestMessage.listFrom(json['messages']),
   );
 
   final ReceivedEnquiry enquiry;
@@ -50,6 +53,12 @@ class Lead {
 
   /// Internal to the receiving side; never shown to the customer.
   final List<({String body, String author, bool mine, DateTime at})> notes;
+
+  /// The conversation with the customer, oldest first (API 0.46.0). The
+  /// customer sees these; never the notes.
+  final List<RequestMessage> messages;
+
+  bool get closed => stage == 'CLOSED';
 }
 
 /// Working a received request (`/v1/agent/property-requests/{id}`).
@@ -61,6 +70,10 @@ abstract interface class LeadRepository {
 
   /// Adds an internal note (1 to 2000 characters).
   Future<Lead> addNote(String requestId, String body);
+
+  /// Replies to the customer (1 to 2000 characters). A NEW or ASSIGNED
+  /// request moves to Contacted with it.
+  Future<RequestMessage> reply(String requestId, String body);
 }
 
 class ApiLeadRepository implements LeadRepository {
@@ -90,6 +103,14 @@ class ApiLeadRepository implements LeadRepository {
           : failure;
     }
   }
+
+  @override
+  Future<RequestMessage> reply(String requestId, String body) async =>
+      messageOf(
+        await _api.postJson('${_path(requestId)}/messages', {
+          'body': body.trim(),
+        }),
+      );
 
   @override
   Future<Lead> addNote(String requestId, String body) async => _lead(

@@ -10,6 +10,7 @@ import '../../core/widgets/badge.dart';
 import '../../core/widgets/brand.dart';
 import '../auth/presentation/auth_screens.dart' show FailureBox;
 import '../contacts/contacts_screens.dart';
+import '../property_requests/presentation/request_thread.dart';
 import 'lead_repository.dart';
 
 final _stamp = DateFormat('d MMM y, HH:mm');
@@ -117,7 +118,10 @@ class _LeadScreenState extends State<LeadScreen> {
         const SectionHeading('Lead stage'),
         const SizedBox(height: Space.x2),
         Text(
-          lead.allowedStages.isEmpty ? 'This request cannot move from here.' : 'Move it on as you work it. The customer sees a simpler status; nobody is emailed.',
+          lead.allowedStages.isEmpty
+              ? 'This request cannot move from here.'
+              : 'Move it on as you work it. The customer sees a simpler '
+                    'status and is told when it changes.',
           style: text.bodyMedium,
         ),
         const SizedBox(height: Space.x2),
@@ -143,50 +147,98 @@ class _LeadScreenState extends State<LeadScreen> {
           FailureBox(_failure!),
         ],
         const SizedBox(height: Space.x5),
-        const SectionHeading('Internal notes'),
+        const SectionHeading('Conversation with the customer'),
         const SizedBox(height: Space.x2),
         Text(
-          'Seen by your team only, never by the customer. Notes cannot be edited.',
+          'The customer sees these messages in their account and by email.',
           style: text.bodyMedium,
         ),
-        for (final n in lead.notes)
-          Padding(
-            padding: const EdgeInsets.only(top: Space.x3),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(n.body, style: text.bodyLarge),
-                Text(
-                  '${n.mine ? 'You' : n.author} · ${_stamp.format(n.at.toLocal())}',
-                  style: text.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: Space.x3),
-        TextField(
-          key: const Key('lead-note'),
-          controller: _note,
-          maxLength: 2000,
-          minLines: 2,
-          maxLines: 5,
-          onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'Add a note'),
+        RequestThread(
+          key: const Key('lead-thread'),
+          messages: lead.messages,
+          emptyText:
+              'No messages yet. Your first reply moves a new request '
+              'to Contacted.',
+          blockedText: lead.closed
+              ? 'This request is closed. Reopen it to reply.'
+              : null,
+          sendLabel: 'Send reply',
+          onSend: (body) async {
+            await leads.reply(widget.requestId, body);
+            final updated = await leads.get(widget.requestId);
+            if (!mounted) return;
+            setState(() => _lead = updated);
+            ScaffoldMessenger.of(this.context)
+                .showSnackBar(const SnackBar(content: Text('Reply sent.')));
+          },
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton(
-            key: const Key('lead-add-note'),
-            onPressed: _busy || _note.text.trim().isEmpty
-                ? null
-                : () async {
-                    await _run(
-                      () => leads.addNote(widget.requestId, _note.text),
-                      'Note added.',
-                    );
-                    if (_failure == null) _note.clear();
-                  },
-            child: const Text('Add note'),
+        const SizedBox(height: Space.x5),
+        Container(
+          key: const Key('lead-private-notes'),
+          padding: const EdgeInsets.all(Space.x3),
+          decoration: BoxDecoration(
+            border: Border.all(color: c.lineStrong),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  ExcludeSemantics(
+                    child: Icon(Icons.lock_outline, color: c.muted),
+                  ),
+                  const SizedBox(width: Space.x2),
+                  const Expanded(child: SectionHeading('Private notes')),
+                ],
+              ),
+              const SizedBox(height: Space.x2),
+              Text(
+                'Private notes, only your team sees these. The customer never does. '
+                'Notes cannot be edited.',
+                style: text.bodyMedium,
+              ),
+              for (final n in lead.notes)
+                Padding(
+                  padding: const EdgeInsets.only(top: Space.x3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(n.body, style: text.bodyLarge),
+                      Text(
+                        '${n.mine ? 'You' : n.author} · ${_stamp.format(n.at.toLocal())}',
+                        style: text.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: Space.x3),
+              TextField(
+                key: const Key('lead-note'),
+                controller: _note,
+                maxLength: 2000,
+                minLines: 2,
+                maxLines: 5,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(labelText: 'Add a note'),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  key: const Key('lead-add-note'),
+                  onPressed: _busy || _note.text.trim().isEmpty
+                      ? null
+                      : () async {
+                          await _run(
+                            () => leads.addNote(widget.requestId, _note.text),
+                            'Note added.',
+                          );
+                          if (_failure == null) _note.clear();
+                        },
+                  child: const Text('Add note'),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: Space.x5),

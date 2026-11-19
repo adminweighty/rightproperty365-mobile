@@ -192,6 +192,16 @@ class _EnquiryCard extends StatelessWidget {
               ],
             ),
             Text('${enquiry.kind} · $received', style: text.bodyMedium),
+            if (enquiry.awaitingReply)
+              Padding(
+                padding: const EdgeInsets.only(top: Space.x2),
+                child: AppBadge(
+                  'Awaiting your reply',
+                  key: Key('awaiting-reply-${enquiry.reference}'),
+                  tone: BadgeTone.accent,
+                  icon: Icons.mark_chat_unread_outlined,
+                ),
+              ),
             if (enquiry.requestId != null)
               Padding(
                 padding: const EdgeInsets.only(top: Space.x2),
