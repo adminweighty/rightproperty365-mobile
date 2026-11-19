@@ -1,0 +1,11 @@
+# Copy to android/key.properties (never committed) and fill in.
+# On a build server, set the environment variables instead:
+#   RP365_UPLOAD_KEYSTORE, RP365_UPLOAD_STORE_PASSWORD,
+#   RP365_UPLOAD_KEY_ALIAS, RP365_UPLOAD_KEY_PASSWORD
+#
+# storeFile is relative to android/app/ (or absolute). Keep the keystore
+# outside the repository, for example in your home folder.
+storeFile=/path/outside/the/repo/rightproperty365-upload.jks
+storePassword=
+keyAlias=upload
+keyPassword=

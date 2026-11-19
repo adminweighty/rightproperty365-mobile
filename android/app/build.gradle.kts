@@ -1,9 +1,26 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Release signing (README, "Releasing"). Read from android/key.properties or,
+// on a build server, from environment variables. Neither the file nor the
+// keystore is ever committed (.gitignore: key.properties, *.jks, *.keystore).
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) FileInputStream(file).use { load(it) }
+}
+
+fun signing(property: String, environment: String): String? =
+    (keystoreProperties.getProperty(property) ?: System.getenv(environment))
+        ?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signing("storeFile", "RP365_UPLOAD_KEYSTORE")
 
 android {
     namespace = "com.rightproperty365.rightproperty365"
@@ -16,25 +33,41 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Never change: it is the app's identity in Google Play.
         applicationId = "com.rightproperty365.rightproperty365"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
+        // From pubspec.yaml's `version: <name>+<number>`, or --build-name and
+        // --build-number. The number must grow with every upload.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = signing("storePassword", "RP365_UPLOAD_STORE_PASSWORD")
+                keyAlias = signing("keyAlias", "RP365_UPLOAD_KEY_ALIAS")
+                keyPassword = signing("keyPassword", "RP365_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseStoreFile != null) {
+                signingConfigs.getByName("release")
+            } else {
+                // No upload key here: signed with the debug key so that
+                // `flutter run --release` works. Such a build cannot be
+                // uploaded to Google Play.
+                logger.warn(
+                    "RightProperty365: no upload key (android/key.properties or " +
+                        "RP365_UPLOAD_KEYSTORE); the release build is signed with the debug key.",
+                )
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

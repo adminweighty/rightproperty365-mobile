@@ -101,6 +101,10 @@ flutter build apk --debug
 RP_LIVE_API=http://localhost:8080 RP_LIVE_PASSWORD=<DEV_SEED_PASSWORD> RP_LIVE_CODE=1234 flutter test test/live_api_test.dart
 ```
 
+### Releasing
+
+See [docs/release/README.md](docs/release/README.md). Release builds are signed with the upload key from `android/key.properties` or the `RP365_UPLOAD_*` environment variables (never committed); without one they fall back to the debug key, with a Gradle warning, and cannot be uploaded.
+
 ### iOS (GitHub Actions)
 
 There is no Mac here, so iOS is checked on GitHub's macOS runners: `.github/workflows/ios.yml` runs on every push to `dev` and `main`, on pull requests and by hand (Actions, iOS build, Run workflow). With Flutter 3.50.0 it runs `flutter analyze`, `flutter test` and `flutter build ios --release --no-codesign`, and keeps the unsigned `Runner.app` for 7 days. The deployment target is iOS 15.0 (Firebase's minimum).
@@ -336,7 +340,8 @@ These are required by the specification and come later:
 - Push on iPhone: needs the APNs key in Firebase and the Push Notifications capability added on a Mac. Push on Android needs the API's service account before anything is sent.
 - Photo galleries
 - Real listing and directory data from the API
-- Bundled Inter font (the platform sans is used), localisation, release signing
+- Bundled Inter font (the platform sans is used), localisation
+- Publishing to the stores: prepared in `docs/release` (signing from an uncommitted upload key, versioning, store text, screenshot list, a draft of the privacy answers); the uploads, the Apple set-up and the confirmed privacy answers are the owner's
 - Multi-factor authentication (not implemented by the backend yet)
 
 ## Branches
