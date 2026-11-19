@@ -25,6 +25,8 @@ import 'package:rightproperty365/app/app_scope.dart';
 import 'package:rightproperty365/app/theme/app_theme.dart';
 import 'package:rightproperty365/app/router.dart';
 import 'package:rightproperty365/core/location.dart';
+import 'package:rightproperty365/core/widgets/offline_banner.dart';
+import 'package:rightproperty365/features/applications/apply_screen.dart';
 import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
@@ -38,6 +40,9 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../analytics_test.dart' as analytics show reportJson;
 import '../applications_test.dart' as apps show appJson;
 import '../contacts_test.dart' as crm show contactJson;
+import '../marketing_test.dart' as mk show prefsJson;
+import '../scanning_test.dart' as scan show documentsOnly;
+import '../seeker_and_appointments_test.dart' as appt show appointmentJson;
 import '../developments_test.dart' as dv show serveDevelopments;
 import '../ledger_test.dart'
     as ledger
@@ -249,7 +254,11 @@ ThemeData _withRoboto(ThemeData t) {
 
 /// Pumps the app as RightPropertyApp builds it (AppScope, router, theme) as
 /// a phone.
-Future<void> _pumpApp(WidgetTester tester, TestServices test) async {
+Future<void> _pumpApp(
+  WidgetTester tester,
+  TestServices test, {
+  TransitionBuilder? builder,
+}) async {
   tester.view.physicalSize = const Size(1170, 2532);
   tester.view.devicePixelRatio = 3;
   tester.platformDispatcher.accessibilityFeaturesTestValue =
@@ -270,6 +279,7 @@ Future<void> _pumpApp(WidgetTester tester, TestServices test) async {
           debugShowCheckedModeBanner: false,
           theme: _withRoboto(AppTheme.light()),
           routerConfig: buildRouter(),
+          builder: builder,
         ),
       ),
     ),
@@ -1455,5 +1465,132 @@ void main() {
       await _shoot(tester, '17-developer-profile-projects');
       expect(scrollable, findsWidgets);
     }, _LocalImages(poster));
+  }, skip: _skip != null);
+
+  testWidgets('20 mobile app readiness', (tester) async {
+    // Offline: the banner above the screen, with the stored copy's time.
+    final test = TestServices();
+    serve(test, {
+      'GET /v1/me/appointments/ap-1': (_) => {
+        'appointment': appt.appointmentJson(status: 'CONFIRMED'),
+      },
+    });
+    await test.auth.signIn('tendai@example.test', 'pw');
+    await _pumpApp(
+      tester,
+      test,
+      builder: (context, child) =>
+          OfflineBanner(connectivity: test.connectivity, child: child!),
+    );
+    test.connectivity.unreachable();
+    test.connectivity.servedFromCopy(DateTime(2026, 11, 19, 6, 42));
+    await _shoot(tester, '20-offline-banner');
+    test.connectivity.reachable();
+
+    // A confirmed appointment offers Add to calendar.
+    _router(tester).push(Routes.myAppointment('ap-1'));
+    await _settle(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('appointment-calendar')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 300));
+    await _shoot(tester, '20-add-to-calendar');
+  }, skip: _skip != null);
+
+  testWidgets('20 opening a link', (tester) async {
+    final test = TestServices();
+    // The organisation lookup is still on its way when the screen is shot.
+    final waiting = Completer<http.Response>();
+    test.workHandler = (_) => waiting.future;
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await _pumpApp(tester, test);
+    _router(tester).go(
+      Uri(
+        path: '/open',
+        queryParameters: {'to': '/agent/maintenance/r-1'},
+      ).toString(),
+    );
+    await _shoot(tester, '20-opening-link');
+    waiting.complete(http.Response('{}', 404));
+    await _settle(tester);
+  }, skip: _skip != null);
+
+  testWidgets('20 opening a link, signed out', (tester) async {
+    final test = TestServices();
+    await _pumpApp(tester, test);
+    _router(tester).go(
+      Uri(
+        path: '/open',
+        queryParameters: {'to': '/account/notification-preferences'},
+      ).toString(),
+    );
+    await _shoot(tester, '20-opening-link-sign-in');
+  }, skip: _skip != null);
+
+  testWidgets('13 news and offers', (tester) async {
+    final test = TestServices();
+    final prefs = notes.preferencesJson();
+    serve(test, {
+      'GET /v1/me/notification-preferences': (_) => prefs,
+      'GET /v1/me/marketing-preferences': (_) => mk.prefsJson(optIn: true),
+    });
+    await test.auth.signIn('tendai@example.test', 'pw');
+    await _pumpApp(tester, test);
+    _router(tester).push(Routes.notificationPreferences);
+    await _settle(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('marketing-history')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const Key('marketing-history')));
+    await _settle(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('marketing-switch')),
+      -300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 120));
+    await _shoot(tester, '13-news-and-offers');
+  }, skip: _skip != null);
+
+  testWidgets('19 virus checks', (tester) async {
+    Map<String, dynamic> doc(String id, String name, String? scan) => {
+      'id': id,
+      'field': 'income',
+      'file_name': name,
+      'size': 184320,
+      'scan_status': ?scan,
+    };
+    var infected = false;
+    final test = TestServices();
+    serve(test, {
+      'GET /v1/me/applications/app-1': (_) => {
+        'application': scan.documentsOnly([
+          doc('f-1', 'payslip-october.pdf', 'CLEAN'),
+          doc('f-2', 'payslip-november.pdf', infected ? 'INFECTED' : 'PENDING'),
+        ]),
+      },
+    });
+    await test.auth.signIn('tendai@example.test', 'pw');
+    await _pumpApp(tester, test);
+    Future<void> open() async {
+      Navigator.of(tester.element(find.byType(Scaffold).last)).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const ApplyScreen(applicationId: 'app-1'),
+        ),
+      );
+      await _settle(tester);
+    }
+
+    await open();
+    await _shoot(tester, '19-being-checked');
+    infected = true;
+    Navigator.of(tester.element(find.byType(Scaffold).last)).pop();
+    await _settle(tester);
+    await open();
+    await _shoot(tester, '19-removed');
   }, skip: _skip != null);
 }
