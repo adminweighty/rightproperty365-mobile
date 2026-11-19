@@ -28,6 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # firebase-ios-sdk 13 (firebase_messaging 17) needs Swift tools 6.2,
+      # which comes with Xcode 26; the runner's default Xcode is older.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -39,6 +45,9 @@ jobs:
         run: |
           flutter --version
           xcodebuild -version
+          swift --version
+          # Readable on the run page without signing in.
+          echo "::notice title=Xcode::$(xcodebuild -version | tr '\n' ' ')"
 
       - name: Packages
         run: flutter pub get
