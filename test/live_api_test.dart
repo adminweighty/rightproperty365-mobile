@@ -36,6 +36,7 @@ import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
+import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/team/team_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
@@ -812,6 +813,122 @@ void main() {
     print(
       'notifications: "${item.title}" read; ${saved.length} preference types; '
       'device registered and removed with the logout',
+    );
+  }, skip: skip);
+
+  test('properties, units and tenancies (API 0.36.0)', () async {
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final repo = PropertiesRepository(owner);
+    final options = await repo.tenancyOptions(org.id);
+    expect(options.canWrite, isTrue);
+    expect(options.frequencies.keys, contains('MONTHLY'));
+
+    final seeded = await repo.properties(org.id);
+    final avondale = seeded.items.firstWhere((p) => p.name == 'Avondale Court');
+    expect(avondale.units.map((u) => u.label), ['Flat 1', 'Flat 2', 'Flat 3']);
+    expect(avondale.occupiedUnits, 1);
+    final active = await repo.tenancies(org.id, status: 'ACTIVE');
+    expect(active.statusCounts['ACTIVE'], greaterThanOrEqualTo(2));
+
+    // A new property with a unit, a draft tenancy, active, then ended.
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final made = await repo.createProperty(
+      org.id,
+      name: 'Live check $stamp',
+      address: '1 Test Road, Harare',
+      marketCode: 'ZW',
+      units: ['Room A'],
+    );
+    final contacts = await ContactsRepository(owner).list(org.id);
+    // Not the sample tenant's contact, so their view stays their own.
+    final tenant = contacts.items.firstWhere(
+      (c) => !c.emails.contains('tenant@example.test'),
+    );
+    final draft = await repo.createTenancy(
+      org.id,
+      TenancyDraft(
+        propertyId: made.id,
+        unitId: made.units.single.id,
+        tenantIds: [tenant.id],
+        rentAmount: '120.00',
+        currency: 'USD',
+        frequency: 'WEEKLY',
+        dueDay: 5,
+        startDate: '2026-12-01',
+        endDate: '2027-11-30',
+      ),
+    );
+    expect(draft.status, 'DRAFT');
+    expect(draft.rent.toString(), 'USD 120.00 weekly, due each Friday');
+    final second = await repo.createTenancy(
+      org.id,
+      TenancyDraft(
+        propertyId: made.id,
+        unitId: made.units.single.id,
+        tenantIds: [tenant.id],
+        rentAmount: '130.00',
+        currency: 'USD',
+        frequency: 'MONTHLY',
+        dueDay: 1,
+        startDate: '2026-12-01',
+      ),
+    );
+    final live = await repo.activate(org.id, draft.id);
+    expect(live.status, 'ACTIVE');
+    await expectLater(
+      repo.activate(org.id, second.id),
+      throwsA(isA<ApiFailure>().having((f) => f.code, 'code', 'UNIT_OCCUPIED')),
+    );
+    await repo.deleteTenancy(org.id, second.id);
+    await expectLater(
+      repo.removeUnit(org.id, made.id, made.units.single.id),
+      throwsA(isA<ApiFailure>().having((f) => f.code, 'code', 'UNIT_IN_USE')),
+    );
+    final ended = await repo.end(
+      org.id,
+      draft.id,
+      endDate: '2027-03-31',
+      reason: 'Live check',
+    );
+    // Before the agreed end date: terminated early.
+    expect(ended.status, 'TERMINATED');
+    expect(ended.endedOn, '2027-03-31');
+    await repo.deleteProperty(org.id, made.id);
+
+    // Staff read only; another agency's book is not found.
+    final staff = PropertiesRepository(
+      await signedIn('agency.staff@example.test'),
+    );
+    expect((await staff.tenancyOptions(org.id)).canWrite, isFalse);
+    expect((await staff.properties(org.id)).items, isNotEmpty);
+    await expectLater(
+      PropertiesRepository(await signedIn('agent-b@example.test'))
+          .properties(org.id),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'BOOK_NOT_FOUND'),
+      ),
+    );
+
+    // The sample tenant sees their own tenancy; nobody else's.
+    final tenantApi = PropertiesRepository(
+      await signedIn('tenant@example.test'),
+    );
+    final mine = await tenantApi.myTenancies();
+    expect(mine.single.place, 'Avondale Court, Flat 1');
+    expect(mine.single.managedBy, isNotEmpty);
+    await expectLater(
+      tenantApi.myTenancy(ended.id),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'TENANCY_NOT_FOUND'),
+      ),
+    );
+    // ignore: avoid_print
+    print(
+      'properties: ${seeded.total} seeded; draft, active, UNIT_OCCUPIED, '
+      'ended ${ended.status}; tenant sees ${mine.single.place}',
     );
   }, skip: skip);
 }

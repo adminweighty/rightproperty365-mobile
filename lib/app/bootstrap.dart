@@ -23,6 +23,7 @@ import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
+import '../features/properties/properties_repository.dart';
 import '../features/notifications/notification_centre.dart';
 import '../features/notifications/notifications_repository.dart';
 import '../features/venues/venue_repository.dart';
@@ -113,6 +114,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     pickApplicationFile: _pickApplicationFile,
     venues: VenueRepository(api),
     ledger: LedgerRepository(api),
+    properties: PropertiesRepository(api),
     notifications: notifications,
     notificationCentre: notificationCentre,
     analyticsReports: ApiAnalyticsRepository(api),

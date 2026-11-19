@@ -23,6 +23,7 @@ import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
+import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/notifications/notification_centre.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/core/push/push_messaging.dart';
@@ -362,6 +363,7 @@ class TestServices {
       myApplications: MyApplicationsRepository(workApi),
       venues: VenueRepository(workApi),
       ledger: LedgerRepository(workApi),
+      properties: PropertiesRepository(workApi),
       agentApplications: AgentApplicationsRepository(workApi),
       pickApplicationFile: ({required camera, required accept}) async {
         pickedFrom.add(camera ? 'camera' : 'files');

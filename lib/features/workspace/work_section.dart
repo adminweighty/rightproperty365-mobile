@@ -115,6 +115,17 @@ class _WorkSectionState extends State<WorkSection> {
               ),
             if (contactBooks(work, AppScope.of(context).auth.user).isNotEmpty)
               _Tile(
+                key: const Key('open-properties'),
+                icon: Icons.home_work_outlined,
+                title: 'Properties',
+                subtitle: 'Properties, units and tenancies',
+                onTap: () => context.push(
+                  Routes.properties,
+                  extra: contactBooks(work, AppScope.of(context).auth.user),
+                ),
+              ),
+            if (contactBooks(work, AppScope.of(context).auth.user).isNotEmpty)
+              _Tile(
                 key: const Key('open-books'),
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'Books',

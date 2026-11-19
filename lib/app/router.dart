@@ -5,6 +5,8 @@ import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
 import '../features/ledger/books_screens.dart';
 import '../features/notifications/notifications_screens.dart';
+import '../features/properties/properties_repository.dart';
+import '../features/properties/properties_screens.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
@@ -60,6 +62,16 @@ abstract final class Routes {
   static const hostedVenueBookings = '/hosted-venue-bookings';
   static const books = '/books';
   static const notifications = '/notifications';
+  static const properties = '/properties';
+
+  static String newProperty(String book) =>
+      '/properties/${Uri.encodeComponent(book)}/new';
+  static String managedProperty(String book, String id) =>
+      '/properties/${Uri.encodeComponent(book)}/p/${Uri.encodeComponent(id)}';
+  static String newTenancy(String book, String propertyId) =>
+      '${managedProperty(book, propertyId)}/new-tenancy';
+  static String tenancy(String book, String id) =>
+      '/tenancies/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
   static const notificationPreferences = '/notification-preferences';
 
   static String newLedgerEntry(String book) =>
@@ -149,6 +161,12 @@ T? _byName<T extends Enum>(List<T> values, String? name) {
   }
   return null;
 }
+
+/// The book a pushed screen was opened for, or a read-only stand-in made
+/// from the path (the API checks access either way).
+ContactBook _bookFrom(GoRouterState state) =>
+    state.extra as ContactBook? ??
+    ContactBook(id: state.pathParameters['book']!, name: '', canWrite: false);
 
 GoRouter buildRouter() => GoRouter(
   initialLocation: Routes.home,
@@ -280,6 +298,52 @@ GoRouter buildRouter() => GoRouter(
       builder: (context, state) => AppointmentScreen(
         id: state.pathParameters['id']!,
         professional: false,
+      ),
+    ),
+    GoRoute(
+      path: '/properties',
+      builder: (context, state) => PropertiesScreen(
+        books: state.extra as List<ContactBook>? ?? const [],
+      ),
+      routes: [
+        GoRoute(
+          path: ':book/new',
+          builder: (context, state) =>
+              NewPropertyScreen(book: _bookFrom(state)),
+        ),
+        GoRoute(
+          path: ':book/p/:id',
+          builder: (context, state) => ManagedPropertyScreen(
+            book: _bookFrom(state),
+            id: state.pathParameters['id']!,
+          ),
+          routes: [
+            GoRoute(
+              path: 'new-tenancy',
+              builder: (context, state) {
+                final extra =
+                    state.extra!
+                        as ({
+                          ContactBook book,
+                          ManagedProperty property,
+                          TenancyOptions options,
+                        });
+                return NewTenancyScreen(
+                  book: extra.book,
+                  property: extra.property,
+                  options: extra.options,
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/tenancies/:book/:id',
+      builder: (context, state) => TenancyScreen(
+        book: _bookFrom(state),
+        id: state.pathParameters['id']!,
       ),
     ),
     GoRoute(

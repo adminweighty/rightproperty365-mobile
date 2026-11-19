@@ -37,6 +37,9 @@ import '../ledger_test.dart'
     as ledger
     show cashbookJson, entryJson, optionsJson, page;
 import '../map_search_test.dart' as maps show apiListing;
+import '../properties_test.dart'
+    as pm
+    show optionsJson, propertyJson, tenancyJson, tenancyPage;
 import '../notifications_test.dart'
     as notes
     show FakePush, itemJson, pageJson, preferencesJson;
@@ -960,5 +963,93 @@ void main() {
     await _shoot(tester, '09-notifications-centre');
     _router(tester).push(Routes.notificationPreferences);
     await _shoot(tester, '09-notification-settings');
+  }, skip: _skip != null);
+
+  testWidgets('10 properties and tenancies', (tester) async {
+    final test = TestServices();
+    const base = '/v1/agent/organisations/org-1';
+    serve(test, {
+      'GET $base/properties': (_) => {
+        'items': [
+          pm.propertyJson(),
+          {
+            ...pm.propertyJson(
+              id: 'p-2',
+              name: 'Borrowdale Cottage',
+              units: const [],
+            ),
+            'address': '4 Greendale Lane, Borrowdale, Harare',
+          },
+          {
+            ...pm.propertyJson(
+              id: 'p-3',
+              name: 'Eastlea Mews',
+              units: [
+                for (var i = 1; i <= 6; i++)
+                  {
+                    'id': 'e-$i',
+                    'label': 'Unit $i',
+                    'position': i,
+                    'active_tenancy_id': i <= 4 ? 't-e$i' : null,
+                  },
+              ],
+              occupied: 4,
+            ),
+            'address': '22 Fife Avenue, Eastlea, Harare',
+          },
+        ],
+        'total': 3,
+        'page': 1,
+        'page_size': 50,
+      },
+      'GET $base/properties/p-1': (_) => {'property': pm.propertyJson()},
+      'GET $base/tenancies': (_) => pm.tenancyPage([
+        pm.tenancyJson(),
+        {
+          ...pm.tenancyJson(id: 't-4', status: 'DRAFT', endDate: null),
+          'unit': {'id': 'u-2', 'label': 'Flat 2', 'archived': false},
+          'tenants': [
+            {'id': 'c-3', 'name': 'Nyasha Dube', 'live': true},
+          ],
+          'start_date': '2026-12-01',
+        },
+      ]),
+      'GET $base/tenancies/options': (_) => pm.optionsJson(),
+      'GET $base/tenancies/t-1': (_) => {
+        'tenancy': {
+          ...pm.tenancyJson(),
+          'landlords': [
+            {'id': 'c-2', 'name': 'Tapiwa Chirwa', 'live': true},
+          ],
+        },
+      },
+    });
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await _pumpApp(tester, test);
+    _router(tester).push(
+      Routes.properties,
+      extra: const [
+        ContactBook(id: 'org-1', name: 'Sample Estates', canWrite: true),
+      ],
+    );
+    await _shoot(tester, '10-properties');
+    _router(tester).push(
+      Routes.managedProperty('org-1', 'p-1'),
+      extra: const ContactBook(
+        id: 'org-1',
+        name: 'Sample Estates',
+        canWrite: true,
+      ),
+    );
+    await _shoot(tester, '10-property-units-tenancies');
+    _router(tester).push(
+      Routes.tenancy('org-1', 't-1'),
+      extra: const ContactBook(
+        id: 'org-1',
+        name: 'Sample Estates',
+        canWrite: true,
+      ),
+    );
+    await _shoot(tester, '10-tenancy');
   }, skip: _skip != null);
 }
