@@ -9,6 +9,7 @@ import '../features/properties/properties_repository.dart';
 import '../features/properties/properties_screens.dart';
 import '../features/properties/maintenance_screens.dart';
 import '../features/properties/inspection_screens.dart';
+import '../features/directory/presentation/reviews_widgets.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
@@ -67,6 +68,7 @@ abstract final class Routes {
   static const properties = '/properties';
   static const maintenance = '/maintenance';
   static const inspections = '/inspections';
+  static const reviews = '/reviews';
 
   static String inspection(String book, String id) =>
       '/inspections/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
@@ -348,6 +350,11 @@ GoRouter buildRouter() => GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      path: '/reviews',
+      builder: (context, state) =>
+          ReviewsScreen(tab: state.uri.queryParameters['tab']),
     ),
     GoRoute(
       path: '/inspections',

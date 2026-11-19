@@ -16,6 +16,7 @@ import '../../listings/presentation/widgets/listing_card.dart';
 import '../data/business_enquiry_repository.dart';
 import '../../analytics/analytics_tracker.dart';
 import '../data/profile.dart';
+import 'reviews_widgets.dart';
 import 'widgets/profile_widgets.dart';
 
 const _notFound = MessageView(
@@ -168,6 +169,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             runSpacing: Space.x2,
             children: [for (final area in profile.areas) AppBadge(area)],
           ),
+          if (profile.kind == DirectoryKind.serviceProviders)
+            ProfileReviewsSection(
+              kind: profile.kind.slug,
+              slug: profile.slug,
+              name: profile.name,
+            ),
           if (agents.isNotEmpty) ...[
             const SizedBox(height: Space.x6),
             const SectionHeading(Terms.estateAgents),

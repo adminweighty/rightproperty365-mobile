@@ -110,6 +110,10 @@ Future<LinkTarget> resolveNotificationLink(
       return all == null ? website : InApp(Routes.maintenance, extra: all);
     case ('account', 'tenancies', _):
       return const InApp('${Routes.activity}?tab=tenancy', replace: true);
+    case ('agent', 'reviews', _):
+      return const InApp('${Routes.reviews}?tab=received');
+    case ('account', 'reviews', _):
+      return const InApp(Routes.reviews);
     case ('account', 'notifications', _):
       return const InApp(Routes.notifications);
     case ('account', null, _):

@@ -111,6 +111,15 @@ class _SignedOut extends StatelessWidget {
         ),
         const SizedBox(height: Space.x6),
         ListTile(
+          key: const Key('open-reviews'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.rate_review_outlined),
+          title: const Text('Reviews'),
+          subtitle: const Text('Reviews you wrote of service providers'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.reviews),
+        ),
+        ListTile(
           key: const Key('open-notifications'),
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.notifications_outlined),

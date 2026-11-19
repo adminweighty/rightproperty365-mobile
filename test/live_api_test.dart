@@ -37,6 +37,7 @@ import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/features/properties/inspection_repository.dart';
+import 'package:rightproperty365/features/directory/data/reviews_repository.dart';
 import 'package:rightproperty365/features/properties/maintenance_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
@@ -1320,6 +1321,111 @@ void main() {
       'compared with ${done.baselineReference}, 415 refused, JPEG back, '
       'incomplete refused, completed, frozen (409), PDFs; tenant sees '
       '${reports.length}',
+    );
+  }, skip: skip);
+
+  test('reviews of service providers (API 0.36.4)', () async {
+    const kind = 'service-providers';
+    const slug = 'sample-plumbers';
+    // Public: the rating and published reviews, reviewers by short name.
+    final public = await ReviewsRepository(ApiClient(baseUrl: _base!))
+        .published(kind, slug);
+    expect(public.rating.average, '4.5');
+    expect(public.rating.count, 2);
+    expect(
+      public.items.map((r) => r.reviewerName),
+      containsAll(['Sample Estates', 'Casey C.']),
+    );
+    final casey = public.items.firstWhere((r) => r.reviewerName == 'Casey C.');
+
+    // The tenant's replied enquiry can be reviewed, once.
+    final tenant = ReviewsRepository(await signedIn('tenant@example.test'));
+    final mine = await tenant.eligibility(kind, slug);
+    final basis = mine.bases.firstWhere((b) => b.label.contains('BE-RVW4TNNT'));
+    final written = await tenant.write(
+      profileId: mine.profileId,
+      basis: basis,
+      rating: 4,
+      text: 'Live check: came quickly and cleared the drain.',
+    );
+    expect(written.statusLabel, 'Awaiting moderation');
+    await expectLater(
+      tenant.write(
+        profileId: mine.profileId,
+        basis: basis,
+        rating: 5,
+        text: 'Live check: a second review of the same enquiry.',
+      ),
+      throwsA(isA<ApiFailure>().having((f) => f.code, 'code', 'REVIEW_EXISTS')),
+    );
+    expect((await tenant.written()).map((r) => r.id), contains(written.id));
+    // The tenant already reported Casey's review: a second is refused.
+    await expectLater(
+      tenant.report(casey.id, 'Live check'),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.code,
+          'code',
+          'REVIEW_ALREADY_REPORTED',
+        ),
+      ),
+    );
+    await tenant.delete(written.id);
+
+    // Other kinds are not reviewable.
+    final agency = await tenant.eligibility('agencies', 'sample-estates');
+    expect(agency.reviewable, isFalse);
+
+    // A book reviews its maintenance job; the seeded one is already done.
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final book = await ReviewsRepository(owner)
+        .eligibility(kind, slug, book: org.id);
+    expect(book.reviewedCount, greaterThanOrEqualTo(1));
+
+    // The provider: received reviews, one reply each; marking replied.
+    final providerApi = await signedIn('sample-plumbers@example.test');
+    final providerOrg = (await ApiWorkspaceRepository(
+      providerApi,
+    ).load()).organisations.single;
+    expect(providerOrg.kind, 'SERVICE_PROVIDER');
+    final provider = ReviewsRepository(providerApi);
+    final received = await provider.received(providerOrg.id);
+    expect(received.items, hasLength(2));
+    expect(received.canReply, isTrue);
+    final replied = received.items.firstWhere((r) => r.reply != null);
+    await expectLater(
+      provider.reply(providerOrg.id, replied.id, 'Live check'),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'REVIEW_REPLY_EXISTS'),
+      ),
+    );
+    final inbox =
+        (await providerApi.get('/v1/inbox/business-enquiries')).body['items']
+            as List;
+    final open = inbox.cast<Map<String, dynamic>>().firstWhere(
+      (e) => e['replied_at'] == null,
+    );
+    await provider.markReplied(open['enquiry_id'] as String);
+    await provider.markReplied(open['enquiry_id'] as String);
+    final after =
+        ((await providerApi.get('/v1/inbox/business-enquiries')).body['items']
+                as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((e) => e['id'] == open['id']);
+    expect(after['replied_at'], isNotNull);
+    // Another organisation cannot read the provider's reviews.
+    await expectLater(
+      ReviewsRepository(owner).received(providerOrg.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // ignore: avoid_print
+    print(
+      'reviews: ${public.rating.average} from ${public.rating.count}; tenant '
+      'review PENDING, second REVIEW_EXISTS, report once; provider sees '
+      '${received.items.length}, second reply refused, enquiry marked replied',
     );
   }, skip: skip);
 }

@@ -21,6 +21,8 @@ class ReceivedEnquiry {
     this.contactPhone,
     this.listingSlug,
     this.requestId,
+    this.businessId,
+    this.repliedAt,
     this.assignedTo,
   });
 
@@ -53,6 +55,11 @@ class ReceivedEnquiry {
   factory ReceivedEnquiry.fromBusinessEnquiry(Map<String, dynamic> json) =>
       ReceivedEnquiry(
         reference: json['reference'] as String,
+        businessId: json['enquiry_id'] as String?,
+        repliedAt: switch (json['replied_at']) {
+          final String at => DateTime.parse(at),
+          _ => null,
+        },
         subject: json['service'] as String? ?? 'General enquiry',
         kind: 'To ${json['recipient']['name']}',
         status: json['status'] as String,
@@ -75,6 +82,13 @@ class ReceivedEnquiry {
 
   /// Property requests only: the ID used to assign it to a team member.
   final String? requestId;
+
+  /// Business enquiries only: the ID used to mark it replied.
+  final String? businessId;
+
+  /// When the business marked it replied (a customer may then review it
+  /// after 14 days).
+  final DateTime? repliedAt;
 
   /// The team member the request is assigned to; null in the agency inbox.
   final String? assignedTo;

@@ -265,6 +265,33 @@ class _EnquiryCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (enquiry.businessId != null)
+              enquiry.repliedAt != null
+                  ? Text(
+                      'Marked replied ${DateFormat('d MMM y').format(enquiry.repliedAt!.toLocal())}',
+                      key: Key('replied-${enquiry.reference}'),
+                      style: text.bodySmall,
+                    )
+                  : Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        key: Key('mark-replied-${enquiry.reference}'),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          try {
+                            await AppScope.of(context).reviews
+                                .markReplied(enquiry.businessId!);
+                            onChanged?.call();
+                          } on ApiFailure catch (failure) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(failure.message)),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.done_all),
+                        label: const Text('Mark as replied'),
+                      ),
+                    ),
           ],
         ),
       ),

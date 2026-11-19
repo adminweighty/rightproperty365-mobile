@@ -113,6 +113,14 @@ class _WorkSectionState extends State<WorkSection> {
                   extra: contactBooks(work, AppScope.of(context).auth.user),
                 ),
               ),
+            if (work.organisations.any((o) => o.kind == 'SERVICE_PROVIDER'))
+              _Tile(
+                key: const Key('open-received-reviews'),
+                icon: Icons.reviews_outlined,
+                title: 'Reviews of your business',
+                subtitle: 'Published reviews and your replies',
+                onTap: () => context.push('${Routes.reviews}?tab=received'),
+              ),
             if (contactBooks(work, AppScope.of(context).auth.user).isNotEmpty)
               _Tile(
                 key: const Key('open-properties'),

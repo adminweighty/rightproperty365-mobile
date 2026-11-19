@@ -29,6 +29,8 @@ import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
 import 'package:rightproperty365/features/properties/rent_screens.dart';
+import 'package:rightproperty365/features/directory/data/reviews_repository.dart';
+import 'package:rightproperty365/features/directory/presentation/reviews_widgets.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/features/workspace/workspace.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -44,6 +46,9 @@ import '../inspections_test.dart'
     as it
     show inspectionJson, optionsJson, pageJson;
 import '../map_search_test.dart' as maps show apiListing;
+import '../reviews_test.dart'
+    as rv
+    show eligibilityJson, publishedJson, reviewJson;
 import '../rent_test.dart'
     as rt
     show arrearsJson, receiptJson, scheduleJson, statementJson;
@@ -1314,5 +1319,87 @@ void main() {
     await _settle(tester);
     await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
     await _shoot(tester, '10-inspection-move-out');
+  }, skip: _skip != null);
+
+  testWidgets('10 reviews', (tester) async {
+    final test = TestServices();
+    serve(test, {
+      'GET /v1/directory/service-providers/sample-plumbers/reviews': (_) =>
+          rv.publishedJson(),
+      'GET /v1/me/reviews/eligibility': (_) => rv.eligibilityJson(),
+      'GET /v1/agent/organisations/org-9/reviews/received': (_) => {
+        'items': [
+          rv.reviewJson(received: true, reply: false),
+          {
+            ...rv.reviewJson(id: 'r-2', rating: 5, received: true),
+            'reviewer': {'kind': 'ORGANISATION', 'name': 'Sample Estates'},
+            'basis': {'kind': 'MAINTENANCE', 'reference': 'RPM-2026-900005'},
+            'text':
+                'Cleared a blocked courtyard drain the same afternoon and '
+                'left the yard clean.',
+            'published_at': '2026-10-28T09:00:00Z',
+            'reply': {
+              'text': 'Thank you, it was a pleasure to help.',
+              'replied_at': '2026-10-29T09:00:00Z',
+              'updated_at': '2026-10-29T09:00:00Z',
+            },
+          },
+        ],
+        'total': 2,
+        'page': 1,
+        'page_size': 25,
+        'permissions': {'reply': true},
+      },
+      'GET /v1/me/dashboard': (_) => {
+        'organisations': [
+          {
+            'id': 'org-9',
+            'name': 'Sample Plumbers',
+            'kind': 'SERVICE_PROVIDER',
+            'market_code': 'ZW',
+            'role': 'OWNER',
+            'role_label': 'Owner',
+          },
+        ],
+      },
+      'GET /v1/me/reviews': (_) => {'items': []},
+      'GET /v1/agent/organisations/org-9/reviews': (_) => {'items': []},
+    });
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await _pumpApp(tester, test);
+    _router(tester).push('/profiles/service-providers/sample-plumbers');
+    await _settle(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('profile-rating')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -260));
+    await _shoot(tester, '10-reviews-profile');
+    Navigator.of(tester.element(find.byType(Scaffold).last)).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const WriteReviewScreen(
+          profileId: 'prof-1',
+          providerName: 'Sample Plumbers',
+          bases: [
+            ReviewBasis(
+              kind: 'ENQUIRY',
+              id: 'e-4',
+              label: 'Enquiry BE-RVW4TNNT',
+            ),
+          ],
+        ),
+      ),
+    );
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('review-star-4')));
+    await tester.enterText(
+      find.byKey(const Key('review-text')),
+      'Came the same day, found the leak behind the geyser and fixed it '
+      'properly. Clear quote before starting.',
+    );
+    await _shoot(tester, '10-reviews-write');
+    _router(tester).push('/reviews?tab=received');
+    await _shoot(tester, '10-reviews-received');
   }, skip: _skip != null);
 }
