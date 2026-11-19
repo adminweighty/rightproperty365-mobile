@@ -38,6 +38,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../analytics_test.dart' as analytics show reportJson;
 import '../applications_test.dart' as apps show appJson;
 import '../contacts_test.dart' as crm show contactJson;
+import '../developments_test.dart' as dv show serveDevelopments;
 import '../ledger_test.dart'
     as ledger
     show cashbookJson, entryJson, optionsJson, page;
@@ -1401,5 +1402,58 @@ void main() {
     await _shoot(tester, '10-reviews-write');
     _router(tester).push('/reviews?tab=received');
     await _shoot(tester, '10-reviews-received');
+  }, skip: _skip != null);
+
+  testWidgets('17 developments', (tester) async {
+    final poster = File('assets/images/listing-house-borrowdale.jpg')
+        .readAsBytesSync();
+    await HttpOverrides.runWithHttpOverrides(() async {
+      final test = TestServices();
+      dv.serveDevelopments(test);
+      await _pumpApp(tester, test);
+      final scrollable = find.byType(Scrollable).last;
+
+      _router(tester).push(Routes.developments);
+      await _shoot(tester, '17-developments-list');
+
+      _router(tester).push(Routes.development('ZW', 'borrowdale-heights'));
+      await _shoot(tester, '17-development-project');
+
+      await tester.scrollUntilVisible(
+        find.text('Phases and unit types'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 120));
+      await _shoot(tester, '17-development-phases');
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('development-highlights')),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -200));
+      await _shoot(tester, '17-development-highlights');
+
+      _router(tester).push(
+        Routes.developmentEnquiry(
+          'ZW',
+          'borrowdale-heights',
+          unitTypeId: 'ut-1',
+        ),
+      );
+      await _shoot(tester, '17-development-enquiry');
+
+      _router(tester).push('/profiles/developers/sample-developments');
+      await _settle(tester);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('developer-projects')),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -120));
+      await _shoot(tester, '17-developer-profile-projects');
+      expect(scrollable, findsWidgets);
+    }, _LocalImages(poster));
   }, skip: _skip != null);
 }

@@ -1,4 +1,7 @@
 import 'package:go_router/go_router.dart';
+
+import '../../developments/development_screens.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../../app/app_scope.dart';
@@ -169,6 +172,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             runSpacing: Space.x2,
             children: [for (final area in profile.areas) AppBadge(area)],
           ),
+          if (profile.kind == DirectoryKind.developers)
+            DeveloperProjectsSection(slug: profile.slug),
           if (profile.kind == DirectoryKind.serviceProviders)
             ProfileReviewsSection(
               kind: profile.kind.slug,

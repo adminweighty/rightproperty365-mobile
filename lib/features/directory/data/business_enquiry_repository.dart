@@ -3,10 +3,12 @@ import '../../../core/api/idempotency.dart';
 import '../../enquiries/data/enquiry.dart';
 import 'profile.dart';
 
-/// Body of POST /v1/business-enquiries: an enquiry to a directory profile.
+/// Body of POST /v1/business-enquiries: an enquiry to a directory profile,
+/// or (API 0.44.0) about a development project, which reaches its developer.
 class BusinessEnquiryDraft {
   const BusinessEnquiryDraft({
-    required this.recipient,
+    this.recipient,
+    this.development,
     required this.message,
     required this.contactMethod,
     required this.contact,
@@ -15,7 +17,12 @@ class BusinessEnquiryDraft {
     this.service,
   });
 
-  final Profile recipient;
+  /// The profile, or null for a project's enquiry (the API sends it to
+  /// the project's developer).
+  final Profile? recipient;
+
+  /// The project, and the unit type when the customer asked about one.
+  final ({String market, String slug, String? unitTypeId})? development;
 
   /// One of the recipient's listed services, when the customer picked one.
   final String? service;
@@ -26,7 +33,14 @@ class BusinessEnquiryDraft {
   final String privacyVersion;
 
   Map<String, dynamic> toJson(String idempotencyKey) => {
-    'recipient': {'kind': recipient.kind.slug, 'slug': recipient.slug},
+    if (recipient case final r?)
+      'recipient': {'kind': r.kind.slug, 'slug': r.slug},
+    if (development case final d?)
+      'development': {
+        'market': d.market,
+        'slug': d.slug,
+        'unit_type_id': ?d.unitTypeId,
+      },
     'service': ?service,
     'message': message.trim(),
     'preferred_contact_method': contactMethod.wire,
@@ -73,6 +87,12 @@ class ApiBusinessEnquiryRepository implements BusinessEnquiryRepository {
       return EnquiryReceipt.fromJson(response.body, 'enquiry_id');
     } on ApiFailure catch (failure) {
       if (failure.status == 409) _keys.reset();
+      if (failure.code == 'DEVELOPMENT_NOT_FOUND') {
+        throw failure.withMessage(
+          'This project is no longer taking enquiries. It may have been taken '
+          'down.',
+        );
+      }
       final message = failure.fields.isEmpty ? _messages[failure.status] : null;
       if (message == null) rethrow;
       throw failure.withMessage(message);

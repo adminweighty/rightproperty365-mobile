@@ -61,6 +61,8 @@
                 <data android:pathPrefix="/invitations/"/>
                 <data android:pathPrefix="/account/"/>
                 <data android:pathPrefix="/agent/"/>
+                <data android:path="/developments"/>
+                <data android:pathPrefix="/developments/"/>
             </intent-filter>
 
             <!-- App-only links, for example rightproperty365://app/verify-email?token=...

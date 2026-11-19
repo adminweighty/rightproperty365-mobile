@@ -47,6 +47,8 @@ import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/core/api/scan.dart';
 import 'package:rightproperty365/features/legal/legal.dart';
+import 'package:rightproperty365/features/developments/development.dart';
+import 'package:rightproperty365/features/directory/data/business_enquiry_repository.dart';
 
 final _base = Platform.environment['RP_LIVE_API'];
 final _password = Platform.environment['RP_LIVE_PASSWORD'] ?? '';
@@ -1590,6 +1592,113 @@ void main() {
     print(
       'legal: pending ${checked.isEmpty ? "none" : checked.join(", ")}, '
       'accepted and cleared; seeded TERMS draft accepted; unknown version 404',
+    );
+  }, skip: skip);
+
+  test('development projects (API 0.44.0)', () async {
+    final guest = ApiClient(baseUrl: _base!);
+    final repo = DevelopmentsRepository(guest, apiBase: _base!);
+    final listed = await repo.list();
+    expect(listed.items.map((d) => d.slug), contains('borrowdale-heights'));
+    expect(
+      listed.items.map((d) => d.slug),
+      isNot(contains('ruwa-gardens-estate')),
+    );
+    expect((await repo.list(query: 'borrowdale')).items, isNotEmpty);
+
+    final project = await repo.get('zw', 'borrowdale-heights');
+    final detail = project.detail!;
+    final units = detail.phases.expand((p) => p.unitTypes).toList();
+    expect(detail.phases, hasLength(2));
+    expect(units, hasLength(3));
+    expect(units.where((u) => u.price.onRequest), hasLength(1));
+    expect(project.developer.slug, 'sample-developments');
+    expect(detail.availableUnits, isNotEmpty);
+    expect(detail.highlights.disclaimer, contains('not financial advice'));
+    // The linked listing opens as any public listing does.
+    final linked = detail.availableUnits.first.listing;
+    final search = ApiListingSearch(guest, apiBase: _base!);
+    expect((await search.bySlug(linked.slug))?.title, linked.title);
+
+    // The draft is not public.
+    await expectLater(
+      repo.get('zw', 'ruwa-gardens-estate'),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // No contact details in any public answer.
+    final contact = RegExp(
+      r'[\w.+-]+@[\w-]+\.[\w.]+|\+\d[\d ]{8,}|\b0\d{2}[\d ]{6,}\d',
+    );
+    for (final path in [
+      '/v1/developments',
+      '/v1/developments/ZW/borrowdale-heights',
+    ]) {
+      final body = jsonEncode((await guest.get(path)).body);
+      expect(contact.hasMatch(body), isFalse, reason: path);
+    }
+    // On the developer's directory profile.
+    expect(
+      (await repo.ofDeveloper('sample-developments')).map((d) => d.slug),
+      contains('borrowdale-heights'),
+    );
+
+    // A guest's enquiry about a unit type reaches the developer's inbox.
+    final unit = units.firstWhere((u) => u.price.onRequest);
+    final receipt = await ApiBusinessEnquiryRepository(guest).submit(
+      BusinessEnquiryDraft(
+        development: (
+          market: project.market,
+          slug: project.slug,
+          unitTypeId: unit.id,
+        ),
+        message:
+            'Live check from the app: is the ${unit.name} still available?',
+        contactMethod: ContactMethod.email,
+        contact: const EnquiryContact(
+          name: 'Live Check',
+          email: 'live.check@example.test',
+        ),
+        consentAccepted: true,
+        privacyVersion: AppConfig.privacyNoticeVersion,
+      ),
+    );
+    expect(receipt.reference, isNotEmpty);
+    final owner = await signedIn('sample-developments@example.test');
+    final inbox =
+        ((await owner.get('/v1/inbox/business-enquiries')).body['items']
+                as List)
+            .cast<Map<String, dynamic>>();
+    final got = inbox.firstWhere((e) => e['reference'] == receipt.reference);
+    expect(got['development']['slug'], 'borrowdale-heights');
+    expect(got['development']['unit_type']['id'], unit.id);
+    // A unit type of another project is refused.
+    await expectLater(
+      ApiBusinessEnquiryRepository(guest).submit(
+        BusinessEnquiryDraft(
+          development: (
+            market: 'ZW',
+            slug: 'borrowdale-heights',
+            unitTypeId: '00000000-0000-0000-0000-000000000000',
+          ),
+          message: 'Wrong unit type',
+          contactMethod: ContactMethod.email,
+          contact: const EnquiryContact(
+            name: 'Live Check',
+            email: 'live.check@example.test',
+          ),
+          consentAccepted: true,
+          privacyVersion: AppConfig.privacyNoticeVersion,
+        ),
+      ),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 400)),
+    );
+    // ignore: avoid_print
+    print(
+      'developments: ${listed.total} public (no draft), ${project.name} '
+      '${detail.phases.length} phases, ${units.length} unit types '
+      '(${units.where((u) => u.price.onRequest).length} on request), '
+      '${detail.availableUnits.length} linked listing; enquiry ${receipt.reference} '
+      'in the developer inbox with the unit type; ruwa-gardens-estate 404',
     );
   }, skip: skip);
 }

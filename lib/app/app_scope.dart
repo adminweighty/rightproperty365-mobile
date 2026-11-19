@@ -16,6 +16,7 @@ import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/legal/legal.dart';
+import '../features/developments/development.dart';
 import '../features/properties/properties_repository.dart';
 import '../features/directory/data/reviews_repository.dart';
 import '../features/properties/inspection_repository.dart';
@@ -80,6 +81,7 @@ class AppServices {
     required this.reviews,
     required this.connectivity,
     required this.legal,
+    required this.developments,
     required this.addToCalendar,
     required this.marketing,
     required this.notifications,
@@ -98,6 +100,9 @@ class AppServices {
 
   /// Legal documents waiting for acceptance (API 0.43.0).
   final LegalCentre legal;
+
+  /// Development projects (API 0.44.0).
+  final DevelopmentsRepository developments;
 
   /// The agent CRM: contact books of the person's organisations.
   final ContactsRepository contacts;

@@ -24,6 +24,7 @@ import 'package:rightproperty365/features/appointments/appointment_repository.da
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/legal/legal.dart';
+import 'package:rightproperty365/features/developments/development.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/directory/data/reviews_repository.dart';
 import 'package:rightproperty365/features/properties/inspection_repository.dart';
@@ -366,6 +367,7 @@ class TestServices {
       notifications: NotificationsRepository(workApi),
       notificationCentre: notificationCentre,
       legal: legal,
+      developments: DevelopmentsRepository(workApi, apiBase: 'http://api.test'),
       saved: saved,
       listingDetails: ApiListingDetailsRepository(workApi),
       listingSearch: listingSearch,

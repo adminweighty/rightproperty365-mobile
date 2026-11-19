@@ -233,6 +233,23 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
         Padding(
+          padding: const EdgeInsets.fromLTRB(Space.x4, Space.x8, Space.x4, 0),
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              key: const Key('home-developments'),
+              minTileHeight: 64,
+              leading: const Icon(Icons.apartment_outlined),
+              title: const Text('New developments'),
+              subtitle: const Text(
+                'Estates and apartments from verified developers',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(Routes.developments),
+            ),
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.fromLTRB(
             Space.x4,
             Space.x8,

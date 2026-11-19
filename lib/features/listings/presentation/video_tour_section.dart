@@ -21,7 +21,12 @@ class VideoTourSection extends StatefulWidget {
     required this.title,
     this.listingId,
     this.posterImage,
+    this.tour,
   });
+
+  /// The tour when the page already has it (a development project's);
+  /// otherwise it is fetched for the listing [slug].
+  final Future<VideoTour?>? tour;
 
   /// For listing statistics (a play is counted as youtube_play_intent).
   final String? listingId;
@@ -44,7 +49,9 @@ class _VideoTourSectionState extends State<VideoTourSection> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _tour ??= AppScope.of(context).listingDetails.videoTour(widget.slug);
+    _tour ??=
+        widget.tour ??
+        AppScope.of(context).listingDetails.videoTour(widget.slug);
   }
 
   Future<void> _open(Uri url) async {

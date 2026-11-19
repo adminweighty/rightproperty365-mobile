@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api/api_client.dart';
 import '../core/api/language.dart';
 import '../features/legal/legal.dart';
+import '../features/developments/development.dart';
 import '../core/config.dart';
 import '../core/location.dart';
 import '../core/api/offline.dart';
@@ -148,6 +149,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     notifications: notifications,
     notificationCentre: notificationCentre,
     legal: LegalCentre(repository: LegalRepository(api), auth: auth),
+    developments: DevelopmentsRepository(api, apiBase: AppConfig.apiBaseUrl),
     analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,

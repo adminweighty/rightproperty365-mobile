@@ -42,6 +42,7 @@ import '../features/listings/presentation/search_screen.dart';
 import '../features/property_requests/presentation/property_request_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/legal/legal_screens.dart';
+import '../features/developments/development_screens.dart';
 
 /// Route locations. Build them here so paths are written in one place.
 abstract final class Routes {
@@ -88,6 +89,20 @@ abstract final class Routes {
       '/tenancies/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
   static const notificationPreferences = '/notification-preferences';
   static const legalUpdates = '/legal-updates';
+
+  /// Development projects (API 0.44.0), at the website's own paths.
+  static const developments = '/developments';
+  static String development(String market, String slug) =>
+      '/developments/${Uri.encodeComponent(market.toLowerCase())}/'
+      '${Uri.encodeComponent(slug)}';
+  static String developmentEnquiry(
+    String market,
+    String slug, {
+    String? unitTypeId,
+  }) => Uri(
+    path: '${development(market, slug)}/enquire',
+    queryParameters: unitTypeId == null ? null : {'unit_type': unitTypeId},
+  ).toString();
 
   static String newLedgerEntry(String book) =>
       '/books/${Uri.encodeComponent(book)}/new';
@@ -415,6 +430,29 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/legal-updates',
       builder: (context, state) => const LegalUpdatesScreen(),
+    ),
+    GoRoute(
+      path: '/developments',
+      builder: (context, state) => const DevelopmentsScreen(),
+      routes: [
+        GoRoute(
+          path: ':market/:slug',
+          builder: (context, state) => DevelopmentScreen(
+            market: state.pathParameters['market']!,
+            slug: state.pathParameters['slug']!,
+          ),
+          routes: [
+            GoRoute(
+              path: 'enquire',
+              builder: (context, state) => DevelopmentEnquiryScreen(
+                market: state.pathParameters['market']!,
+                slug: state.pathParameters['slug']!,
+                unitTypeId: state.uri.queryParameters['unit_type'],
+              ),
+            ),
+          ],
+        ),
+      ],
     ),
     GoRoute(
       path: '/books',

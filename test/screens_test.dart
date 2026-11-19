@@ -242,7 +242,7 @@ void main() {
         expect(find.textContaining('not available yet'), findsOneWidget);
         expect(find.text('Request received'), findsNothing);
         expect(
-          test.businessEnquiries.drafts.single.recipient.slug,
+          test.businessEnquiries.drafts.single.recipient!.slug,
           'sample-plumbers',
         );
       },
