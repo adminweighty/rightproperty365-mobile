@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/location.dart';
 import '../core/api/offline.dart';
+import '../core/calendar.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
@@ -76,6 +77,7 @@ class AppServices {
     required this.inspections,
     required this.reviews,
     required this.connectivity,
+    required this.addToCalendar,
     required this.notifications,
     required this.notificationCentre,
     required this.analyticsReports,
@@ -119,6 +121,10 @@ class AppServices {
 
   /// Whether the API was reachable at the last attempt.
   final Connectivity connectivity;
+
+  /// Puts a confirmed appointment or booking in the phone's calendar (the
+  /// person confirms it there). False when nothing could take it.
+  final Future<bool> Function(CalendarEvent event) addToCalendar;
 
   /// The in-app notification centre and preferences (API 0.35.0).
   final NotificationsRepository notifications;

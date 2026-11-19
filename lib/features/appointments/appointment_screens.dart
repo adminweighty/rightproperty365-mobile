@@ -3,6 +3,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
+import '../../core/calendar.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/tokens.dart';
@@ -523,6 +524,26 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     );
   }
 
+  Future<void> _addToCalendar(Appointment a) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final added = await AppScope.of(context).addToCalendar(
+      CalendarEvent(
+        title: '${a.typeLabel}: ${a.title}',
+        start: a.startUtc,
+        end: a.startUtc.add(Duration(minutes: a.durationMinutes)),
+        location: a.locationNote ?? a.listingTitle,
+        notes: 'RightProperty365 appointment ${a.reference}',
+      ),
+    );
+    if (!added) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('No calendar on this phone could take it.'),
+        ),
+      );
+    }
+  }
+
   Future<void> _cancel(Appointment a) async {
     final reason = await askForText(
       context,
@@ -608,6 +629,13 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         );
 
     final actions = <Widget>[
+      if (a.status == 'CONFIRMED')
+        OutlinedButton.icon(
+          key: const Key('appointment-calendar'),
+          onPressed: () => _addToCalendar(a),
+          icon: const Icon(Icons.event_available_outlined),
+          label: const Text('Add to calendar'),
+        ),
       if (!pro && a.canAccept)
         FilledButton(
           key: const Key('appointment-accept'),

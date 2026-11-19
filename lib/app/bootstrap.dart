@@ -14,6 +14,7 @@ import '../core/api/api_client.dart';
 import '../core/config.dart';
 import '../core/location.dart';
 import '../core/api/offline.dart';
+import '../core/calendar.dart';
 import '../core/push/push_messaging.dart';
 import '../features/activity/activity_store.dart';
 import '../features/analytics/analytics_repository.dart';
@@ -135,6 +136,9 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     inspections: InspectionRepository(api),
     reviews: ReviewsRepository(api),
     connectivity: connectivity,
+    addToCalendar: PhoneCalendar(
+      openLink: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+    ).add,
     notifications: notifications,
     notificationCentre: notificationCentre,
     analyticsReports: ApiAnalyticsRepository(api),

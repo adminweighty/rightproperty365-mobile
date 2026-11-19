@@ -32,6 +32,7 @@ import 'package:rightproperty365/features/notifications/notification_centre.dart
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/core/push/push_messaging.dart';
 import 'package:rightproperty365/core/api/offline.dart';
+import 'package:rightproperty365/core/calendar.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/core/location.dart';
 import 'package:rightproperty365/features/listings/data/api_listing_repository.dart';
@@ -376,6 +377,10 @@ class TestServices {
       inspections: InspectionRepository(workApi),
       reviews: ReviewsRepository(workApi),
       connectivity: connectivity,
+      addToCalendar: (event) async {
+        calendar.add(event);
+        return true;
+      },
       agentApplications: AgentApplicationsRepository(workApi),
       pickApplicationFile: ({required camera, required accept}) async {
         pickedFrom.add(camera ? 'camera' : 'files');
@@ -428,6 +433,9 @@ class TestServices {
   /// Offline: whether the API answered, and the saves waiting for it.
   final connectivity = Connectivity();
   final savedStore = MemoryStore();
+
+  /// Events handed to the phone's calendar.
+  final calendar = <CalendarEvent>[];
 
   /// Push on this "phone": off unless a test sets a fake.
   PushMessaging push = const NoPushMessaging();

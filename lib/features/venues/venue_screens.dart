@@ -3,6 +3,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
+import '../../core/calendar.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/tokens.dart';
@@ -802,6 +803,26 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
     );
   }
 
+  Future<void> _addToCalendar(VenueBooking b) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final added = await AppScope.of(context).addToCalendar(
+      CalendarEvent(
+        title: 'Booking: ${b.listingTitle}',
+        start: b.start,
+        end: b.end,
+        location: b.listingTitle,
+        notes: 'RightProperty365 booking ${b.reference}',
+      ),
+    );
+    if (!added) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('No calendar on this phone could take it.'),
+        ),
+      );
+    }
+  }
+
   Future<void> _cancelMine(VenueBooking b) async {
     final free = b.freeUntil == null || DateTime.now().isBefore(b.freeUntil!);
     final reason = await askForText(
@@ -913,6 +934,13 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
                 spacing: Space.x2,
                 runSpacing: Space.x2,
                 children: [
+                  if (b.status == 'CONFIRMED')
+                    OutlinedButton.icon(
+                      key: const Key('venue-calendar'),
+                      onPressed: () => _addToCalendar(b),
+                      icon: const Icon(Icons.event_available_outlined),
+                      label: const Text('Add to calendar'),
+                    ),
                   if (!_host && b.actions.contains('accept'))
                     FilledButton(
                       key: const Key('venue-accept'),
