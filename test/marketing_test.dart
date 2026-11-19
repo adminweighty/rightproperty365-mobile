@@ -9,6 +9,9 @@ import 'support.dart';
 import 'work_test.dart' show bodyOf, serve, settle;
 
 const path = '/v1/me/marketing-preferences';
+const wording =
+    'Send me news, tips and offers from RightProperty365 by email. I can '
+    'stop them at any time.';
 
 /// The contract's shape (contract-0.37-marketing-preferences.md); not yet
 /// checked against a running API.
@@ -16,6 +19,7 @@ Map<String, dynamic> prefsJson({
   bool optIn = false,
   String current = 'marketing-2026-01',
   bool chosen = true,
+  bool withText = true,
 }) => {
   'marketing_opt_in': optIn,
   'changed_at': chosen ? '2026-11-19T06:10:00Z' : null,
@@ -23,6 +27,9 @@ Map<String, dynamic> prefsJson({
   'context': chosen ? 'PREFERENCES' : null,
   'consent_text_version': optIn ? 'marketing-2026-01' : null,
   'current_consent_text_version': current,
+  'consent_text': withText
+      ? {'version': current, 'text': wording, 'status': 'DRAFT'}
+      : null,
   'history': [
     if (chosen)
       {
@@ -116,10 +123,7 @@ void main() {
         find.byKey(const Key('marketing-switch')),
       );
       expect(toggle.value, isFalse);
-      expect(
-        find.text(marketingConsentTexts['marketing-2026-01']!),
-        findsOneWidget,
-      );
+      expect(find.text(wording), findsOneWidget);
       expect(find.byKey(const Key('marketing-last')), findsNothing);
 
       await tester.tap(find.byKey(const Key('marketing-switch')));
@@ -136,13 +140,16 @@ void main() {
       expect(find.byKey(const Key('marketing-history')), findsOneWidget);
     });
 
-    testWidgets('wording this app does not have: off stays off, on can stop', (
+    testWidgets('no wording from the API: off stays off, on can stop', (
       tester,
     ) async {
       final test = TestServices();
       serve(test, {
-        'GET $path': (_) =>
-            prefsJson(current: 'marketing-2027-01', chosen: false),
+        'GET $path': (_) => prefsJson(
+          current: 'marketing-2027-01',
+          chosen: false,
+          withText: false,
+        ),
       });
       await test.auth.signIn('tendai@example.test', 'pw');
       await pumpInApp(
@@ -155,11 +162,14 @@ void main() {
         find.byKey(const Key('marketing-switch')),
       );
       expect(toggle.onChanged, isNull);
-      expect(find.textContaining('Update the app'), findsOneWidget);
+      expect(find.textContaining('could not be loaded'), findsOneWidget);
 
       serve(test, {
-        'GET $path': (_) =>
-            prefsJson(optIn: true, current: 'marketing-2027-01'),
+        'GET $path': (_) => prefsJson(
+          optIn: true,
+          current: 'marketing-2027-01',
+          withText: false,
+        ),
       });
       await pumpInApp(
         tester,

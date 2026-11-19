@@ -101,8 +101,8 @@ class _MarketingCardState extends State<MarketingCard> {
                         p.consentText ??
                             (p.optIn
                                 ? 'You get news, tips and offers by email.'
-                                : 'Update the app to see the current wording '
-                                      'before opting in.'),
+                                : 'The wording to agree to could not be '
+                                      'loaded, so this cannot be turned on just now.'),
                         style: text.bodyMedium,
                       ),
                     ),

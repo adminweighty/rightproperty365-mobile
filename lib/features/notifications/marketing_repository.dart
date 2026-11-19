@@ -1,14 +1,5 @@
 import '../../core/api/api_client.dart';
 
-/// The opt-in wording this app shows, by consent text version. The API
-/// names the current version; the app may record consent only to wording
-/// it actually showed. Must match the website's wording for each version.
-const marketingConsentTexts = {
-  'marketing-2026-01':
-      'Send me news, tips and offers from RightProperty365 by email. I can '
-      'stop them at any time.',
-};
-
 class MarketingChange {
   const MarketingChange({
     required this.optIn,
@@ -49,6 +40,7 @@ class MarketingPreferences {
   const MarketingPreferences({
     required this.optIn,
     required this.currentVersion,
+    this.consentText,
     this.last,
     this.history = const [],
   });
@@ -56,7 +48,16 @@ class MarketingPreferences {
   factory MarketingPreferences.fromJson(Map<String, dynamic> json) =>
       MarketingPreferences(
         optIn: json['marketing_opt_in'] as bool? ?? false,
-        currentVersion: json['current_consent_text_version'] as String? ?? '',
+        currentVersion:
+            (json['consent_text'] as Map<String, dynamic>?)?['version']
+                as String? ??
+            json['current_consent_text_version'] as String? ??
+            '',
+        consentText: switch ((json['consent_text']
+            as Map<String, dynamic>?)?['text']) {
+          final String t when t.trim().isNotEmpty => t,
+          _ => null,
+        },
         last: json['changed_at'] == null
             ? null
             : MarketingChange.fromJson(json),
@@ -77,8 +78,10 @@ class MarketingPreferences {
   /// Newest first, at most 20.
   final List<MarketingChange> history;
 
-  /// The wording for [currentVersion], if this app has it.
-  String? get consentText => marketingConsentTexts[currentVersion];
+  /// The opt-in wording for [currentVersion], from the API
+  /// (`consent_text.text`). The app records consent only to wording it
+  /// showed; without it, the choice can only be turned off.
+  final String? consentText;
 }
 
 class MarketingRepository {

@@ -35,6 +35,7 @@ import 'package:rightproperty365/features/listings/data/listing.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
+import 'package:rightproperty365/features/notifications/marketing_repository.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/features/properties/inspection_repository.dart';
 import 'package:rightproperty365/features/directory/data/reviews_repository.dart';
@@ -1426,6 +1427,51 @@ void main() {
       'reviews: ${public.rating.average} from ${public.rating.count}; tenant '
       'review PENDING, second REVIEW_EXISTS, report once; provider sees '
       '${received.items.length}, second reply refused, enquiry marked replied',
+    );
+  }, skip: skip);
+
+  test('marketing preferences (API 0.37.1)', () async {
+    // The seed: the tenant opted in at registration, then out in the app.
+    final tenant = MarketingRepository(await signedIn('tenant@example.test'));
+    final seeded = await tenant.get();
+    expect(seeded.optIn, isFalse);
+    expect(seeded.consentText, isNotEmpty);
+    expect(seeded.history.length, greaterThanOrEqualTo(2));
+    expect(seeded.last!.where, 'in the app');
+
+    // An account that never chose: off, no record. Opt in to the wording
+    // the API served, from the app; the same value again changes nothing.
+    final fresh = MarketingRepository(await signedIn('landlord@example.test'));
+    final before = await fresh.get();
+    expect(before.optIn, isFalse);
+    expect(before.last, isNull);
+    final on = await fresh.set(true, version: before.currentVersion);
+    expect(on.optIn, isTrue);
+    expect(on.last!.where, 'in the app');
+    final again = await fresh.set(true, version: before.currentVersion);
+    expect(again.history.length, on.history.length);
+    expect(again.last!.changedAt, on.last!.changedAt);
+
+    // A stale wording version is refused and explained.
+    await expectLater(
+      fresh
+          .set(false)
+          .then((_) => fresh.set(true, version: 'marketing-1999-01')),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('wording has changed'),
+        ),
+      ),
+    );
+    final off = await fresh.get();
+    expect(off.optIn, isFalse);
+    expect(off.history.length, 2);
+    // ignore: avoid_print
+    print(
+      'marketing: tenant ${seeded.history.length} records; fresh account '
+      'on (${before.currentVersion}), no-op repeat, off, stale version refused',
     );
   }, skip: skip);
 }
