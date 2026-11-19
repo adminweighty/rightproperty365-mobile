@@ -6,6 +6,8 @@ import '../../core/widgets/async_view.dart';
 import '../../core/widgets/brand.dart';
 import 'properties_repository.dart';
 import 'properties_screens.dart' show TenancyDetails;
+import 'rent_repository.dart' show RentScope;
+import 'rent_screens.dart' show RentSummaryCard;
 
 /// Activity, My Tenancy: the signed-in tenant's own tenancies, read only.
 /// A tenancy is theirs when the landlord or agent recorded them with the
@@ -53,16 +55,25 @@ class _MyTenancyViewState extends State<MyTenancyView> {
                 padding: const EdgeInsets.only(bottom: Space.x3),
                 child: BrandCard(
                   key: Key('my-tenancy-${t.id}'),
-                  semanticLabel: '${t.place}. ${t.statusLabel}',
                   child: Padding(
                     padding: const EdgeInsets.all(Space.x4),
-                    child: TenancyDetails(t),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TenancyDetails(t),
+                        const SizedBox(height: Space.x3),
+                        RentSummaryCard(
+                          scope: RentScope.tenant(t.id),
+                          tenancy: t,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             Text(
-              'Rent payments, receipts and repairs will appear here as they '
-              'are added. Ask your landlord or agent about any change.',
+              'Payments are as your landlord or agent recorded them. Ask '
+              'them about anything missing or any change.',
               style: text.bodySmall,
             ),
           ],

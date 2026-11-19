@@ -26,6 +26,9 @@ import 'package:rightproperty365/app/theme/app_theme.dart';
 import 'package:rightproperty365/app/router.dart';
 import 'package:rightproperty365/core/location.dart';
 import 'package:rightproperty365/features/contacts/contacts_repository.dart';
+import 'package:rightproperty365/features/properties/properties_repository.dart';
+import 'package:rightproperty365/features/properties/rent_repository.dart';
+import 'package:rightproperty365/features/properties/rent_screens.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/features/workspace/workspace.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -37,6 +40,9 @@ import '../ledger_test.dart'
     as ledger
     show cashbookJson, entryJson, optionsJson, page;
 import '../map_search_test.dart' as maps show apiListing;
+import '../rent_test.dart'
+    as rt
+    show arrearsJson, receiptJson, scheduleJson, statementJson;
 import '../properties_test.dart'
     as pm
     show optionsJson, propertyJson, tenancyJson, tenancyPage;
@@ -1051,5 +1057,54 @@ void main() {
       ),
     );
     await _shoot(tester, '10-tenancy');
+  }, skip: _skip != null);
+
+  testWidgets('10 rent and arrears', (tester) async {
+    final test = TestServices();
+    const org = '/v1/agent/organisations/org-1';
+    final schedule = rt.scheduleJson();
+    schedule['items'] = [
+      ...(schedule['items'] as List),
+      (schedule['summary'] as Map)['next_due'],
+    ];
+    serve(test, {
+      'GET $org/tenancies/t-1/dues': (_) => schedule,
+      'GET $org/tenancies/t-1/receipts': (_) => {
+        'items': [rt.receiptJson()],
+      },
+      'GET $org/tenancies/t-1/statement': (_) => rt.statementJson(),
+      'GET $org/arrears': (_) => rt.arrearsJson(),
+      'GET $org/properties': (_) => {
+        'items': [pm.propertyJson()],
+        'total': 1,
+        'page': 1,
+        'page_size': 50,
+      },
+      'GET $org/tenancies': (_) => pm.tenancyPage([pm.tenancyJson()]),
+      'GET $org/tenancies/options': (_) => pm.optionsJson(),
+    });
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await _pumpApp(tester, test);
+    const book = ContactBook(
+      id: 'org-1',
+      name: 'Sample Estates',
+      canWrite: true,
+    );
+    _router(tester).push(Routes.properties, extra: const [book]);
+    await _settle(tester);
+    await tester.tap(find.text('Arrears'));
+    await _shoot(tester, '10-rent-arrears');
+    Navigator.of(tester.element(find.byType(Scaffold).last)).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RentScreen(
+          scope: const RentScope.manager('org-1', 't-1'),
+          tenancy: Tenancy.fromJson(pm.tenancyJson()),
+          canWrite: true,
+        ),
+      ),
+    );
+    await _shoot(tester, '10-rent-schedule');
+    await tester.tap(find.text('Receipts'));
+    await _shoot(tester, '10-rent-receipts');
   }, skip: _skip != null);
 }

@@ -19,6 +19,8 @@ import '../auth/presentation/auth_screens.dart' show FailureBox;
 import '../contacts/contacts_repository.dart' show Contact, ContactBook;
 import '../markets/data/market.dart';
 import 'properties_repository.dart';
+import 'rent_repository.dart' show RentScope;
+import 'rent_screens.dart';
 
 final _iso = DateFormat('yyyy-MM-dd');
 String day(String iso) => DateFormat('d MMM y').format(DateTime.parse(iso));
@@ -165,6 +167,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                 segments: const [
                   ButtonSegment(value: 'properties', label: Text('Properties')),
                   ButtonSegment(value: 'tenancies', label: Text('Tenancies')),
+                  ButtonSegment(value: 'arrears', label: Text('Arrears')),
                 ],
                 selected: {_view},
                 showSelectedIcon: false,
@@ -191,7 +194,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     _typing = Timer(const Duration(milliseconds: 400), _load);
                   },
                 )
-              else if (data != null)
+              else if (data != null && _view == 'tenancies')
                 Wrap(
                   spacing: Space.x2,
                   runSpacing: Space.x2,
@@ -236,6 +239,18 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                 )
               else if (_view == 'properties')
                 ..._properties(data.properties, book)
+              else if (_view == 'arrears')
+                ArrearsView(
+                  key: ValueKey('arrears-${book.id}'),
+                  book: book.id,
+                  onOpen: (id) async {
+                    await context.push(
+                      Routes.tenancy(book.id, id),
+                      extra: book,
+                    );
+                    _load();
+                  },
+                )
               else
                 ..._tenancies(data.tenancies, book),
               const SizedBox(height: Space.x4),
@@ -1303,6 +1318,13 @@ class _TenancyScreenState extends State<TenancyScreen> {
           padding: const EdgeInsets.all(Space.x4),
           children: [
             TenancyDetails(t),
+            const SizedBox(height: Space.x3),
+            RentSummaryCard(
+              key: ValueKey('rent-${t.id}-${t.status}'),
+              scope: RentScope.manager(widget.book.id, t.id),
+              tenancy: t,
+              canWrite: t.canEdit,
+            ),
             if (t.notes.isNotEmpty) ...[
               const SizedBox(height: Space.x3),
               Text('Notes', style: text.titleSmall),

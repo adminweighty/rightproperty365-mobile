@@ -37,6 +37,7 @@ import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
+import 'package:rightproperty365/features/properties/rent_repository.dart';
 import 'package:rightproperty365/features/team/team_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
@@ -929,6 +930,129 @@ void main() {
     print(
       'properties: ${seeded.total} seeded; draft, active, UNIT_OCCUPIED, '
       'ended ${ended.status}; tenant sees ${mine.single.place}',
+    );
+  }, skip: skip);
+
+  test('rent: schedule, receipts, waivers and arrears (API 0.36.1)', () async {
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final rent = RentRepository(owner);
+    final active = (await PropertiesRepository(
+      owner,
+    ).tenancies(org.id, status: 'ACTIVE')).items;
+    final cottage = active.firstWhere(
+      (t) => t.propertyName == 'Borrowdale Cottage',
+    );
+    final scope = RentScope.manager(org.id, cottage.id);
+
+    // Seeded: one due exactly 45 days overdue, one part paid.
+    final schedule = await rent.schedule(scope);
+    expect(schedule.rule, startsWith('Monthly on day'));
+    expect(schedule.summary.outstanding.currency, 'USD');
+    final part = schedule.dues.firstWhere((d) => d.status == 'PART_PAID');
+    final owed = schedule.dues.firstWhere(
+      (d) => d.status == 'DUE' && d.overdue,
+    );
+    expect(owed.daysOverdue, 45);
+
+    final arrears = await rent.arrears(org.id);
+    final usd = arrears.currencies.firstWhere((c) => c.currency == 'USD');
+    expect(usd.buckets.map((b) => b.bucket), ['0-30', '31-60', '61-90', '90+']);
+    expect(usd.tenancies.map((t) => t.tenancyId), contains(cottage.id));
+
+    // Another currency is refused; the rent's is recorded, oldest first.
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    await expectLater(
+      rent.record(
+        org.id,
+        cottage.id,
+        amount: '10.00',
+        currency: 'ZAR',
+        method: 'CASH',
+        receivedOn: today,
+      ),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.fields.keys,
+          'fields',
+          contains('currency'),
+        ),
+      ),
+    );
+    final done = await rent.record(
+      org.id,
+      cottage.id,
+      amount: '700.00',
+      currency: 'USD',
+      method: 'CASH',
+      receivedOn: today,
+      reference: 'Live check',
+    );
+    expect(done.receipt.ledgerStatusLabel, 'Recorded by you, not verified');
+    expect(done.dues.first.id, owed.id);
+
+    // Reversing it in the ledger puts the due back.
+    await LedgerRepository(owner)
+        .reverse(org.id, done.receipt.ledgerEntryId!, 'Live check');
+    final again = await rent.schedule(scope);
+    expect(again.dues.firstWhere((d) => d.id == owed.id).status, 'DUE');
+    final receipts = await rent.receipts(scope);
+    expect(
+      receipts.firstWhere((r) => r.id == done.receipt.id).reversed,
+      isTrue,
+    );
+
+    // Waive what is left on the part-paid due.
+    final waived = await rent.waive(org.id, part.id, 'Live check');
+    expect(waived.status, 'WAIVED');
+    expect(waived.outstanding.amount, '0.00');
+
+    final statement = await rent.statement(scope);
+    expect(statement.currencies.map((c) => c.currency), ['USD']);
+    final pdf = await rent.statementPdf(scope);
+    expect(String.fromCharCodes(pdf.take(4)), '%PDF');
+
+    // Staff cannot record; another agency's book is not found.
+    await expectLater(
+      RentRepository(await signedIn('agency.staff@example.test')).record(
+        org.id,
+        cottage.id,
+        amount: '1.00',
+        currency: 'USD',
+        method: 'CASH',
+        receivedOn: today,
+      ),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 403)),
+    );
+    await expectLater(
+      RentRepository(await signedIn('agent-b@example.test')).arrears(org.id),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'BOOK_NOT_FOUND'),
+      ),
+    );
+
+    // The sample tenant sees their own dues and receipts, nobody else's.
+    final tenantApi = await signedIn('tenant@example.test');
+    final mine = (await PropertiesRepository(tenantApi).myTenancies()).single;
+    final myRent = RentRepository(tenantApi);
+    final myDues = await myRent.schedule(RentScope.tenant(mine.id));
+    expect(myDues.dues.where((d) => d.status == 'PAID'), hasLength(2));
+    expect(myDues.dues.every((d) => !d.canWaive), isTrue);
+    final myReceipts = await myRent.receipts(RentScope.tenant(mine.id));
+    expect(myReceipts.every((r) => r.ledgerEntryId == null), isTrue);
+    await expectLater(
+      myRent.schedule(RentScope.tenant(cottage.id)),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'TENANCY_NOT_FOUND'),
+      ),
+    );
+    // ignore: avoid_print
+    print(
+      'rent: ${cottage.place} ${schedule.summary.outstanding} outstanding; '
+      'receipt recorded and reversed, due waived; '
+      'tenant sees ${myDues.dues.length} dues, ${myReceipts.length} receipts',
     );
   }, skip: skip);
 }

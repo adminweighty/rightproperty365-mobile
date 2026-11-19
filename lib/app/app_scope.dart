@@ -14,6 +14,7 @@ import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/properties/properties_repository.dart';
+import '../features/properties/rent_repository.dart';
 import '../features/notifications/notification_centre.dart';
 import '../features/notifications/notifications_repository.dart';
 import '../features/venues/venue_repository.dart';
@@ -66,6 +67,7 @@ class AppServices {
     required this.venues,
     required this.ledger,
     required this.properties,
+    required this.rent,
     required this.notifications,
     required this.notificationCentre,
     required this.analyticsReports,
@@ -94,6 +96,9 @@ class AppServices {
 
   /// Properties, units and tenancies; the tenant's own tenancy.
   final PropertiesRepository properties;
+
+  /// Rent: schedules, receipts, waivers, statements and arrears.
+  final RentRepository rent;
 
   /// The in-app notification centre and preferences (API 0.35.0).
   final NotificationsRepository notifications;
