@@ -47,7 +47,32 @@ jobs:
         run: flutter analyze
 
       - name: Tests
-        run: flutter test
+        run: flutter test --file-reporter json:build/test-report.json
+
+      # Job logs need a GitHub sign-in to read; annotations do not. Each
+      # failing test becomes an annotation with its name and error.
+      - name: Failing tests as annotations
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import json
+          names, errors = {}, {}
+          for line in open('build/test-report.json'):
+              try:
+                  e = json.loads(line)
+              except ValueError:
+                  continue
+              if e.get('type') == 'testStart':
+                  t = e['test']
+                  names[t['id']] = (t['name'], t.get('url') or t.get('root_url') or '')
+              elif e.get('type') == 'error':
+                  errors.setdefault(e['testID'], []).append(e.get('error', ''))
+          for test_id, errs in errors.items():
+              name, url = names.get(test_id, ('(loading)', ''))
+              where = url.split('/test/')[-1] if '/test/' in url else url
+              message = (' | '.join(errs))[:900].replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+              print(f'::error title=test/{where}: {name[:120]}::{message}')
+          PY
 
       - name: Build for iPhone, unsigned
         run: flutter build ios --release --no-codesign
