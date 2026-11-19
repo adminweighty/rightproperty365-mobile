@@ -1,42 +1,16 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
-/// The Firebase project the app receives push messages through, from
-/// `--dart-define` (see README, "Push notifications"). No
-/// `google-services.json` or `GoogleService-Info.plist` is needed: without
-/// these values push is simply off and the rest of the app is unchanged.
-abstract final class PushConfig {
-  static const apiKey = String.fromEnvironment('FIREBASE_API_KEY');
-  static const appId = String.fromEnvironment('FIREBASE_APP_ID');
-  static const senderId = String.fromEnvironment('FIREBASE_SENDER_ID');
-  static const projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
-
-  /// iOS only: the iOS app's ID in the same project.
-  static const iosAppId = String.fromEnvironment('FIREBASE_IOS_APP_ID');
-
-  static bool get configured =>
-      apiKey.isNotEmpty &&
-      appId.isNotEmpty &&
-      senderId.isNotEmpty &&
-      projectId.isNotEmpty;
-
-  static FirebaseOptions options(TargetPlatform platform) => FirebaseOptions(
-    apiKey: apiKey,
-    appId: platform == TargetPlatform.iOS && iosAppId.isNotEmpty
-        ? iosAppId
-        : appId,
-    messagingSenderId: senderId,
-    projectId: projectId,
-  );
-}
-
 /// What the device can do about push right now.
 enum PushState {
-  /// No Firebase project configured in this build.
+  /// Firebase did not start on this phone (or in tests). The notification
+  /// centre in the app still works.
   unavailable,
 
-  /// Configured, but the person has not been asked yet.
+  /// Available, but the person has not been asked yet.
   notAsked,
 
   /// The person allowed notifications.
@@ -46,9 +20,45 @@ enum PushState {
   refused,
 }
 
-/// Push messaging on the device. The device token is handed to the API by
-/// the notifications feature once its endpoint exists; nothing here calls
-/// the API or asks for permission by itself.
+/// A push as the app sees it: the server's safe text and where it leads.
+/// The text is shown as sent; the app never adds names or message text.
+class PushMessage {
+  const PushMessage({
+    this.title,
+    this.body,
+    this.type,
+    this.link,
+    this.notificationId,
+  });
+
+  factory PushMessage.fromRemote(RemoteMessage message) {
+    String? text(Object? value) =>
+        value is String && value.isNotEmpty ? value : null;
+    return PushMessage(
+      title: message.notification?.title,
+      body: message.notification?.body,
+      type: text(message.data['type']),
+      link: text(message.data['link']),
+      notificationId: text(message.data['notification_id']),
+    );
+  }
+
+  final String? title;
+  final String? body;
+
+  /// For example `NEW_LEAD`, or `SUMMARY` for a collapsed burst.
+  final String? type;
+
+  /// A relative website path such as `/agent/requests/{id}`.
+  final String? link;
+
+  /// Empty for a summary push.
+  final String? notificationId;
+}
+
+/// Push messaging on the device. Nothing here calls the API or asks for
+/// permission by itself: the notification centre does, when the person
+/// turns push on.
 abstract interface class PushMessaging {
   Future<PushState> state();
 
@@ -56,17 +66,28 @@ abstract interface class PushMessaging {
   /// from a screen that has just explained why.
   Future<PushState> requestPermission();
 
-  /// The device's push identifier, or null when push is unavailable or refused.
+  /// The device's FCM registration token, or null when push is unavailable
+  /// or refused.
   Future<String?> token();
 
-  /// New identifiers as Firebase rotates them.
+  /// New tokens as Firebase rotates them.
   Stream<String> get tokenChanges;
 
   /// Forgets the token on this device (sign-out and account deletion).
   Future<void> deleteToken();
+
+  /// Pushes that arrive while the app is on screen. The phone shows none of
+  /// these by itself, so the app does.
+  Stream<PushMessage> get received;
+
+  /// Pushes tapped while the app was in the background.
+  Stream<PushMessage> get opened;
+
+  /// The push whose tap launched the app from closed, once.
+  Future<PushMessage?> launchMessage();
 }
 
-/// Push is off: no Firebase project in this build, or in tests.
+/// Push is off: Firebase did not start, or in tests.
 class NoPushMessaging implements PushMessaging {
   const NoPushMessaging();
 
@@ -84,22 +105,37 @@ class NoPushMessaging implements PushMessaging {
 
   @override
   Future<void> deleteToken() async {}
+
+  @override
+  Stream<PushMessage> get received => const Stream.empty();
+
+  @override
+  Stream<PushMessage> get opened => const Stream.empty();
+
+  @override
+  Future<PushMessage?> launchMessage() async => null;
 }
 
-/// Firebase Cloud Messaging (Android, and iOS through APNs).
+/// Firebase Cloud Messaging (Android, and iOS through APNs), configured by
+/// `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist`.
 class FirebasePushMessaging implements PushMessaging {
   FirebasePushMessaging._();
 
-  /// Starts Firebase when this build is configured for it; otherwise, or if
-  /// Firebase cannot start, push is off.
+  /// Starts Firebase; if it cannot start, push is off and the rest of the
+  /// app is unchanged.
   static Future<PushMessaging> start() async {
-    if (!PushConfig.configured) return const NoPushMessaging();
     try {
-      await Firebase.initializeApp(
-        options: PushConfig.options(defaultTargetPlatform),
-      );
+      await Firebase.initializeApp().timeout(const Duration(seconds: 10));
+      // iOS: the app shows its own banner in the foreground; the badge is
+      // the server's unread count.
+      try {
+        await FirebaseMessaging.instance
+            .setForegroundNotificationPresentationOptions(badge: true);
+      } on Object {
+        // Not iOS, or not ready: nothing to set.
+      }
       return FirebasePushMessaging._();
-    } on Exception catch (error) {
+    } on Object catch (error) {
       debugPrint('Push is off: Firebase did not start ($error)');
       return const NoPushMessaging();
     }
@@ -116,37 +152,68 @@ class FirebasePushMessaging implements PushMessaging {
   };
 
   @override
-  Future<PushState> state() async =>
-      _from((await _messaging.getNotificationSettings()).authorizationStatus);
+  Future<PushState> state() async {
+    try {
+      return _from(
+        (await _messaging.getNotificationSettings()).authorizationStatus,
+      );
+    } on Object {
+      return PushState.unavailable;
+    }
+  }
 
   @override
-  Future<PushState> requestPermission() async =>
-      _from((await _messaging.requestPermission()).authorizationStatus);
+  Future<PushState> requestPermission() async {
+    try {
+      return _from((await _messaging.requestPermission()).authorizationStatus);
+    } on Object {
+      return PushState.unavailable;
+    }
+  }
 
+  // The API sends with FCM HTTP v1 `message.token`, the registration token.
+  // firebase_messaging 17 deprecates getToken in favour of installation IDs;
+  // switch when the API sends to those.
   @override
   Future<String?> token() async {
     if (await state() != PushState.allowed) return null;
     try {
-      // firebase_messaging 17: registering answers with the installation ID
-      // used as the send target. Which identifier the API stores is set by
-      // its device-registration contract.
-      final registered = _messaging.onRegistered.first;
-      await _messaging.register();
-      return await registered.timeout(const Duration(seconds: 20));
-    } on Exception {
+      // ignore: deprecated_member_use
+      return await _messaging.getToken().timeout(const Duration(seconds: 20));
+    } on Object {
       return null; // For example no APNs key in the Firebase project yet.
     }
   }
 
   @override
-  Stream<String> get tokenChanges => _messaging.onRegistered;
+  // ignore: deprecated_member_use
+  Stream<String> get tokenChanges => _messaging.onTokenRefresh;
 
   @override
   Future<void> deleteToken() async {
     try {
-      await _messaging.unregister();
-    } on Exception {
+      // ignore: deprecated_member_use
+      await _messaging.deleteToken();
+    } on Object {
       // Nothing to remove.
+    }
+  }
+
+  @override
+  Stream<PushMessage> get received =>
+      FirebaseMessaging.onMessage.map(PushMessage.fromRemote);
+
+  @override
+  Stream<PushMessage> get opened =>
+      FirebaseMessaging.onMessageOpenedApp.map(PushMessage.fromRemote);
+
+  @override
+  Future<PushMessage?> launchMessage() async {
+    try {
+      final message = await _messaging.getInitialMessage();
+      return message == null ? null : PushMessage.fromRemote(message);
+    } on Object {
+      return null;
     }
   }
 }

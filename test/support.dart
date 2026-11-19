@@ -23,6 +23,9 @@ import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
+import 'package:rightproperty365/features/notifications/notification_centre.dart';
+import 'package:rightproperty365/features/notifications/notifications_repository.dart';
+import 'package:rightproperty365/core/push/push_messaging.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/core/location.dart';
 import 'package:rightproperty365/features/listings/data/api_listing_repository.dart';
@@ -139,6 +142,7 @@ class FakeAuthRepository implements AuthRepository {
   ApiFailure? logoutFailure;
   Map<String, Object?>? registered;
   int logouts = 0;
+  String? logoutDeviceToken;
 
   /// When true, login asks for an emailed code, as the API does since 0.21.
   /// Most tests only need someone signed in, so the default skips it.
@@ -219,7 +223,8 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> logout() async {
+  Future<void> logout({String? deviceToken}) async {
+    logoutDeviceToken = deviceToken;
     logouts++;
     if (logoutFailure != null) throw logoutFailure!;
   }
@@ -335,7 +340,20 @@ class TestServices {
       activity: activity,
       listings: listings,
     );
+    notificationCentre = NotificationCentre(
+      repository: NotificationsRepository(workApi),
+      auth: auth,
+      push: _Push(this),
+      store: pushStore,
+      platform: 'ANDROID',
+      appVersion: '1.0.0',
+      locale: () => 'en-ZW',
+    );
+    auth.deviceTokenForSignOut = notificationCentre.tokenForSignOut;
     services = AppServices(
+      push: _Push(this),
+      notifications: NotificationsRepository(workApi),
+      notificationCentre: notificationCentre,
       saved: saved,
       listingDetails: ApiListingDetailsRepository(workApi),
       listingSearch: listingSearch,
@@ -391,6 +409,11 @@ class TestServices {
     }),
   );
   final pdf = FakePdfRenderer();
+
+  /// Push on this "phone": off unless a test sets a fake.
+  PushMessaging push = const NoPushMessaging();
+  final pushStore = MemoryStore();
+  late final NotificationCentre notificationCentre;
   Uint8List? pickedImage;
 
   final listings = sampleListings();
@@ -477,4 +500,29 @@ Future<void> pumpInApp(
       ),
     ),
   );
+}
+
+/// Lets a test swap [TestServices.push] after the services are built.
+class _Push implements PushMessaging {
+  _Push(this._test);
+
+  final TestServices _test;
+  PushMessaging get _p => _test.push;
+
+  @override
+  Future<PushState> state() => _p.state();
+  @override
+  Future<PushState> requestPermission() => _p.requestPermission();
+  @override
+  Future<String?> token() => _p.token();
+  @override
+  Stream<String> get tokenChanges => _p.tokenChanges;
+  @override
+  Future<void> deleteToken() => _p.deleteToken();
+  @override
+  Stream<PushMessage> get received => _p.received;
+  @override
+  Stream<PushMessage> get opened => _p.opened;
+  @override
+  Future<PushMessage?> launchMessage() => _p.launchMessage();
 }

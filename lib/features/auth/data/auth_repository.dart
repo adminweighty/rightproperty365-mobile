@@ -37,7 +37,7 @@ abstract interface class AuthRepository {
   Future<Captcha> captcha();
 
   /// Revokes the current session on the server.
-  Future<void> logout();
+  Future<void> logout({String? deviceToken});
 
   /// Deletes the signed-in account (DELETE /v1/me) after the person types
   /// their password again. The account is anonymised and every session ends.
@@ -248,8 +248,8 @@ class ApiAuthRepository implements AuthRepository {
       Captcha.fromJson((await _api.get('/v1/auth/captcha')).body);
 
   @override
-  Future<void> logout() async {
-    await _api.postJson('/v1/auth/logout', const {});
+  Future<void> logout({String? deviceToken}) async {
+    await _api.postJson('/v1/auth/logout', {'device_token': ?deviceToken});
   }
 
   @override

@@ -110,6 +110,26 @@ class _SignedOut extends StatelessWidget {
           child: const Text('Create an account'),
         ),
         const SizedBox(height: Space.x6),
+        ListTile(
+          key: const Key('open-notifications'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.notifications_outlined),
+          title: const Text('Notifications'),
+          subtitle: const Text('Everything sent to you, read or not'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.notifications),
+        ),
+        ListTile(
+          key: const Key('open-notification-settings'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.tune),
+          title: const Text('Notification settings'),
+          subtitle: const Text(
+            'Email and push for each kind, and push on this phone',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.notificationPreferences),
+        ),
         const CountVisitsSwitch(),
       ],
     );

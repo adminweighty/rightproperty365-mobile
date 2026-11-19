@@ -13,6 +13,8 @@ import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
+import '../features/notifications/notification_centre.dart';
+import '../features/notifications/notifications_repository.dart';
 import '../features/venues/venue_repository.dart';
 import '../features/listings/data/api_listing_repository.dart';
 import '../features/listings/data/video_tour.dart';
@@ -62,6 +64,8 @@ class AppServices {
     required this.pickApplicationFile,
     required this.venues,
     required this.ledger,
+    required this.notifications,
+    required this.notificationCentre,
     required this.analyticsReports,
     this.mapTiles,
     this.locate = _noLocation,
@@ -85,6 +89,12 @@ class AppServices {
 
   /// The organisation's (or direct owner's) own books.
   final LedgerRepository ledger;
+
+  /// The in-app notification centre and preferences (API 0.35.0).
+  final NotificationsRepository notifications;
+
+  /// The unread count, and push on this phone.
+  final NotificationCentre notificationCentre;
   final AgentApplicationsRepository agentApplications;
 
   /// A file for an application, from the camera or the phone's files;

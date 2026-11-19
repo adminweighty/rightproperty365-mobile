@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "904662325539",
+    "project_id": "rightproperty365",
+    "storage_bucket": "rightproperty365.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:904662325539:android:beb78051d7a41a4f2e5496",
+        "android_client_info": {
+          "package_name": "com.rightproperty365.rightproperty365"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC45Tl3EZMbas447TF1i6Lm1FNdjYO7p34"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

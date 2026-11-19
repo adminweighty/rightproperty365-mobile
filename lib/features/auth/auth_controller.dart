@@ -24,6 +24,10 @@ class AuthController extends ChangeNotifier {
 
   AuthRepository get repository => _repository;
 
+  /// This phone's push token, sent with the logout so the API stops push to
+  /// it along with the session (FR-045).
+  Future<String?> Function()? deviceTokenForSignOut;
+
   /// Restores a saved session at launch. A token the API no longer accepts is
   /// forgotten; if the API cannot be reached the token is kept for next time.
   Future<void> restore() async {
@@ -101,7 +105,13 @@ class AuthController extends ChangeNotifier {
   /// Always signs out locally, even if the server cannot be told.
   Future<void> signOut() async {
     try {
-      await _repository.logout();
+      String? deviceToken;
+      try {
+        deviceToken = await deviceTokenForSignOut?.call();
+      } on Object {
+        deviceToken = null;
+      }
+      await _repository.logout(deviceToken: deviceToken);
     } on ApiFailure {
       // The session expires on its own; the local token is removed below.
     }

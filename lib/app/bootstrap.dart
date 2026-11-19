@@ -1,3 +1,7 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleListener, WidgetsBinding;
 import 'package:file_picker/file_picker.dart';
@@ -19,6 +23,8 @@ import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
+import '../features/notifications/notification_centre.dart';
+import '../features/notifications/notifications_repository.dart';
 import '../features/venues/venue_repository.dart';
 import '../features/listings/data/api_listing_repository.dart';
 import '../features/listings/data/video_tour.dart';
@@ -55,13 +61,21 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
   );
 
   final push = await FirebasePushMessaging.start();
-  // FR-045: nothing tied to the account stays on the phone after sign-out,
-  // the push token included.
-  auth.addListener(() {
-    if (!auth.signedIn) push.deleteToken();
-  });
-
   final preferences = PreferencesStore(await SharedPreferences.getInstance());
+  final notifications = NotificationsRepository(api);
+  // FR-045: the push token leaves the account with the session (logout
+  // carries it) and is deleted on the phone after sign-out.
+  final notificationCentre = NotificationCentre(
+    repository: notifications,
+    auth: auth,
+    push: push,
+    store: preferences,
+    platform: defaultTargetPlatform == TargetPlatform.iOS ? 'IOS' : 'ANDROID',
+    appVersion: AppConfig.appVersion,
+    locale: () => PlatformDispatcher.instance.locale.toLanguageTag(),
+  );
+  auth.deviceTokenForSignOut = notificationCentre.tokenForSignOut;
+
   final activity = ActivityStore(preferences);
   final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
   final analytics = AnalyticsTracker(
@@ -99,6 +113,8 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     pickApplicationFile: _pickApplicationFile,
     venues: VenueRepository(api),
     ledger: LedgerRepository(api),
+    notifications: notifications,
+    notificationCentre: notificationCentre,
     analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,
@@ -132,7 +148,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
 
   // Not awaited: the app opens straight away and the account area updates
   // when the saved session has been checked.
-  auth.restore();
+  auth.restore().whenComplete(notificationCentre.start);
   return services;
 }
 

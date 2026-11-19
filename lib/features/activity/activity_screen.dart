@@ -14,6 +14,7 @@ import '../applications/apply_screen.dart' show MyApplicationsView;
 import '../appointments/appointment_screens.dart';
 import '../venues/venue_screens.dart' show MyHourlyBookingsView;
 import '../saved/saved_widgets.dart';
+import '../notifications/notification_bell.dart';
 import 'activity_store.dart';
 import 'my_request_screen.dart';
 import 'my_requests_repository.dart';
@@ -24,7 +25,10 @@ import 'my_requests_repository.dart';
 /// status. As a guest, only what this phone sent is listed (see
 /// [ActivityStore]), with the status from each receipt, which is not updated.
 class ActivityScreen extends StatelessWidget {
-  const ActivityScreen({super.key});
+  const ActivityScreen({super.key, this.tab});
+
+  /// viewings, applications or bookings, from a notification link.
+  final String? tab;
 
   @override
   Widget build(BuildContext context) {
@@ -34,12 +38,22 @@ class ActivityScreen extends StatelessWidget {
       listenable: services.auth,
       builder: (context, _) {
         final signedIn = services.auth.signedIn;
+        final index = signedIn
+            ? switch (tab) {
+                'viewings' => 1,
+                'applications' => 2,
+                'bookings' => 3,
+                _ => 0,
+              }
+            : 0;
         return DefaultTabController(
-          key: ValueKey(signedIn),
+          key: ValueKey('$signedIn-$tab'),
           length: signedIn ? 5 : 2,
+          initialIndex: index,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Activity'),
+              actions: [if (signedIn) const NotificationBell()],
               bottom: TabBar(
                 isScrollable: signedIn,
                 tabs: [

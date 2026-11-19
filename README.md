@@ -62,24 +62,22 @@ Use the same source and attribution as the website. A provider key, if any, goes
 
 ### Push notifications
 
-Push runs through Firebase Cloud Messaging, configured with `--dart-define`, so no `google-services.json` or `GoogleService-Info.plist` is committed. Without these values push is off and nothing else changes.
+Push runs through Firebase Cloud Messaging, configured by `android/app/google-services.json` (read by the Google services Gradle plugin) and `ios/Runner/GoogleService-Info.plist` (in the Runner target). These are client identifiers, not secrets. If Firebase cannot start, push is off and everything else is unchanged: every notification is also in the in-app centre.
 
-```bash
-flutter run --dart-define=FIREBASE_API_KEY=... --dart-define=FIREBASE_APP_ID=... --dart-define=FIREBASE_SENDER_ID=... --dart-define=FIREBASE_PROJECT_ID=...
-```
+- **When the phone asks.** Never at first launch. The notification centre and Notification settings offer "Turn on push"; only then does the phone show its permission prompt.
+- **Registration.** With permission, the FCM registration token goes to `POST /v1/me/devices` with `push_consent: true`, and again when Firebase rotates it. "Turn off on this phone" removes it (`DELETE /v1/me/devices?token=`).
+- **Sign-out and deletion (FR-045).** The logout call carries the token (`device_token`), so the API drops this phone with the session. The token is then deleted on the phone and the opt-in forgotten. Account deletion removes devices server-side.
+- **Handling.** A push tapped from the background or from closed opens the same screen as the in-app item, and marks it read. A push that arrives on screen shows a short banner with Open and updates the count. The text is exactly what the server sends (a reference and an area, never names or messages).
 
-What the owner of the Firebase project supplies:
-- a Firebase project with an Android app for `com.rightproperty365.rightproperty365`: its API key, app ID, sender ID and project ID;
-- for iOS, an iOS app in the same project (`FIREBASE_IOS_APP_ID`) and an APNs authentication key uploaded to it (needs an Apple developer account), plus the Push Notifications capability in Xcode (needs a Mac);
-- the server side (sending, device registration) is the API's.
-
-The phone asks for notification permission only when the person turns notifications on after signing in, never at first launch. The push identifier is removed on sign-out and account deletion.
+What only the owner of the Firebase project can do:
+- upload an APNs authentication key to the Firebase iOS app (needs an Apple developer account), and add the Push Notifications capability to the Runner target in Xcode (needs a Mac and the team's signing);
+- give the API a service account (`FCM_PROJECT_ID` and the service-account JSON). Until then the API sends no push at all, and the app works from the in-app centre.
 
 ### Permissions
 
 | Permission | When it is asked | Why |
 | --- | --- | --- |
-| Notifications (Android 13+, iOS) | When notifications are turned on, after sign-in | Enquiry, appointment and application updates |
+| Notifications (Android 13+, iOS) | When the person chooses Turn on push, signed in | Enquiry, appointment and application updates |
 | Location (while in use) | When "Near me" is tapped on map search, after the reason is shown | Properties near you; the app works fully if refused |
 | Camera, photos | When a receipt, document or maintenance photo is added | Upload; nothing is kept on the phone |
 
@@ -176,6 +174,7 @@ lib/
                              account, Account Management and Delete Account, confirm email, forgot and reset password
     applications/            Applying (form, files, autosave), My Applications, the organisation inbox
     venues/                  Hourly venue bookings: availability, estimate, requests, customer and host screens
+    notifications/           The notification centre, preferences, push registration, link mapping and push handling
     ledger/                  The books: per-currency cashbook, entries, recording, receipts, notes, reversing
     contacts/                The agent CRM: books, contacts, notes, stages, reminders, from a request
     analytics/               Listing statistics: the event tracker, impressions, the reports and the statistics screen
@@ -266,6 +265,7 @@ These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` an
 - **Applications (API 0.32.0).** A listing whose public `applications` is open shows "Apply" (paused or closed intake says so). Applying needs an account: `POST /v1/me/applications` starts or reopens the draft on the form version attached (`409 APPLICATIONS_CLOSED` is shown in the API's words). The form is one step per section, then a review: short and long text, number, date, single and multiple choice, and files (PDF, JPG, PNG, WebP, HEIC, DOCX; 10 MB each, up to the field's limit; a photo from the camera or a file from the phone, asked for only when added). Questions appear and disappear with `visible_if`; hidden ones are not required. Answers save themselves 0.8 s after a change (`PATCH`, merged) and once more when the screen closes; a draft can be reopened from Activity, My Applications. The review shows the purpose, the privacy notice and the retention period; submitting shows the reference (RPA-APP-...). An application waiting for more information shows what was asked and can be sent again; one can be withdrawn. The organisation's Applications (Your work) lists them by status with counts; an application shows the answers in the layout of the version it was submitted on (opening it is audited by the API), lets an Agency Principal, Administrator or the listing's agent move it on as `allowed_transitions` allow, ask for more information and add internal notes. Opening the applicant's files, and building and attaching forms, are on the website. Another organisation's or customer's application is "not found".
 - **Hourly venue bookings (API 0.33.0).** A showroom or venue whose public `hourly_booking` is enabled shows "Book by the hour". The booking screen reads `GET /v1/venues/{id}/availability` (62 days): only days with a free slot are offered, start times are on the venue's increment and only where the minimum duration is free, durations run from the minimum to the maximum within one opening range and clear of booked time (which already includes cleaning buffers). Times are in the venue's time zone, named, with the phone's own time noted when it differs. Each choice asks `POST /v1/venues/{id}/quotes` for the itemised estimate, shown in bill order (rate and fixed fees, subtotal, percentage fees such as VAT, total, then the deposit "payable to the host if confirmed") with the no-payment notice, whatever order the API lists the lines in. Sending (signing in first if needed) is `POST /v1/me/venue-bookings` with consent; it is a request, not a booking or a payment. Activity, Hourly Bookings lists the customer's requests; a booking shows its estimate, the cancellation policy with "free until", a proposed time to accept, and Cancel. Hosts (Your work, Hourly bookings; an organisation's or a direct owner's own) confirm, decline or cancel with a reason, and mark completed or no-show, as the API's `actions` allow; `SLOT_TAKEN` is explained. Rates, opening hours, fees and proposing a new time are on the website.
 - **Books (API 0.34.0).** Your work, Books opens the cashbook of each organisation the user belongs to, or a direct owner's own (`/v1/agent/organisations/{id}/ledger`). It is the user's own record, separate from subscription invoices. Totals come from `GET /reports/cashbook` per currency (opening, in, out, closing); currencies are never added together, and a running balance shows on entries only when one currency is chosen. Entries filter by period, currency and type (searchable pickers). Recording (`POST /entries`) takes type, direction (opening balance only), category, method (none for money owed), transfer-to for a transfer, amount checked against the currency's decimals, currency, date, description and reference, with an optional receipt photo or file uploaded afterwards. A posted entry is never edited: it is reversed with a reason. Every entry shows its status label from the API ("Recorded by you, not verified" or "Marked reconciled by your team"); nothing claims bank verification. What a user may do follows `permissions` and each entry's `can`: owners and managers in full, agents their own entries, staff read only; another organisation's book is `BOOK_NOT_FOUND`. Reports by category, statements, money owed, corrections, reconciling and exports are on the website, linked from the screen.
+- **Notifications (API 0.35.0).** The bell on Activity and the Activity tab show the unread count (`GET /v1/me/notifications/unread-count`, refreshed at launch, on return to the app and when a push arrives). Account, Notifications lists them newest first, 20 at a time, with Unread only and Mark all as read; tapping an item marks it read and opens its link. Links are relative website paths mapped to the app's own screens (a lead, the inbox, appointments, an application, hourly bookings, the account); those the app has not got (listing review, subscription) open on the website, and anything that is not a relative path is never followed. Notification settings has Email and Push switches per type (`PUT /v1/me/notification-preferences`, sent with `X-Client: app`); in-app is always on, and essential types (account, security, subscription invoices) are locked with the API's reason.
 - **Appointments for professionals.** Viewing Appointments (Account, Your work, for professional accounts) is `GET /v1/inbox/appointments` from the start of today, grouped by day. The detail shows the customer's contact and offers exactly what the API's flags allow: confirm (or accept the customer's time), propose another time, it took place, no-show, cancel with a reason. `SLOT_TAKEN` and `INVALID_STATE` are said in plain words. Assigning appointments to a member is on the website.
 - **Times.** Appointment times are shown in the market's time zone (`timezone`, for example Africa/Harare) and named, and a new time is picked in that zone and sent as UTC.
 - **Working a lead.** Work it on a listing enquiry opens `GET /v1/agent/property-requests/{id}`: move the lead stage to one of `allowed_stages` (`PATCH`, nobody is emailed), add internal notes (never shown to the customer) and read the history.
@@ -293,6 +293,7 @@ These mirror the website's `/agent/team`, `/agent/leases`, `/account/signing` an
 - Activity: My Enquiries with live status and history, My Viewings (cancel, propose a time, accept), requests sent from this phone, and saved properties
 - Viewing Appointments for professionals (confirm, propose a time, completed, no-show, cancel) and working a lead (stage and internal notes)
 - Account Management and Delete Account (`DELETE /v1/me`)
+- Notifications: the in-app centre with unread badge, notification settings per type, push on this phone when asked for
 - Books: per-currency cashbook totals, entries with filters, recording with a receipt, notes, reversing
 - Light and dark themes, official launcher icon and splash screen
 
@@ -310,7 +311,7 @@ These are required by the specification and come later:
 - Directory and listing data from the API. The app still bundles the earlier sample data, so the solicitor firms and other profiles now in the backend do not appear yet.
 - Onboarding for professional roles (details and document upload) in the app; it exists in the API and on the website.
 - There is no payment in the app, by design: subscriptions are recorded by Platform Administrators on the web
-- Push notifications and device token registration
+- Push on iPhone: needs the APNs key in Firebase and the Push Notifications capability added on a Mac. Push on Android needs the API's service account before anything is sent.
 - Photo galleries
 - Real listing and directory data from the API
 - Bundled Inter font (the platform sans is used), localisation, release signing

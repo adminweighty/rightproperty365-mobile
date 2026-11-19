@@ -35,6 +35,8 @@ import 'package:rightproperty365/features/listings/data/listing.dart';
 import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
+import 'package:rightproperty365/features/notifications/notifications_repository.dart';
+import 'package:rightproperty365/features/team/team_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 
@@ -728,6 +730,88 @@ void main() {
     print(
       'books: ${cashbook.map((c) => '${c.currency} ${c.closing}').join(', ')}; '
       'recorded, receipt added and reversed ${entry.currency} ${entry.amount}',
+    );
+  }, skip: skip);
+
+  test('notifications, preferences and this phone (API 0.35.0)', () async {
+    // agent-b is not in Sample Estates: an invitation to an existing
+    // account gives it an in-app TEAM_INVITATION item at once (other kinds
+    // come from the worker, which a memory-store API does not run).
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final invitation = await ApiTeamRepository(owner)
+        .invite(org.id, email: 'agent-b@example.test', role: 'AGENT');
+    final api = await signedIn('agent-b@example.test');
+    final repo = NotificationsRepository(api);
+    final page = await repo.list();
+    final item = page.items.firstWhere((n) => n.type == 'TEAM_INVITATION');
+    expect(item.link, '/account');
+    expect(item.unread, isTrue);
+    // Safe text only: no email address in what a lock screen would show.
+    expect('${item.title} ${item.body}', isNot(contains('@')));
+    expect(await repo.unreadCount(), page.unreadCount);
+    final read = await repo.markRead(item.id);
+    expect(read.notification.unread, isFalse);
+    expect(await repo.markAllRead(), 0);
+    await expectLater(
+      repo.markRead('00000000-0000-7000-8000-000000000000'),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.code,
+          'code',
+          'NOTIFICATION_NOT_FOUND',
+        ),
+      ),
+    );
+    await ApiTeamRepository(owner).cancelInvitation(org.id, invitation.id);
+
+    // Preferences: one switch changes; essential types cannot be turned off.
+    final before = await repo.preferences();
+    expect(before.first.type, 'NEW_LEAD');
+    final security = before.firstWhere((p) => p.type == 'SECURITY');
+    expect(security.essential, isTrue);
+    expect(security.essentialReason, isNotNull);
+    final saved = await repo.setPreference('NEW_LEAD', email: false);
+    expect(saved.first.email, isFalse);
+    expect(saved.first.changedAt, isNotNull);
+    await expectLater(
+      repo.setPreference('SECURITY', push: false),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'VALIDATION_FAILED'),
+      ),
+    );
+    await repo.setPreference('NEW_LEAD', email: true);
+
+    // This phone: registered, then dropped with the logout.
+    final token = 'live-check-${DateTime.now().microsecondsSinceEpoch}';
+    final phone = await signedIn('agent@example.test');
+    final devices = NotificationsRepository(phone);
+    final id = await devices.registerDevice(
+      token: token,
+      platform: 'ANDROID',
+      appVersion: '1.0.0',
+      locale: 'en-ZW',
+    );
+    expect(id, isNotEmpty);
+    final listed = (await phone.get('/v1/me/devices')).body['items'] as List;
+    expect(
+      listed.map((d) => (d as Map)['token_hint']),
+      contains('…${token.substring(token.length - 4)}'),
+    );
+    expect(listed.toString(), isNot(contains(token)));
+    // A fresh session, so the shared one stays signed in.
+    final session = await _signIn('agent@example.test');
+    await NotificationsRepository(session)
+        .registerDevice(token: token, platform: 'ANDROID', appVersion: '1.0.0');
+    await ApiAuthRepository(session).logout(deviceToken: token);
+    final after = (await phone.get('/v1/me/devices')).body['items'] as List;
+    expect(after.map((d) => (d as Map)['id']), isNot(contains(id)));
+    // ignore: avoid_print
+    print(
+      'notifications: "${item.title}" read; ${saved.length} preference types; '
+      'device registered and removed with the logout',
     );
   }, skip: skip);
 }

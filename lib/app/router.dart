@@ -4,6 +4,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
 import '../features/ledger/books_screens.dart';
+import '../features/notifications/notifications_screens.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
@@ -58,6 +59,8 @@ abstract final class Routes {
   static const receivedApplications = '/received-applications';
   static const hostedVenueBookings = '/hosted-venue-bookings';
   static const books = '/books';
+  static const notifications = '/notifications';
+  static const notificationPreferences = '/notification-preferences';
 
   static String newLedgerEntry(String book) =>
       '/books/${Uri.encodeComponent(book)}/new';
@@ -190,7 +193,8 @@ GoRouter buildRouter() => GoRouter(
           routes: [
             GoRoute(
               path: '/activity',
-              builder: (context, state) => const ActivityScreen(),
+              builder: (context, state) =>
+                  ActivityScreen(tab: state.uri.queryParameters['tab']),
             ),
           ],
         ),
@@ -277,6 +281,14 @@ GoRouter buildRouter() => GoRouter(
         id: state.pathParameters['id']!,
         professional: false,
       ),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/notification-preferences',
+      builder: (context, state) => const NotificationPreferencesScreen(),
     ),
     GoRoute(
       path: '/books',

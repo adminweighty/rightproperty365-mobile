@@ -37,6 +37,9 @@ import '../ledger_test.dart'
     as ledger
     show cashbookJson, entryJson, optionsJson, page;
 import '../map_search_test.dart' as maps show apiListing;
+import '../notifications_test.dart'
+    as notes
+    show FakePush, itemJson, pageJson, preferencesJson;
 import '../saved_listings_test.dart' as saved show page;
 import '../support.dart';
 import '../video_tour_test.dart' as tours show video;
@@ -888,5 +891,74 @@ void main() {
     await _shoot(tester, '08-ledger-books');
     await tester.tap(find.byKey(const Key('record-entry')));
     await _shoot(tester, '08-ledger-new-entry');
+  }, skip: _skip != null);
+
+  testWidgets('09 notifications', (tester) async {
+    final test = TestServices();
+    test.push = notes.FakePush();
+    final items = [
+      notes.itemJson(),
+      {
+        ...notes.itemJson(
+          id: 'n-2',
+          type: 'APPOINTMENT_CONFIRMED',
+          title: 'Viewing confirmed',
+          body: 'PR-ZW-10002 · Avondale',
+          link: '/agent/appointments',
+        ),
+        'created_at': '2026-11-19T07:10:00Z',
+      },
+      {
+        ...notes.itemJson(
+          id: 'n-3',
+          type: 'APPLICATION_RECEIVED',
+          title: 'New rental application',
+          body: 'RP-ZW-10014 · Mount Pleasant',
+          link: '/agent/applications/app-1',
+          read: true,
+        ),
+        'created_at': '2026-11-18T16:45:00Z',
+      },
+      {
+        ...notes.itemJson(
+          id: 'n-4',
+          type: 'LISTING_REVIEWED',
+          title: 'Listing approved',
+          body: 'RP-ZW-10021 · Borrowdale Brooke',
+          link: '/agent/listings/l-1',
+          read: true,
+        ),
+        'created_at': '2026-11-18T11:20:00Z',
+      },
+    ];
+    final prefs = notes.preferencesJson();
+    final all = [
+      (prefs['items'] as List).first,
+      {
+        ...(prefs['items'] as List).first as Map<String, dynamic>,
+        'type': 'APPOINTMENT_REQUESTED',
+        'label': 'Viewing requests',
+        'email': false,
+      },
+      {
+        ...(prefs['items'] as List).first as Map<String, dynamic>,
+        'type': 'APPLICATION_RECEIVED',
+        'label': 'Applications received',
+      },
+      (prefs['items'] as List).last,
+    ];
+    serve(test, {
+      'GET /v1/me/notifications': (_) =>
+          notes.pageJson(items, unread: 2, total: 4),
+      'GET /v1/me/notifications/unread-count': (_) => {'unread_count': 2},
+      'GET /v1/me/notification-preferences': (_) => {'items': all},
+    });
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await test.notificationCentre.start();
+    await _pumpApp(tester, test);
+    _router(tester).push(Routes.notifications);
+    await _shoot(tester, '09-notifications-centre');
+    _router(tester).push(Routes.notificationPreferences);
+    await _shoot(tester, '09-notification-settings');
   }, skip: _skip != null);
 }

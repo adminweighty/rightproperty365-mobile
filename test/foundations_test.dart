@@ -6,14 +6,13 @@ import 'api_routes.dart';
 import 'support.dart';
 
 void main() {
-  test('push is off without a Firebase project', () async {
-    expect(PushConfig.configured, isFalse);
+  test('push is off when Firebase cannot start', () async {
     final push = await FirebasePushMessaging.start();
     expect(push, isA<NoPushMessaging>());
     expect(await push.state(), PushState.unavailable);
     expect(await push.requestPermission(), PushState.unavailable);
     expect(await push.token(), isNull);
-    expect(TestServices().services.push, isA<NoPushMessaging>());
+    expect(await TestServices().services.push.state(), PushState.unavailable);
   });
 
   test('the map is off until a tile source and attribution are set', () {
