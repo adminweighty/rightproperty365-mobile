@@ -30,9 +30,9 @@ class OnWebsite extends LinkTarget {
   final Uri url;
 }
 
-/// Maps a notification link (a relative website path, see the API 0.35.0
-/// "Links per type") to the app's own screen, or to the website when the
-/// app has no such screen. Anything that is not a relative path opens the
+/// Maps a website path (a notification's link, or a link opened from an
+/// email or a web page, see [webLinkRedirect]) to the app's own screen, or
+/// to the website when the app has no such screen. Anything that is not a relative path opens the
 /// notification centre instead: links are never followed off-site.
 Future<LinkTarget> resolveNotificationLink(
   String link,
@@ -114,6 +114,60 @@ Future<LinkTarget> resolveNotificationLink(
       return const InApp('${Routes.reviews}?tab=received');
     case ('account', 'reviews', _):
       return const InApp(Routes.reviews);
+    case ('account', 'notification-preferences', _):
+      return const InApp(Routes.notificationPreferences);
+    case ('account', 'saved', _):
+      return const InApp('${Routes.activity}?tab=saved', replace: true);
+    case ('account', 'requests', 3):
+      return InApp(Routes.myRequest(s[2]));
+    case ('account', 'requests', _):
+      return const InApp(Routes.activity, replace: true);
+    case ('account', 'signing', _):
+      return const InApp(Routes.documentsToSign);
+    case ('account', 'signature', _):
+      return const InApp(Routes.mySignature);
+    case ('account', 'delete', _):
+      return const InApp(Routes.deleteAccount);
+    case ('agent', 'leases', 3):
+      return InApp(Routes.lease(s[2]));
+    case ('agent', 'leases', 2):
+      return const InApp(Routes.leases);
+    case ('agent', 'inspections', 3) when s[2] != 'new':
+      final all = await books();
+      if (all == null) return website;
+      for (final book in all) {
+        try {
+          await services.inspections.get(book.id, s[2]);
+          return InApp(Routes.inspection(book.id, s[2]), extra: book);
+        } on ApiFailure catch (failure) {
+          if (failure.status != 404 && failure.status != 403) break;
+        }
+      }
+      return InApp(Routes.inspections, extra: all);
+    case ('agent', 'inspections', 2):
+      final all = await books();
+      return all == null ? website : InApp(Routes.inspections, extra: all);
+    case ('agent', 'tenancies', 3) when s[2] != 'new':
+      final all = await books();
+      if (all == null) return website;
+      for (final book in all) {
+        try {
+          await services.properties.tenancy(book.id, s[2]);
+          return InApp(Routes.tenancy(book.id, s[2]), extra: book);
+        } on ApiFailure catch (failure) {
+          if (failure.status != 404 && failure.status != 403) break;
+        }
+      }
+      return website;
+    case ('agent', 'properties' || 'tenancies' || 'arrears', 2):
+      final all = await books();
+      return all == null ? website : InApp(Routes.properties, extra: all);
+    case ('agent', 'books', 2):
+      final all = await books();
+      return all == null ? website : InApp(Routes.books, extra: all);
+    case ('agent', 'contacts', 2):
+      final all = await books();
+      return all == null ? website : InApp(Routes.contacts, extra: all);
     case ('account', 'notifications', _):
       return const InApp(Routes.notifications);
     case ('account', null, _):

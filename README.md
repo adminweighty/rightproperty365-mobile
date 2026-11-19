@@ -135,8 +135,10 @@ The API emails links of the form `{WEB_BASE_URL}/verify-email?token=...` and `{W
 
 To make the website links open the app without asking:
 
-- **Android:** the manifest already declares `https://rightproperty365.com` and `https://www.rightproperty365.com` for `/verify-email` and `/reset-password`. The website must serve `/.well-known/assetlinks.json` naming package `com.rightproperty365.rightproperty365` and the SHA-256 fingerprint of the release signing key. If the production `WEB_BASE_URL` uses a different host, change the hosts in `android/app/src/main/AndroidManifest.xml`.
-- **iOS:** add the Associated Domains capability (`applinks:rightproperty365.com`) in Xcode with the Apple team, and serve `/.well-known/apple-app-site-association` from the website. Not done; it needs a Mac and the Apple developer account.
+- **Android:** the manifest declares `https://rightproperty365.com` and `https://www.rightproperty365.com` (auto-verified) for `/verify-email`, `/reset-password` and the prefixes `/listings/`, `/directory/`, `/apply/`, `/sign/`, `/invitations/`, `/account/` and `/agent/`. The website must serve `/.well-known/assetlinks.json` naming package `com.rightproperty365.rightproperty365` and the SHA-256 fingerprint of the release signing key (from the owner of the key). If the production `WEB_BASE_URL` uses a different host, change the hosts in `android/app/src/main/AndroidManifest.xml`.
+- **iOS:** `ios/Runner/Runner.entitlements` declares `applinks:rightproperty365.com` and `applinks:www.rightproperty365.com` (Associated Domains), and every Runner configuration signs with it. The App ID must have Associated Domains enabled in the Apple developer account, and the website must serve `/.well-known/apple-app-site-association` with `TEAMID.com.rightproperty365.rightproperty365` and the same paths. Not tried: it needs a Mac, the Apple team and the website file.
+
+Inside the app, a website path is opened like this: paths the app has as such (`/listings/{slug}`, `/apply/{slug}`, `/sign/{token}`, `/invitations/{token}`, `/verify-email`, `/reset-password`) open directly; `/directory/{kind}/{slug}` becomes the profile and `/listings` the search; `/account/...` and `/agent/...` go through a short "Opening the link" screen that asks a guest to sign in first, finds the organisation that holds the item when the link does not say, and opens the app's screen (applications, bookings, appointments, notifications, maintenance, inspections, tenancies, leases, reviews and more). A page the app has not got opens on the website in a browser tab inside the app, never in an external browser that would hand it straight back to the app.
 
 Try a link on an Android emulator or device:
 
@@ -314,7 +316,7 @@ These are required by the specification and come later:
 - Team join requests and the team audit trail (the API has them; the website shows them).
 - Uploaded-PDF agreements (other than leases), placing fields, and designing, copying and publishing lease templates: done on the website.
 - Saving or sharing a PDF to the phone's files; the app shows PDFs on screen only.
-- Website signing and invitation links opening the app (they open the website until App Links and Universal Links are set up).
+- Website links opening the app without asking: the app side is done; the website's `/.well-known` files (with the release key fingerprint and the Apple Team ID) are not.
 - Directory and listing data from the API. The app still bundles the earlier sample data, so the solicitor firms and other profiles now in the backend do not appear yet.
 - Onboarding for professional roles (details and document upload) in the app; it exists in the API and on the website.
 - There is no payment in the app, by design: subscriptions are recorded by Platform Administrators on the web

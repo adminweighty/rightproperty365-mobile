@@ -37,11 +37,14 @@
             <!-- Flutter hands incoming links to go_router (lib/app/router.dart). -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true"/>
 
-            <!-- Email links: {WEB_BASE_URL}/verify-email?token=... and
-                 /reset-password?token=... open the app instead of the website.
+            <!-- Website links open the app instead of the website (Android App
+                 Links): email links (/verify-email, /reset-password, /sign/,
+                 /invitations/), listings, directory profiles, applying, and the
+                 account and work areas (applications, bookings, notifications).
                  Android only does this without asking once the website serves
                  /.well-known/assetlinks.json for this app (see README). The
-                 hosts must match the backend's WEB_BASE_URL. -->
+                 hosts must match the backend's WEB_BASE_URL. A path the app has
+                 no screen for opens the website in a browser tab. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -51,6 +54,13 @@
                 <data android:host="www.rightproperty365.com"/>
                 <data android:path="/verify-email"/>
                 <data android:path="/reset-password"/>
+                <data android:pathPrefix="/listings/"/>
+                <data android:pathPrefix="/directory/"/>
+                <data android:pathPrefix="/apply/"/>
+                <data android:pathPrefix="/sign/"/>
+                <data android:pathPrefix="/invitations/"/>
+                <data android:pathPrefix="/account/"/>
+                <data android:pathPrefix="/agent/"/>
             </intent-filter>
 
             <!-- App-only links, for example rightproperty365://app/verify-email?token=...

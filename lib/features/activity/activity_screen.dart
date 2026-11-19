@@ -45,8 +45,11 @@ class ActivityScreen extends StatelessWidget {
                 'applications' => 2,
                 'bookings' => 3,
                 'tenancy' => 4,
+                'saved' => 5,
                 _ => 0,
               }
+            : tab == 'saved'
+            ? 1
             : 0;
         return DefaultTabController(
           key: ValueKey('$signedIn-$tab'),

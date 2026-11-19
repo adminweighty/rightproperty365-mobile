@@ -4,6 +4,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
 import '../features/ledger/books_screens.dart';
+import '../features/notifications/link_opener.dart';
 import '../features/notifications/notifications_screens.dart';
 import '../features/properties/properties_repository.dart';
 import '../features/properties/properties_screens.dart';
@@ -182,6 +183,9 @@ ContactBook _bookFrom(GoRouterState state) =>
 
 GoRouter buildRouter() => GoRouter(
   initialLocation: Routes.home,
+  // Website links (App Links, Universal Links, the app scheme) whose path
+  // the app does not have as such.
+  redirect: (context, state) => webLinkRedirect(state.uri),
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(shell: shell),
@@ -350,6 +354,11 @@ GoRouter buildRouter() => GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      path: '/open',
+      builder: (context, state) =>
+          LinkOpenerScreen(link: state.uri.queryParameters['to'] ?? '/'),
     ),
     GoRoute(
       path: '/reviews',

@@ -128,7 +128,14 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     analyticsReports: ApiAnalyticsRepository(api),
     mapTiles: AppConfig.mapTiles,
     locate: locateWithGeolocator,
-    openLink: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+    openLink: (url) => launchUrl(
+      url,
+      // Our own website opens in a browser tab inside the app: an external
+      // open would come straight back to the app through App Links.
+      mode: url.host == Uri.parse(AppConfig.webBaseUrl).host
+          ? LaunchMode.inAppBrowserView
+          : LaunchMode.externalApplication,
+    ),
     saved: SavedListings(
       repository: ApiSavedListingsRepository(api),
       auth: auth,
