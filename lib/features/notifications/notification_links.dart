@@ -92,6 +92,24 @@ Future<LinkTarget> resolveNotificationLink(
           : InApp(Routes.hostedVenueBookings, extra: all);
     case ('account', 'venue-bookings', _):
       return const InApp('${Routes.activity}?tab=bookings', replace: true);
+    case ('agent', 'maintenance', 3):
+      final all = await books();
+      if (all == null) return website;
+      // The link has no organisation: find the one that has it.
+      for (final book in all) {
+        try {
+          await services.maintenance.get(book.id, s[2]);
+          return InApp(Routes.maintenanceRequest(book.id, s[2]), extra: book);
+        } on ApiFailure catch (failure) {
+          if (failure.status != 404 && failure.status != 403) break;
+        }
+      }
+      return InApp(Routes.maintenance, extra: all);
+    case ('agent', 'maintenance', _):
+      final all = await books();
+      return all == null ? website : InApp(Routes.maintenance, extra: all);
+    case ('account', 'tenancies', _):
+      return const InApp('${Routes.activity}?tab=tenancy', replace: true);
     case ('account', 'notifications', _):
       return const InApp(Routes.notifications);
     case ('account', null, _):

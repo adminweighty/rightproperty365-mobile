@@ -7,6 +7,7 @@ import '../features/ledger/books_screens.dart';
 import '../features/notifications/notifications_screens.dart';
 import '../features/properties/properties_repository.dart';
 import '../features/properties/properties_screens.dart';
+import '../features/properties/maintenance_screens.dart';
 import '../features/ledger/ledger_repository.dart';
 import '../features/venues/venue_screens.dart';
 import '../features/applications/apply_screen.dart';
@@ -63,6 +64,10 @@ abstract final class Routes {
   static const books = '/books';
   static const notifications = '/notifications';
   static const properties = '/properties';
+  static const maintenance = '/maintenance';
+
+  static String maintenanceRequest(String book, String id) =>
+      '/maintenance/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
 
   static String newProperty(String book) =>
       '/properties/${Uri.encodeComponent(book)}/new';
@@ -336,6 +341,21 @@ GoRouter buildRouter() => GoRouter(
               },
             ),
           ],
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/maintenance',
+      builder: (context, state) => MaintenanceScreen(
+        books: state.extra as List<ContactBook>? ?? const [],
+      ),
+      routes: [
+        GoRoute(
+          path: ':book/:id',
+          builder: (context, state) => MaintenanceRequestScreen(
+            book: _bookFrom(state),
+            id: state.pathParameters['id']!,
+          ),
         ),
       ],
     ),

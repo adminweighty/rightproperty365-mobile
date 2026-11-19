@@ -460,7 +460,8 @@ void main() {
       expect(find.text('Sample Estates'), findsOneWidget);
       expect(find.text('USD 950.00 monthly, due on day 1'), findsOneWidget);
       expect(find.byType(FilledButton), findsNothing);
-      expect(find.byType(OutlinedButton), findsNothing);
+      // Only Repairs, which reports a problem; nothing changes the tenancy.
+      expect(find.byType(OutlinedButton), findsOneWidget);
     });
 
     testWidgets('says how a tenancy comes to show when there is none', (

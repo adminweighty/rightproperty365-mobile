@@ -39,6 +39,7 @@ import '../contacts_test.dart' as crm show contactJson;
 import '../ledger_test.dart'
     as ledger
     show cashbookJson, entryJson, optionsJson, page;
+import '../maintenance_test.dart' as mt show optionsJson, pageJson, requestJson;
 import '../map_search_test.dart' as maps show apiListing;
 import '../rent_test.dart'
     as rt
@@ -1106,5 +1107,85 @@ void main() {
     await _shoot(tester, '10-rent-schedule');
     await tester.tap(find.text('Receipts'));
     await _shoot(tester, '10-rent-receipts');
+  }, skip: _skip != null);
+
+  testWidgets('10 maintenance', (tester) async {
+    final test = TestServices();
+    const base = '/v1/agent/organisations/org-1/maintenance';
+    final request = mt.requestJson();
+    request['timeline'] = [
+      ...(request['timeline'] as List),
+      {
+        'id': 'tl-3',
+        'type': 'COMMENT',
+        'at': '2026-11-18T11:30:00Z',
+        'actor': {'kind': 'MANAGER', 'name': 'Chipo Dube'},
+        'text': 'Plumber booked for Thursday morning.',
+        'internal': false,
+      },
+      {
+        'id': 'tl-4',
+        'type': 'COST_ADDED',
+        'at': '2026-11-18T15:00:00Z',
+        'actor': {'kind': 'MANAGER', 'name': 'Chipo Dube'},
+        'internal': false,
+        'details': {
+          'amount': '85.00',
+          'currency': 'USD',
+          'description': 'Replace kitchen tap washer',
+        },
+      },
+    ];
+    serve(test, {
+      'GET $base': (_) => mt.pageJson([
+        request,
+        {
+          ...mt.requestJson(
+            id: 'm-2',
+            status: 'IN_PROGRESS',
+            title: 'No power in the kitchen',
+          ),
+          'property': {
+            'id': 'p-2',
+            'name': 'Borrowdale Cottage',
+            'archived': false,
+          },
+          'unit': null,
+          'priority': {'code': 'urgent', 'label': 'Urgent'},
+          'category': {'code': 'electrical', 'label': 'Electrical'},
+          'reference': 'RPM-2026-900002',
+          'provider': null,
+          'cost_totals': [],
+        },
+        {
+          ...mt.requestJson(
+            id: 'm-3',
+            status: 'NEW',
+            title: 'Oven door hinge broken',
+          ),
+          'reference': 'RPM-2026-900003',
+          'category': {'code': 'appliances', 'label': 'Appliances'},
+          'priority': {'code': 'normal', 'label': 'Normal'},
+          'provider': null,
+          'cost_totals': [],
+        },
+      ]),
+      'GET $base/options': (_) => mt.optionsJson(),
+      'GET $base/m-1': (_) => {'request': request},
+    });
+    await test.auth.signIn('estates.owner@example.test', 'pw');
+    await _pumpApp(tester, test);
+    const book = ContactBook(
+      id: 'org-1',
+      name: 'Sample Estates',
+      canWrite: true,
+    );
+    _router(tester).push(Routes.maintenance, extra: const [book]);
+    await _shoot(tester, '10-maintenance-list');
+    _router(tester)
+        .push(Routes.maintenanceRequest('org-1', 'm-1'), extra: book);
+    await _shoot(tester, '10-maintenance-request');
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -700));
+    await _shoot(tester, '10-maintenance-costs-history');
   }, skip: _skip != null);
 }

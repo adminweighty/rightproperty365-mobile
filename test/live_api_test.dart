@@ -36,6 +36,7 @@ import 'package:rightproperty365/features/listings/data/video_tour.dart';
 import 'package:rightproperty365/features/saved/saved_listings_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
+import 'package:rightproperty365/features/properties/maintenance_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
 import 'package:rightproperty365/features/team/team_repository.dart';
@@ -1053,6 +1054,130 @@ void main() {
       'rent: ${cottage.place} ${schedule.summary.outstanding} outstanding; '
       'receipt recorded and reversed, due waived; '
       'tenant sees ${myDues.dues.length} dues, ${myReceipts.length} receipts',
+    );
+  }, skip: skip);
+
+  test('maintenance requests (API 0.36.2)', () async {
+    final owner = await signedIn('estates.owner@example.test');
+    final org = (await ApiWorkspaceRepository(
+      owner,
+    ).load()).organisations.first;
+    final repo = MaintenanceRepository(owner);
+    final options = await repo.options(org.id);
+    expect(options.canWrite, isTrue);
+    expect(options.categories['plumbing'], 'Plumbing');
+
+    // The seed: four requests, one of each of four statuses.
+    final seeded = await repo.list(org.id);
+    expect(seeded.total, greaterThanOrEqualTo(4));
+    final tap = seeded.items.firstWhere(
+      (r) => r.reference == 'RPM-2026-900001',
+    );
+    final one = await repo.get(org.id, tap.id);
+    expect(one.timeline.length, greaterThanOrEqualTo(7));
+    expect(one.costTotals.single.toString(), 'USD 85.00');
+    expect(one.costs.single.ledgerStatusLabel, 'Recorded by you, not verified');
+
+    // A new request on the cottage: triage, assign (once), cost, comment.
+    final cottage = (await PropertiesRepository(owner).properties(org.id)).items
+        .firstWhere((p) => p.name == 'Borrowdale Cottage');
+    final made = await repo.create(
+      org.id,
+      propertyId: cottage.id,
+      category: 'plumbing',
+      priority: 'normal',
+      title: 'Live check: dripping outside tap',
+    );
+    expect(made.status, 'NEW');
+    expect(made.transitions, containsAll(['TRIAGED', 'CANCELLED']));
+    await repo.setStatus(org.id, made.id, 'TRIAGED');
+    final providers = await repo.providers(org.id, query: 'plumb');
+    expect(providers, isNotEmpty);
+    final first = await repo.assign(org.id, made.id, providers.first.id);
+    expect(first.request.status, 'ASSIGNED');
+    expect(first.enquiryReference, startsWith('BE-'));
+    final again = await repo.assign(org.id, made.id, providers.first.id);
+    // Assigning the same provider again sends no second enquiry.
+    expect(again.request.enquiryReference, first.enquiryReference);
+    final costed = await repo.addCost(
+      org.id,
+      made.id,
+      amount: '12.50',
+      currency: 'USD',
+      description: 'Live check washer',
+      method: 'CASH',
+      incurredOn: DateTime.now().toIso8601String().substring(0, 10),
+    );
+    expect(costed.costTotals.single.toString(), 'USD 12.50');
+    await repo.comment(org.id, made.id, 'Live check note', internal: true);
+    await repo.addPhoto(org.id, made.id, (
+      bytes: base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      ),
+      name: 'tap.png',
+    ));
+    final withPhoto = await repo.get(org.id, made.id);
+    expect(withPhoto.photos, hasLength(1));
+    final jpeg = await repo.photo(withPhoto.photos.single.url);
+    expect(jpeg.take(2), [0xFF, 0xD8]);
+    await repo.setStatus(org.id, made.id, 'CANCELLED', note: 'Live check');
+
+    // Staff read only; another agency's book is not found.
+    final staff = MaintenanceRepository(
+      await signedIn('agency.staff@example.test'),
+    );
+    final staffView = await staff.get(org.id, tap.id);
+    expect(staffView.canAssign || staffView.canAddCost, isFalse);
+    expect(staffView.transitions, isEmpty);
+    await expectLater(
+      MaintenanceRepository(await signedIn('agent-b@example.test'))
+          .list(org.id),
+      throwsA(
+        isA<ApiFailure>().having((f) => f.code, 'code', 'BOOK_NOT_FOUND'),
+      ),
+    );
+
+    // The tenant: their tenancy's requests only, no costs or internal notes.
+    final tenantApi = await signedIn('tenant@example.test');
+    final mine = (await PropertiesRepository(tenantApi).myTenancies()).single;
+    final theirs = MaintenanceRepository(tenantApi);
+    final list = await theirs.mine(mine.id);
+    expect(
+      list.map((r) => r.reference),
+      containsAll(['RPM-2026-900001', 'RPM-2026-900003']),
+    );
+    final seen = await theirs.myRequest(mine.id, tap.id);
+    expect(seen.costs, isEmpty);
+    expect(
+      seen.timeline.where((t) => t.type == 'COST_ADDED' || t.internal),
+      isEmpty,
+    );
+    expect(seen.providerName, isNotNull);
+    final reported = await theirs.report(
+      mine.id,
+      category: 'appliances',
+      priority: 'low',
+      title: 'Live check: fridge light',
+    );
+    expect(reported.raisedByYou, isTrue);
+    await expectLater(
+      theirs.myRequest(mine.id, made.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // A tenant has no cost route at all.
+    await expectLater(
+      tenantApi.postJson(
+        '/v1/me/tenancies/${mine.id}/maintenance/${tap.id}/costs',
+        {'amount': '1.00', 'currency': 'USD', 'description': 'x'},
+      ),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+    // ignore: avoid_print
+    print(
+      'maintenance: ${seeded.total} requests; ${tap.reference} ${one.timeline.length} '
+      'timeline items, ${one.costTotals.single}; new request triaged, assigned '
+      '(${first.enquiryReference}, once), costed, photographed, cancelled; '
+      'tenant sees ${list.length}',
     );
   }, skip: skip);
 }

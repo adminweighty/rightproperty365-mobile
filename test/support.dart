@@ -24,6 +24,7 @@ import 'package:rightproperty365/features/appointments/appointment_repository.da
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
+import 'package:rightproperty365/features/properties/maintenance_repository.dart';
 import 'package:rightproperty365/features/properties/rent_repository.dart';
 import 'package:rightproperty365/features/notifications/notification_centre.dart';
 import 'package:rightproperty365/features/notifications/notifications_repository.dart';
@@ -366,6 +367,7 @@ class TestServices {
       ledger: LedgerRepository(workApi),
       properties: PropertiesRepository(workApi),
       rent: RentRepository(workApi),
+      maintenance: MaintenanceRepository(workApi),
       agentApplications: AgentApplicationsRepository(workApi),
       pickApplicationFile: ({required camera, required accept}) async {
         pickedFrom.add(camera ? 'camera' : 'files');

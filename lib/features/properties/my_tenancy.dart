@@ -7,6 +7,7 @@ import '../../core/widgets/brand.dart';
 import 'properties_repository.dart';
 import 'properties_screens.dart' show TenancyDetails;
 import 'rent_repository.dart' show RentScope;
+import 'maintenance_screens.dart' show MyMaintenanceScreen;
 import 'rent_screens.dart' show RentSummaryCard;
 
 /// Activity, My Tenancy: the signed-in tenant's own tenancies, read only.
@@ -65,6 +66,17 @@ class _MyTenancyViewState extends State<MyTenancyView> {
                         RentSummaryCard(
                           scope: RentScope.tenant(t.id),
                           tenancy: t,
+                        ),
+                        const SizedBox(height: Space.x2),
+                        OutlinedButton.icon(
+                          key: Key('my-repairs-${t.id}'),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => MyMaintenanceScreen(tenancy: t),
+                            ),
+                          ),
+                          icon: const Icon(Icons.build_outlined),
+                          label: const Text('Repairs'),
                         ),
                       ],
                     ),
