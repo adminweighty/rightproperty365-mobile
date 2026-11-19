@@ -1474,4 +1474,62 @@ void main() {
       'on (${before.currentVersion}), no-op repeat, off, stale version refused',
     );
   }, skip: skip);
+
+  test('calendar files (API 0.39.0)', () async {
+    String text(List<int> bytes) => utf8.decode(bytes);
+
+    // The customer's own appointment.
+    final consumer = await signedIn('consumer@example.test');
+    final mine = ApiMyAppointmentsRepository(consumer);
+    final upcoming = (await mine.list()).items;
+    final appointment = upcoming.firstWhere(
+      (a) => a.status == 'CONFIRMED',
+      orElse: () => upcoming.first,
+    );
+    final ics = text(await mine.calendarFile(appointment.id));
+    expect(ics, startsWith('BEGIN:VCALENDAR'));
+    expect(ics, contains('METHOD:PUBLISH'));
+    expect(
+      ics,
+      contains('UID:appointment-${appointment.id}@rightproperty365.com'),
+    );
+    expect(ics, contains('SEQUENCE:'));
+    expect(ics, contains(appointment.reference));
+    expect(ics, contains('\r\n'));
+
+    // The professional's side of the same appointment.
+    final agent = ApiReceivedAppointmentsRepository(
+      await signedIn('agent@example.test'),
+    );
+    final theirs = text(await agent.calendarFile(appointment.id));
+    expect(
+      theirs,
+      contains('UID:appointment-${appointment.id}@rightproperty365.com'),
+    );
+    expect(theirs, isNot(contains('consumer@example.test')));
+
+    // Nobody else's.
+    await expectLater(
+      ApiMyAppointmentsRepository(await signedIn('tenant@example.test'))
+          .calendarFile(appointment.id),
+      throwsA(isA<ApiFailure>().having((f) => f.status, 'status', 404)),
+    );
+
+    // A customer's hourly booking, when they have one.
+    final venues = VenueRepository(consumer);
+    final bookings = await venues.mine();
+    String? booking;
+    if (bookings.isNotEmpty) {
+      final b = bookings.first;
+      final file = text(await venues.myCalendarFile(b.id));
+      expect(file, contains('UID:venue-booking-${b.id}@rightproperty365.com'));
+      booking = b.reference;
+    }
+    // ignore: avoid_print
+    print(
+      'calendar: appointment ${appointment.reference} (${appointment.status}) '
+      'for customer and professional, same UID, 404 for another user; '
+      'booking ${booking ?? "none to check"}',
+    );
+  }, skip: skip);
 }

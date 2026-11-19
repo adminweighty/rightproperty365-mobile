@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import 'package:flutter/services.dart';
 
 /// An appointment or booking to put in the phone's calendar.
@@ -9,6 +10,7 @@ class CalendarEvent {
     required this.end,
     this.location,
     this.notes,
+    this.file,
   });
 
   final String title;
@@ -16,6 +18,11 @@ class CalendarEvent {
   final DateTime end;
   final String? location;
   final String? notes;
+
+  /// The API's calendar file (UID and SEQUENCE kept, so a reschedule or a
+  /// cancellation updates the same entry), fetched with the session when
+  /// needed; never a link with a token in it.
+  final Future<({List<int> bytes, String name})> Function()? file;
 
   /// Google Calendar's "add event" page, for phones without the system
   /// sheet (iPhone, for now).
@@ -32,9 +39,13 @@ class CalendarEvent {
   }
 }
 
-/// How the app adds an event: the phone's own "new event" screen on
-/// Android (any calendar app; no calendar permission is asked for), else
-/// Google Calendar's page in the browser. The person always confirms the
+/// How the app adds an event:
+/// - Android: the phone's own "new event" screen, filled in (any calendar
+///   app; no calendar permission). Google Calendar on Android does not
+///   import .ics files, so the native screen stays.
+/// - iPhone: the API's .ics in the system preview, which offers "Add to
+///   Calendar"; it carries a stable UID and rising SEQUENCE.
+/// - Otherwise, or if those fail: Google Calendar's page in the browser. The person always confirms the
 /// event in that screen; the app writes nothing to the calendar itself.
 class PhoneCalendar {
   PhoneCalendar({required this.openLink, TargetPlatform? platform})
@@ -47,6 +58,22 @@ class PhoneCalendar {
 
   /// Returns false when nothing on the phone could take the event.
   Future<bool> add(CalendarEvent event) async {
+    if (_platform == TargetPlatform.iOS && event.file != null) {
+      try {
+        final file = await event.file!();
+        final shown = await _channel.invokeMethod<bool>('openIcs', {
+          'bytes': Uint8List.fromList(file.bytes),
+          'name': file.name,
+        });
+        if (shown ?? false) return true;
+      } on PlatformException {
+        // Not shown: the web page instead.
+      } on MissingPluginException {
+        // Not wired (tests): the web page instead.
+      } on Exception {
+        // Could not download (offline): the web page instead.
+      }
+    }
     if (_platform == TargetPlatform.android) {
       try {
         final opened = await _channel.invokeMethod<bool>('insert', {

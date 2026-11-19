@@ -812,6 +812,19 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
         end: b.end,
         location: b.listingTitle,
         notes: 'RightProperty365 booking ${b.reference}',
+        file: () async {
+          final book = widget.book;
+          return (
+            bytes: await (book == null
+                ? _repo.myCalendarFile(b.id)
+                : _repo.hostedCalendarFile(
+                    book.id,
+                    b.id,
+                    personal: book.personal,
+                  )),
+            name: 'venue-booking-${b.reference}.ics',
+          );
+        },
       ),
     );
     if (!added) {
@@ -934,7 +947,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
                 spacing: Space.x2,
                 runSpacing: Space.x2,
                 children: [
-                  if (b.status == 'CONFIRMED')
+                  if (b.status == 'CONFIRMED' && b.end.isAfter(DateTime.now()))
                     OutlinedButton.icon(
                       key: const Key('venue-calendar'),
                       onPressed: () => _addToCalendar(b),

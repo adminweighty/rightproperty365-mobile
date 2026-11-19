@@ -526,13 +526,20 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
   Future<void> _addToCalendar(Appointment a) async {
     final messenger = ScaffoldMessenger.of(context);
-    final added = await AppScope.of(context).addToCalendar(
+    final services = AppScope.of(context);
+    final added = await services.addToCalendar(
       CalendarEvent(
         title: '${a.typeLabel}: ${a.title}',
         start: a.startUtc,
         end: a.startUtc.add(Duration(minutes: a.durationMinutes)),
         location: a.locationNote ?? a.listingTitle,
         notes: 'RightProperty365 appointment ${a.reference}',
+        file: () async => (
+          bytes: await (widget.professional
+              ? services.receivedAppointments.calendarFile(a.id)
+              : services.myAppointments.calendarFile(a.id)),
+          name: 'appointment-${a.reference}.ics',
+        ),
       ),
     );
     if (!added) {
@@ -629,7 +636,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         );
 
     final actions = <Widget>[
-      if (a.status == 'CONFIRMED')
+      if (a.status == 'CONFIRMED' &&
+          a.startUtc
+              .add(Duration(minutes: a.durationMinutes))
+              .isAfter(DateTime.now().toUtc()))
         OutlinedButton.icon(
           key: const Key('appointment-calendar'),
           onPressed: () => _addToCalendar(a),

@@ -442,6 +442,20 @@ class VenueRepository {
   );
 
   /// The host's base path: an organisation's, or a direct owner's own
+  /// The calendar file (`.ics`) of the customer's own booking.
+  Future<List<int>> myCalendarFile(String id) => _api.getBytes(
+    '/v1/me/venue-bookings/${Uri.encodeComponent(id)}/calendar.ics',
+  );
+
+  /// The calendar file (`.ics`) of a booking the book hosts.
+  Future<List<int>> hostedCalendarFile(
+    String book,
+    String id, {
+    bool personal = false,
+  }) => _api.getBytes(
+    '${_host(book, personal)}/${Uri.encodeComponent(id)}/calendar.ics',
+  );
+
   /// (`personal`).
   String _host(String book, bool personal) => personal
       ? '/v1/me/hosted-venue-bookings'

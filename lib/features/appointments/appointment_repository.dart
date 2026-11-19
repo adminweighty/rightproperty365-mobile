@@ -205,6 +205,9 @@ abstract interface class MyAppointmentsRepository {
 
   /// Accepts the time the professional proposed.
   Future<Appointment> accept(String id);
+
+  /// The calendar file (`.ics`) of the appointment, read with the session.
+  Future<List<int>> calendarFile(String id);
 }
 
 /// Appointments a professional or property owner received
@@ -223,6 +226,9 @@ abstract interface class ReceivedAppointmentsRepository {
   Future<Appointment> cancel(String id, String reason);
   Future<Appointment> complete(String id);
   Future<Appointment> noShow(String id);
+
+  /// The calendar file (`.ics`) of the appointment, read with the session.
+  Future<List<int>> calendarFile(String id);
 }
 
 String _utc(DateTime time) => time.toUtc().toIso8601String();
@@ -265,6 +271,10 @@ class ApiMyAppointmentsRepository implements MyAppointmentsRepository {
   static const _base = '/v1/me/appointments';
 
   @override
+  Future<List<int>> calendarFile(String id) =>
+      _api.getBytes('$_base/${Uri.encodeComponent(id)}/calendar.ics');
+
+  @override
   Future<AppointmentPage> list({String when = 'upcoming'}) async =>
       _page(await _api.get('$_base?when=$when&page_size=50'));
 
@@ -302,6 +312,10 @@ class ApiReceivedAppointmentsRepository
 
   final ApiClient _api;
   static const _base = '/v1/inbox/appointments';
+
+  @override
+  Future<List<int>> calendarFile(String id) =>
+      _api.getBytes('$_base/${Uri.encodeComponent(id)}/calendar.ics');
 
   @override
   Future<AppointmentPage> list({required DateTime from}) async => _page(
