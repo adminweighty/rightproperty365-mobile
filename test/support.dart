@@ -23,6 +23,7 @@ import 'package:rightproperty365/features/contacts/contacts_repository.dart';
 import 'package:rightproperty365/features/appointments/appointment_repository.dart';
 import 'package:rightproperty365/features/inbox/lead_repository.dart';
 import 'package:rightproperty365/features/ledger/ledger_repository.dart';
+import 'package:rightproperty365/features/legal/legal.dart';
 import 'package:rightproperty365/features/properties/properties_repository.dart';
 import 'package:rightproperty365/features/directory/data/reviews_repository.dart';
 import 'package:rightproperty365/features/properties/inspection_repository.dart';
@@ -364,6 +365,7 @@ class TestServices {
       push: _Push(this),
       notifications: NotificationsRepository(workApi),
       notificationCentre: notificationCentre,
+      legal: legal,
       saved: saved,
       listingDetails: ApiListingDetailsRepository(workApi),
       listingSearch: listingSearch,
@@ -443,6 +445,10 @@ class TestServices {
   PushMessaging push = const NoPushMessaging();
   final pushStore = MemoryStore();
   late final NotificationCentre notificationCentre;
+  late final LegalCentre legal = LegalCentre(
+    repository: LegalRepository(workApi),
+    auth: auth,
+  );
   Uint8List? pickedImage;
 
   final listings = sampleListings();

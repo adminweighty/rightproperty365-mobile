@@ -15,6 +15,7 @@ import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
 import '../features/inbox/lead_repository.dart';
 import '../features/ledger/ledger_repository.dart';
+import '../features/legal/legal.dart';
 import '../features/properties/properties_repository.dart';
 import '../features/directory/data/reviews_repository.dart';
 import '../features/properties/inspection_repository.dart';
@@ -78,6 +79,7 @@ class AppServices {
     required this.inspections,
     required this.reviews,
     required this.connectivity,
+    required this.legal,
     required this.addToCalendar,
     required this.marketing,
     required this.notifications,
@@ -93,6 +95,9 @@ class AppServices {
   /// First-party listing statistics: the events this phone sends, and the
   /// reports professionals read.
   final AnalyticsTracker analytics;
+
+  /// Legal documents waiting for acceptance (API 0.43.0).
+  final LegalCentre legal;
 
   /// The agent CRM: contact books of the person's organisations.
   final ContactsRepository contacts;

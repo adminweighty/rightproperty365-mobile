@@ -115,6 +115,17 @@ class ApiClient {
   /// auth controller; null when signed out.
   String? bearerToken;
 
+  /// The phone's languages for `Accept-Language` (API 0.43.0); the API
+  /// answers in English when it has nothing better.
+  String Function()? acceptLanguage;
+
+  Map<String, String> get _languageHeader {
+    final value = acceptLanguage?.call();
+    return value == null || value.isEmpty
+        ? const {}
+        : {'Accept-Language': value};
+  }
+
   static const _timeout = Duration(seconds: 20);
   static const _fallbackMessage =
       'Something went wrong on our side. Please try again.';
@@ -190,6 +201,7 @@ class ApiClient {
     final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$path'))
       ..headers.addAll({
         'Accept': 'application/json',
+        ..._languageHeader,
         if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',
       })
       ..files.add(
@@ -246,6 +258,7 @@ class ApiClient {
     final request = http.Request(method, Uri.parse('$_baseUrl$path'))
       ..headers.addAll({
         'Accept': accept,
+        ..._languageHeader,
         if (body != null) 'Content-Type': 'application/json',
         if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',
         ...headers,

@@ -46,6 +46,7 @@ import 'package:rightproperty365/features/team/team_repository.dart';
 import 'package:rightproperty365/features/signing/stamp.dart';
 import 'package:rightproperty365/features/venues/venue_repository.dart';
 import 'package:rightproperty365/core/api/scan.dart';
+import 'package:rightproperty365/features/legal/legal.dart';
 
 final _base = Platform.environment['RP_LIVE_API'];
 final _password = Platform.environment['RP_LIVE_PASSWORD'] ?? '';
@@ -1534,6 +1535,61 @@ void main() {
       'calendar: appointment ${appointment.reference} (${appointment.status}) '
       'for customer and professional, same UID, 404 for another user; '
       'booking ${booking ?? "none to check"}',
+    );
+  }, skip: skip);
+
+  test('legal documents to accept again (API 0.43.0)', () async {
+    // Run after publishing a GLOBAL TERMS version with
+    // requires_reacceptance (as admin.content, outside the app); without
+    // one, nothing is pending and the seeded version is accepted instead.
+    final api = await signedIn('consumer@example.test');
+    api.acceptLanguage = () => 'sn-ZW, en;q=0.9';
+    final legal = LegalRepository(api);
+    final pending = await legal.pending();
+    final checked = <String>[];
+    for (final item in pending) {
+      final doc = await legal.document(item);
+      expect(doc.kind, item.kind);
+      expect(doc.version, item.version);
+      expect(doc.body, isNotEmpty);
+      await legal.accept(item);
+      await legal.accept(item); // Accepting twice is fine.
+      checked.add('${item.kind} ${item.version} draft=${doc.draftNotice}');
+    }
+    expect(await legal.pending(), isEmpty);
+
+    // The seeded placeholder: a draft, in English whatever the phone asks.
+    const seeded = PendingLegal(
+      kind: 'TERMS',
+      title: 'Terms and Conditions',
+      version: '2026-11-14',
+      marketCode: 'GLOBAL',
+    );
+    final terms = await legal.document(seeded);
+    expect(terms.draftNotice, isTrue);
+    expect(terms.body, contains('DRAFT'));
+    await legal.accept(seeded);
+    await expectLater(
+      legal.accept(
+        const PendingLegal(
+          kind: 'TERMS',
+          title: 'Terms',
+          version: 'no-such-version',
+          marketCode: 'GLOBAL',
+        ),
+      ),
+      throwsA(
+        isA<ApiFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('no longer available'),
+        ),
+      ),
+    );
+    // ignore: avoid_print
+    print(
+      'legal: pending ${checked.isEmpty ? "none" : checked.join(", ")}, '
+      'accepted and cleared; seeded TERMS draft accepted; unknown version 404',
     );
   }, skip: skip);
 }

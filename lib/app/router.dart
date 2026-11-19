@@ -41,6 +41,7 @@ import '../features/listings/presentation/listing_detail_screen.dart';
 import '../features/listings/presentation/search_screen.dart';
 import '../features/property_requests/presentation/property_request_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../features/legal/legal_screens.dart';
 
 /// Route locations. Build them here so paths are written in one place.
 abstract final class Routes {
@@ -86,6 +87,7 @@ abstract final class Routes {
   static String tenancy(String book, String id) =>
       '/tenancies/${Uri.encodeComponent(book)}/${Uri.encodeComponent(id)}';
   static const notificationPreferences = '/notification-preferences';
+  static const legalUpdates = '/legal-updates';
 
   static String newLedgerEntry(String book) =>
       '/books/${Uri.encodeComponent(book)}/new';
@@ -409,6 +411,10 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/notification-preferences',
       builder: (context, state) => const NotificationPreferencesScreen(),
+    ),
+    GoRoute(
+      path: '/legal-updates',
+      builder: (context, state) => const LegalUpdatesScreen(),
     ),
     GoRoute(
       path: '/books',

@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/widgets/offline_banner.dart';
+import '../features/legal/legal_screens.dart';
 import '../features/notifications/notification_bell.dart';
 import 'app_scope.dart';
 import 'router.dart';
@@ -35,6 +36,7 @@ class _RightPropertyAppState extends State<RightPropertyApp> {
         final connectivity = widget.services.connectivity;
         if (!connectivity.online) connectivity.retry();
         widget.services.notificationCentre.refresh();
+        widget.services.legal.refresh();
         widget.services.notificationCentre.refreshPushState();
       },
     );
@@ -62,7 +64,11 @@ class _RightPropertyAppState extends State<RightPropertyApp> {
         routerConfig: _router,
         builder: (context, child) => OfflineBanner(
           connectivity: widget.services.connectivity,
-          child: child!,
+          child: LegalBanner(
+            centre: widget.services.legal,
+            router: _router,
+            child: child!,
+          ),
         ),
       ),
     );
