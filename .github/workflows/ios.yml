@@ -83,7 +83,25 @@ jobs:
       - name: Build for iPhone, unsigned
         id: build
         if: ${{ !cancelled() && steps.analyze.outcome == 'success' }}
-        run: flutter build ios --release --no-codesign
+        run: |
+          set -o pipefail
+          mkdir -p build
+          flutter build ios --release --no-codesign 2>&1 | tee build/ios-build.log
+
+      # As for the tests: the build's errors as annotations, readable
+      # without signing in to GitHub.
+      - name: Build errors as annotations
+        if: ${{ !cancelled() && steps.build.outcome == 'failure' }}
+        run: |
+          python3 - <<'PY'
+          import re
+          lines = open('build/ios-build.log', errors='replace').read().splitlines()
+          wanted = [l for l in lines if re.search(r'(?i)(error|failed|exception|could not|not found|unable to)', l)]
+          def escape(text):
+              return text.replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+          print('::error title=iOS build: error lines::' + escape('\n'.join(wanted[:60]) or '(none matched)'))
+          print('::error title=iOS build: last 60 lines::' + escape('\n'.join(lines[-60:])))
+          PY
 
       - name: Keep the unsigned app for a week
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
