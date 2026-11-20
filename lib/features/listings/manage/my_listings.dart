@@ -54,6 +54,74 @@ String listingStatusLabel(String status) {
   return words[0].toUpperCase() + words.substring(1);
 }
 
+/// What the advertiser may do to a listing's publication from the app (API
+/// 0.48.0 for all but relist). Offered only when `actions` lists it.
+enum ListingAction {
+  resume(
+    'resume',
+    'resume',
+    'Resume',
+    'Resume listing',
+    'It shows in search again until its period ends.',
+    'Listing resumed.',
+  ),
+  pause(
+    'pause',
+    'pause',
+    'Pause',
+    'Pause listing',
+    'It is hidden from search and keeps its place in your package; the 90 '
+        'days keep running.',
+    'Listing paused.',
+  ),
+  markSold(
+    'mark_sold',
+    'mark-sold',
+    'Mark as sold',
+    'Mark as sold',
+    'It is hidden from search and frees a place in your package. The public '
+        'page says Sold for 30 days. You can relist it later.',
+    'Marked as sold.',
+  ),
+  markLet(
+    'mark_let',
+    'mark-let',
+    'Mark as let',
+    'Mark as let',
+    'It is hidden from search and frees a place in your package. The public '
+        'page says Let for 30 days. You can relist it later.',
+    'Marked as let.',
+  ),
+  close(
+    'close',
+    'close',
+    'Close listing',
+    'Close listing',
+    'It is withdrawn from search and frees a place in your package. You can '
+        'relist it later.',
+    'Listing closed.',
+  );
+
+  const ListingAction(
+    this.wire,
+    this.path,
+    this.label,
+    this.confirmTitle,
+    this.confirmBody,
+    this.done,
+  );
+
+  /// As in `actions`.
+  final String wire;
+
+  /// The route under `/v1/me/listings/{id}/`.
+  final String path;
+  final String label;
+  final String confirmTitle;
+  final String confirmBody;
+  final String done;
+}
+
 /// One of the caller's listings in their list (`GET /v1/me/listings`).
 class MyListing {
   const MyListing({
@@ -140,8 +208,14 @@ class ManagedListing {
   /// The public sees the listing now.
   final bool public;
 
-  /// What the caller may do now, for example `relist`.
+  /// What the caller may do now, for example `relist` or `pause`.
   final Set<String> actions;
+
+  /// The lifecycle actions allowed now, in the order they are offered.
+  List<ListingAction> get lifecycleActions => [
+    for (final a in ListingAction.values)
+      if (actions.contains(a.wire)) a,
+  ];
   final ListingExpiry? expiry;
   final DateTime? publishedAt;
 
@@ -162,12 +236,18 @@ class MyListingsRepository {
   String _path(String id) => '/v1/me/listings/${Uri.encodeComponent(id)}';
 
   /// Null when the caller manages no listings (403). [expiry] filters to
-  /// expiring or expired listings.
+  /// expiring or expired listings, [status] to one status (for example
+  /// PAUSED or SOLD).
   Future<({List<MyListing> items, int total})?> list({
     ExpiryState? expiry,
+    String? status,
   }) async {
     try {
-      final query = {'page_size': '50', 'expiry': ?expiry?.wire};
+      final query = {
+        'page_size': '50',
+        'expiry': ?expiry?.wire,
+        'status': ?status,
+      };
       final body = (await _api.get(
         Uri(path: '/v1/me/listings', queryParameters: query).toString(),
       )).body;
@@ -199,9 +279,31 @@ class MyListingsRepository {
     }
   }
 
-  /// Sends an expired listing for review; once approved it is live again.
-  Future<ManagedListing> relist(String id) async => ManagedListing.fromJson(
-    (await _api.postJson('${_path(id)}/relist', const {})).body['listing']
-        as Map<String, dynamic>,
-  );
+  /// The managed listing, whether sent under `listing` or bare.
+  static ManagedListing _managed(ApiResponse response) =>
+      ManagedListing.fromJson(switch (response.body['listing']) {
+        final Map<String, dynamic> l => l,
+        _ => response.body,
+      });
+
+  /// Sends a listing that is not live for review; once approved it is live
+  /// again for a new period.
+  Future<ManagedListing> relist(String id) async =>
+      _managed(await _api.postJson('${_path(id)}/relist', const {}));
+
+  /// Pauses, resumes, marks sold or let, or closes the listing.
+  Future<ManagedListing> apply(String id, ListingAction action) async {
+    try {
+      return _managed(
+        await _api.postJson('${_path(id)}/${action.path}', const {}),
+      );
+    } on ApiFailure catch (failure) {
+      throw failure.code == 'LISTING_STATE_CONFLICT'
+          ? failure.withMessage(
+              'This listing has changed since you opened it. Refresh and try '
+              'again.',
+            )
+          : failure;
+    }
+  }
 }

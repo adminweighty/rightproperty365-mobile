@@ -89,26 +89,34 @@ class _Detail extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final isAgency = listing.advertiser.kind == AdvertiserKind.agency;
     final profiles = AppScope.of(context).directory.profilesFor(listing);
+    // Sold or let recently: shown as such, with no way to contact or apply.
+    final closed = switch (listing.closedState) {
+      'SOLD' => 'Sold',
+      'LET' => 'Let',
+      _ => null,
+    };
 
     return Scaffold(
       appBar: AppBar(
         title: Text(listing.suburb),
         actions: [SaveHeart(listingId: listing.id, title: listing.title)],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Space.x4,
-            Space.x2,
-            Space.x4,
-            Space.x3,
-          ),
-          child: FilledButton(
-            onPressed: () => context.push(Routes.request(listing.slug)),
-            child: Text('Contact the ${listing.contactTitle}'),
-          ),
-        ),
-      ),
+      bottomNavigationBar: closed != null
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Space.x4,
+                  Space.x2,
+                  Space.x4,
+                  Space.x3,
+                ),
+                child: FilledButton(
+                  onPressed: () => context.push(Routes.request(listing.slug)),
+                  child: Text('Contact the ${listing.contactTitle}'),
+                ),
+              ),
+            ),
       body: ListView(
         children: [
           ListingPhoto(
@@ -130,6 +138,27 @@ class _Detail extends StatelessWidget {
                     AppBadge(listing.propertyType),
                   ],
                 ),
+                if (closed != null) ...[
+                  const SizedBox(height: Space.x4),
+                  Container(
+                    key: const Key('listing-closed-banner'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(Space.x3),
+                    decoration: BoxDecoration(
+                      color: c.infoSoft,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        closed == 'Sold'
+                            ? 'Sold. This property is no longer on the market.'
+                            : 'Let. This property is no longer available to rent.',
+                        style: text.titleMedium,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: Space.x4),
                 Semantics(
                   header: true,
@@ -164,12 +193,14 @@ class _Detail extends StatelessWidget {
                   style: text.bodyLarge?.copyWith(color: c.muted),
                 ),
                 const SizedBox(height: Space.x6),
-                HourlyBookingSection(
-                  listingId: listing.id,
-                  slug: listing.slug,
-                  title: listing.title,
-                ),
-                ApplySection(slug: listing.slug),
+                if (closed == null) ...[
+                  HourlyBookingSection(
+                    listingId: listing.id,
+                    slug: listing.slug,
+                    title: listing.title,
+                  ),
+                  ApplySection(slug: listing.slug),
+                ],
                 ListingMapSection(listing: listing),
                 VideoTourSection(
                   slug: listing.slug,

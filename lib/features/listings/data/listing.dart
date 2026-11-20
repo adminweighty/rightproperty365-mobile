@@ -97,6 +97,7 @@ class Listing {
     this.featured = false,
     this.position,
     this.hasVideo = false,
+    this.closedState,
   });
 
   /// From the API's public `Listing` (search results and the listing
@@ -184,6 +185,10 @@ class Listing {
       featured: json['featured'] == true,
       position: ListingLocation.fromJson(json['location']),
       hasVideo: json['has_video'] == true,
+      closedState: switch (json['closed_state']) {
+        final String s when s == 'SOLD' || s == 'LET' => s,
+        _ => null,
+      },
     );
   }
 
@@ -262,6 +267,10 @@ class Listing {
   final ListingLocation? position;
   final bool hasVideo;
 
+  /// `SOLD` or `LET` for 30 days after the advertiser marked it so (API
+  /// 0.48.0): the page says so and offers no contact. Null otherwise.
+  final String? closedState;
+
   /// The same listing placed at [where] (a bundled listing, located by the
   /// API).
   Listing withLocation(ListingLocation where) => Listing(
@@ -291,6 +300,7 @@ class Listing {
     featured: featured,
     position: where,
     hasVideo: hasVideo,
+    closedState: closedState,
   );
 
   String get location => '$suburb, $city';
