@@ -135,6 +135,13 @@ Future<LinkTarget> resolveNotificationLink(
       return const InApp(Routes.myListings);
     case ('agent', 'listings', 3) when s[2] != 'new':
       return InApp(Routes.myListing(s[2]));
+    // Renewal invoices (API 0.47.0): read-only in the app. The subscription
+    // page offers payment, which store billing rules keep out of the app, so
+    // its links (invoice issued, subscription active) open the invoices.
+    case ('account', 'invoices', 3):
+      return InApp(Routes.invoice(s[2]));
+    case ('account', 'invoices' || 'subscription' || 'subscriptions', _):
+      return const InApp(Routes.invoices);
     case ('agent', 'leases', 3):
       return InApp(Routes.lease(s[2]));
     case ('agent', 'leases', 2):

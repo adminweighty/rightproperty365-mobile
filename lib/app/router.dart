@@ -41,6 +41,7 @@ import '../features/listings/presentation/listing_detail_screen.dart';
 import '../features/listings/presentation/search_screen.dart';
 import '../features/property_requests/presentation/property_request_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../features/billing/invoices_screens.dart';
 import '../features/legal/legal_screens.dart';
 import '../features/listings/manage/my_listings.dart' show ExpiryState;
 import '../features/listings/manage/my_listings_screens.dart';
@@ -96,6 +97,10 @@ abstract final class Routes {
   static const myListings = '/my-listings';
   static String myListing(String id) =>
       '/my-listings/${Uri.encodeComponent(id)}';
+
+  /// The payer's renewal invoices (API 0.47.0), read-only.
+  static const invoices = '/invoices';
+  static String invoice(String id) => '/invoices/${Uri.encodeComponent(id)}';
 
   /// Development projects (API 0.44.0), at the website's own paths.
   static const developments = '/developments';
@@ -433,6 +438,17 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/notification-preferences',
       builder: (context, state) => const NotificationPreferencesScreen(),
+    ),
+    GoRoute(
+      path: '/invoices',
+      builder: (context, state) => const InvoicesScreen(),
+      routes: [
+        GoRoute(
+          path: ':id',
+          builder: (context, state) =>
+              InvoiceScreen(id: state.pathParameters['id']!),
+        ),
+      ],
     ),
     GoRoute(
       path: '/my-listings',

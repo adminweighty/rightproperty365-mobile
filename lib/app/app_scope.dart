@@ -11,6 +11,7 @@ import '../features/analytics/analytics_repository.dart';
 import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/billing/invoices.dart';
 import '../features/listings/manage/my_listings.dart';
 import '../features/contacts/contacts_repository.dart';
 import '../features/appointments/appointment_repository.dart';
@@ -61,6 +62,7 @@ class AppServices {
     required this.pickSignatureImage,
     required this.myRequests,
     required this.myListings,
+    required this.invoices,
     required this.myAppointments,
     required this.receivedAppointments,
     required this.leads,
@@ -188,6 +190,9 @@ class AppServices {
 
   /// The listings the person manages, with expiry and relist (API 0.45.0).
   final MyListingsRepository myListings;
+
+  /// The payer's renewal invoices, read-only (API 0.47.0).
+  final InvoicesRepository invoices;
   final MyAppointmentsRepository myAppointments;
 
   /// The professional side: appointments received and working a request.

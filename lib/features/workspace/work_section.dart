@@ -173,6 +173,14 @@ class _WorkSectionState extends State<WorkSection> {
                 subtitle: 'Expiry dates and relisting',
                 onTap: () => open(Routes.myListings),
               ),
+            if (work.receivesInvoices)
+              _Tile(
+                key: const Key('open-invoices'),
+                icon: Icons.receipt_long_outlined,
+                title: 'Invoices',
+                subtitle: 'Subscription invoices and receipts',
+                onTap: () => open(Routes.invoices),
+              ),
             if (work.statisticsOrganisations.isNotEmpty)
               _Tile(
                 key: const Key('open-statistics'),

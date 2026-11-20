@@ -60,6 +60,7 @@ class Workspace {
     this.organisations = const [],
     this.createsLeases = false,
     this.managesListings = false,
+    this.directOwner = false,
     this.documentsWaitingForYou = 0,
   });
 
@@ -83,6 +84,7 @@ class Workspace {
       ],
       createsLeases: capabilities['creates_leases'] == true,
       managesListings: capabilities['manages_listings'] == true,
+      directOwner: json['direct_owner'] == true,
       documentsWaitingForYou: count('agreements.waiting_for_you'),
     );
   }
@@ -93,7 +95,17 @@ class Workspace {
   /// `/v1/me/listings` is open to the person (an agency member or an
   /// approved owner).
   final bool managesListings;
+
+  /// An approved landlord or property seller, who pays their own
+  /// subscription.
+  final bool directOwner;
   final int documentsWaitingForYou;
+
+  /// Renewal invoices go to a direct owner, and to an organisation's owners
+  /// and managers (API 0.47.0).
+  bool get receivesInvoices =>
+      directOwner ||
+      organisations.any((o) => o.role == 'OWNER' || o.role == 'MANAGER');
 
   List<WorkOrganisation> get teamsToManage => [
     for (final o in organisations)

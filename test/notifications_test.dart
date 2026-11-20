@@ -340,10 +340,6 @@ void main() {
         await where('/agent/listings/new'),
         'web https://rightproperty365.com/agent/listings/new',
       );
-      expect(
-        await where('/account/subscription'),
-        'web https://rightproperty365.com/account/subscription',
-      );
     });
 
     test('never follow a link off-site', () async {
@@ -362,10 +358,10 @@ void main() {
           itemJson(),
           itemJson(
             id: 'n-2',
-            type: 'SUBSCRIPTION_INVOICE',
-            title: 'Subscription invoice issued',
-            body: 'RPS-2026-000001',
-            link: '/account/subscription',
+            type: 'LISTING_REVIEWED',
+            title: 'Listing approved',
+            body: 'RP-ZW-10001',
+            link: '/agent/listings/new',
             read: true,
           ),
         ]),
@@ -400,14 +396,14 @@ void main() {
 
       await tester.tap(find.byKey(const Key('notification-n-2')));
       await settle(tester);
-      // Already read: no read call; the website opens the subscription.
+      // Already read: no read call; the website opens what the app has not.
       expect(
         test.workRequests.where((r) => r.url.path.endsWith('/read')),
         isEmpty,
       );
       expect(
         test.opened.single.toString(),
-        'https://rightproperty365.com/account/subscription',
+        'https://rightproperty365.com/agent/listings/new',
       );
     });
 
