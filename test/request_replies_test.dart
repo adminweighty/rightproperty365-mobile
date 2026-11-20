@@ -90,7 +90,10 @@ void main() {
             at: '2030-03-01T11:00:00Z',
           );
           thread.add(m);
-          return jsonResponse(201, {'message': m});
+          // 0.46: the API answers with the whole request.
+          return jsonResponse(201, {
+            'request': mine(messages: thread, canReply: true),
+          });
         },
       });
       await pumpInApp(tester, test, const MyRequestScreen(id: 'req-1'));
@@ -136,7 +139,7 @@ void main() {
           'request': mine(messages: [message('m-1', 'Hello')], canReply: true),
         },
         'POST /v1/me/property-requests/req-1/messages': (_) =>
-            failure(409, 'REQUEST_CLOSED'),
+            failure(409, 'REPLY_NOT_OPEN'),
       });
       await pumpInApp(tester, test, const MyRequestScreen(id: 'req-1'));
       await settle(tester);
@@ -144,7 +147,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const Key('thread-send')));
       await settle(tester);
-      expect(find.text('API says REQUEST_CLOSED'), findsOneWidget);
+      expect(find.text('API says REPLY_NOT_OPEN'), findsOneWidget);
       // What was typed is kept.
       expect(find.text('Hi'), findsOneWidget);
     });
@@ -201,7 +204,9 @@ void main() {
           );
           thread.add(m);
           stage = 'CONTACTED';
-          return jsonResponse(201, {'message': m});
+          return jsonResponse(201, {
+            'request': lead(stage: stage, messages: thread, notes: [note]),
+          });
         },
       });
       await pumpInApp(tester, test, const LeadScreen(requestId: 'req-9'));
@@ -232,6 +237,8 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const Key('thread-send')));
       await settle(tester);
+      // The answer is the updated request: no second fetch.
+      expect(test.workRequests.where((r) => r.method == 'GET').length, 1);
       final post = test.workRequests.lastWhere((r) => r.method == 'POST');
       expect(post.url.path, '/v1/agent/property-requests/req-9/messages');
       expect(bodyOf(post), {'body': 'Yes, Saturday at 10 works.'});
@@ -252,7 +259,7 @@ void main() {
       final test = TestServices();
       serve(test, {
         'GET /v1/agent/property-requests/req-9': (_) => {
-          'request': lead(stage: 'CLOSED'),
+          'request': {...lead(stage: 'CLOSED'), 'can_reply': false},
         },
       });
       await pumpInApp(tester, test, const LeadScreen(requestId: 'req-9'));
@@ -264,12 +271,12 @@ void main() {
       expect(find.byKey(const Key('thread-input')), findsNothing);
     });
 
-    testWidgets('a request that was not routed says why', (tester) async {
+    testWidgets('a refused reply shows the API message', (tester) async {
       final test = TestServices();
       serve(test, {
         'GET /v1/agent/property-requests/req-9': (_) => {'request': lead()},
         'POST /v1/agent/property-requests/req-9/messages': (_) =>
-            failure(409, 'REQUEST_NOT_ROUTED'),
+            failure(400, 'VALIDATION_FAILED'),
       });
       await pumpInApp(tester, test, const LeadScreen(requestId: 'req-9'));
       await settle(tester);
@@ -277,7 +284,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const Key('thread-send')));
       await settle(tester);
-      expect(find.text('API says REQUEST_NOT_ROUTED'), findsOneWidget);
+      expect(find.text('API says VALIDATION_FAILED'), findsOneWidget);
     });
 
     testWidgets('the inbox flags requests awaiting a reply', (tester) async {

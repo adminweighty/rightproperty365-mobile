@@ -12,6 +12,7 @@ class Lead {
     required this.timeline,
     required this.notes,
     this.messages = const [],
+    this.canReply = true,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) => Lead(
@@ -42,6 +43,7 @@ class Lead {
         ),
     ],
     messages: RequestMessage.listFrom(json['messages']),
+    canReply: json['can_reply'] as bool? ?? json['stage'] != 'CLOSED',
   );
 
   final ReceivedEnquiry enquiry;
@@ -58,6 +60,9 @@ class Lead {
   /// customer sees these; never the notes.
   final List<RequestMessage> messages;
 
+  /// False when the request is closed (`can_reply`, API 0.46.0).
+  final bool canReply;
+
   bool get closed => stage == 'CLOSED';
 }
 
@@ -72,8 +77,8 @@ abstract interface class LeadRepository {
   Future<Lead> addNote(String requestId, String body);
 
   /// Replies to the customer (1 to 2000 characters). A NEW or ASSIGNED
-  /// request moves to Contacted with it.
-  Future<RequestMessage> reply(String requestId, String body);
+  /// request moves to Contacted with it. Answers with the updated request.
+  Future<Lead> reply(String requestId, String body);
 }
 
 class ApiLeadRepository implements LeadRepository {
@@ -105,12 +110,9 @@ class ApiLeadRepository implements LeadRepository {
   }
 
   @override
-  Future<RequestMessage> reply(String requestId, String body) async =>
-      messageOf(
-        await _api.postJson('${_path(requestId)}/messages', {
-          'body': body.trim(),
-        }),
-      );
+  Future<Lead> reply(String requestId, String body) async => _lead(
+    await _api.postJson('${_path(requestId)}/messages', {'body': body.trim()}),
+  );
 
   @override
   Future<Lead> addNote(String requestId, String body) async => _lead(

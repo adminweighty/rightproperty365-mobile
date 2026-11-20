@@ -110,8 +110,9 @@ abstract interface class MyRequestsRepository {
   /// the replies read.
   Future<MyRequest> get(String id);
 
-  /// Answers the professional (1 to 2000 characters).
-  Future<RequestMessage> reply(String id, String body);
+  /// Answers the professional (1 to 2000 characters). The API answers with
+  /// the request as [get] gives it.
+  Future<MyRequest> reply(String id, String body);
 }
 
 class ApiMyRequestsRepository implements MyRequestsRepository {
@@ -140,10 +141,11 @@ class ApiMyRequestsRepository implements MyRequestsRepository {
   }
 
   @override
-  Future<RequestMessage> reply(String id, String body) async => messageOf(
-    await _api.postJson(
+  Future<MyRequest> reply(String id, String body) async {
+    final response = await _api.postJson(
       '/v1/me/property-requests/${Uri.encodeComponent(id)}/messages',
       {'body': body.trim()},
-    ),
-  );
+    );
+    return MyRequest.fromJson(response.body['request'] as Map<String, dynamic>);
+  }
 }

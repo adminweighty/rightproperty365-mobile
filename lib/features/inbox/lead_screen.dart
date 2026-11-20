@@ -159,13 +159,12 @@ class _LeadScreenState extends State<LeadScreen> {
           emptyText:
               'No messages yet. Your first reply moves a new request '
               'to Contacted.',
-          blockedText: lead.closed
-              ? 'This request is closed. Reopen it to reply.'
-              : null,
+          blockedText: lead.canReply
+              ? null
+              : 'This request is closed. Reopen it to reply.',
           sendLabel: 'Send reply',
           onSend: (body) async {
-            await leads.reply(widget.requestId, body);
-            final updated = await leads.get(widget.requestId);
+            final updated = await leads.reply(widget.requestId, body);
             if (!mounted) return;
             setState(() => _lead = updated);
             ScaffoldMessenger.of(this.context)

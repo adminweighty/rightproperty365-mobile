@@ -1,5 +1,3 @@
-import '../../../core/api/api_client.dart';
-
 /// One message in the conversation on a property request (API 0.46.0),
 /// between the customer and the professional working it. Private notes are
 /// never messages.
@@ -42,10 +40,3 @@ class RequestMessage {
 
 /// The longest message the API accepts.
 const requestMessageMax = 2000;
-
-/// The posted message (`201`), whether sent bare or under `message`.
-RequestMessage messageOf(ApiResponse response) =>
-    RequestMessage.fromJson(switch (response.body['message']) {
-      final Map<String, dynamic> m => m,
-      _ => response.body,
-    });
