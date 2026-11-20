@@ -25,22 +25,29 @@ Map<String, dynamic> invoiceJson({
   'status': status,
   'market_code': 'ZW',
   'currency_code': 'USD',
-  'payer_name': 'Sample Estates',
+  'payer': {'kind': 'ORGANISATION', 'id': 'org-1', 'name': 'Sample Estates'},
+  'renews_subscription_id': 'sub-8',
+  'subscription_id': 'sub-9',
   'plan_name': 'Agency Pro',
   'period': 'MONTHLY',
   'service_from': '2026-12-01',
-  'service_to': '2026-12-31',
+  // Exclusive: the period ends on 31 Dec.
+  'service_to': '2027-01-01',
   'issue_on': '2026-11-20',
   'due_on': '2026-12-04',
   'terms':
       'Payment is due by the due date. Your subscription renews when payment '
       'is confirmed.',
   'subtotal': '100.00',
-  'tax_name': tax ? 'VAT' : null,
-  'tax_rate': tax ? '15' : null,
-  'tax_inclusive': false,
-  'tax_amount': tax ? '15.00' : null,
-  'tax_is_sample': sample,
+  'tax': tax
+      ? {
+          'name': 'VAT',
+          'rate': '15',
+          'inclusive': false,
+          'amount': '15.00',
+          'is_sample': sample,
+        }
+      : null,
   'total': total,
   'amount_paid': paid,
   'amount_credited': '0.00',
@@ -60,13 +67,24 @@ Map<String, dynamic> invoiceJson({
           'id': 'pay-1',
           'amount': '50.00',
           'method': 'BANK_TRANSFER',
+          'method_label': 'Bank transfer',
           'reference': 'FBC 0042',
           'received_on': '2026-11-25',
           'receipt_number': 'RCT-ZW-2026-000003',
         },
       ],
   'credit_notes': [],
-  'pay_url': 'https://rightproperty365.com/account/subscriptions/sub-9',
+};
+
+/// The customer detail: the invoice with its payment fields, which the app
+/// never uses.
+Map<String, dynamic> detail(Map<String, dynamic> invoice) => {
+  'invoice': {
+    ...invoice,
+    'pay_url': 'https://rightproperty365.com/account/subscriptions/sub-9',
+    'pay_online': true,
+    'offline_instructions': 'Pay by bank transfer to the account below.',
+  },
 };
 
 /// Words that would offer payment. None may appear in the app.
@@ -96,6 +114,25 @@ void main() {
       expect(i.balance, '65.00');
       expect(i.payments.single.receiptNumber, 'RCT-ZW-2026-000003');
       expect(i.payments.single.methodLabel, 'Bank transfer');
+      expect(i.payerName, 'Sample Estates');
+      expect(i.taxName, 'VAT');
+      expect(i.serviceLastDay, DateTime(2026, 12, 31));
+      expect(Invoice.fromJson(invoiceJson(tax: false)).taxName, isNull);
+      // The API's method wording wins; the app's own is the fallback.
+      expect(
+        InvoicePayment.fromJson({
+          'id': 'p',
+          'amount': '1',
+          'method': 'CASH',
+          'method_label': 'Cash at the office',
+        }).methodLabel,
+        'Cash at the office',
+      );
+      expect(
+        InvoicePayment.fromJson({'id': 'p', 'amount': '1', 'method': 'CASH'})
+            .methodLabel,
+        'Cash',
+      );
       expect(invoiceMoney('1234.5', 'USD'), 'USD 1,234.50');
       // Numbers are read too.
       expect(
@@ -192,7 +229,7 @@ void main() {
       tester,
     ) async {
       final test = TestServices();
-      serve(test, {'GET /v1/me/invoices/inv-1': (_) => invoiceJson()});
+      serve(test, {'GET /v1/me/invoices/inv-1': (_) => detail(invoiceJson())});
       await pumpInApp(tester, test, const InvoiceScreen(id: 'inv-1'));
       await settle(tester);
       expect(find.text('INV-ZW-2026-000012'), findsOneWidget);
@@ -224,7 +261,7 @@ void main() {
     ) async {
       final test = TestServices();
       var json = invoiceJson(tax: false);
-      serve(test, {'GET /v1/me/invoices/inv-1': (_) => json});
+      serve(test, {'GET /v1/me/invoices/inv-1': (_) => detail(json)});
       await pumpInApp(
         tester,
         test,
@@ -232,6 +269,8 @@ void main() {
       );
       await settle(tester);
       expect(find.text('No tax for this market'), findsOneWidget);
+      expect(find.text('1 Dec 2026 to 31 Dec 2026'), findsOneWidget);
+      expect(find.textContaining('bank transfer to the account'), findsNothing);
 
       json = invoiceJson(sample: true, status: 'OVERDUE');
       await pumpInApp(
@@ -279,7 +318,7 @@ void main() {
     testWidgets("another payer's invoice says so", (tester) async {
       final test = TestServices();
       serve(test, {
-        'GET /v1/me/invoices/inv-1': (_) => failure(404, 'NOT_FOUND'),
+        'GET /v1/me/invoices/inv-1': (_) => failure(404, 'INVOICE_NOT_FOUND'),
       });
       await expectLater(
         test.services.invoices.get('inv-1'),
@@ -299,7 +338,7 @@ void main() {
         'GET /v1/me/invoices': (_) => {
           'items': [invoiceJson()],
         },
-        'GET /v1/me/invoices/inv-1': (_) => invoiceJson(sample: true),
+        'GET /v1/me/invoices/inv-1': (_) => detail(invoiceJson(sample: true)),
       });
       await pumpInApp(tester, test, const InvoicesScreen(), textScale: 2);
       await settle(tester);

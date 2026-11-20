@@ -66,6 +66,7 @@ class InvoicePayment {
     required this.id,
     required this.amount,
     required this.method,
+    this.apiMethodLabel,
     this.receiptNumber,
     this.receivedOn,
   });
@@ -74,6 +75,7 @@ class InvoicePayment {
     id: json['id'] as String? ?? '',
     amount: _amount(json['amount']),
     method: json['method'] as String? ?? '',
+    apiMethodLabel: json['method_label'] as String?,
     receiptNumber: json['receipt_number'] as String?,
     receivedOn: _date(json['received_on'] ?? json['created_at']),
   );
@@ -83,16 +85,21 @@ class InvoicePayment {
 
   /// BANK_TRANSFER, CASH, CARD_OFFLINE, GATEWAY or OTHER.
   final String method;
+
+  /// The API's wording for [method], when sent.
+  final String? apiMethodLabel;
   final String? receiptNumber;
   final DateTime? receivedOn;
 
-  String get methodLabel => switch (method) {
-    'BANK_TRANSFER' => 'Bank transfer',
-    'CASH' => 'Cash',
-    'CARD_OFFLINE' => 'Card',
-    'GATEWAY' => 'Online payment',
-    _ => 'Other',
-  };
+  String get methodLabel =>
+      apiMethodLabel ??
+      switch (method) {
+        'BANK_TRANSFER' => 'Bank transfer',
+        'CASH' => 'Cash',
+        'CARD_OFFLINE' => 'Card',
+        'GATEWAY' => 'Online payment',
+        _ => 'Other',
+      };
 }
 
 class CreditNote {
@@ -143,6 +150,9 @@ class Invoice {
     final status = InvoiceStatus.from(json['status']);
     String? text(String key) => json[key] as String?;
     String? money(String key) => json[key] == null ? null : _amount(json[key]);
+    // `tax` is null when the market has no tax rule.
+    final tax = json['tax'] as Map<String, dynamic>?;
+    final payer = json['payer'] as Map<String, dynamic>?;
     return Invoice(
       id: json['id'] as String,
       number: text('number') ?? '',
@@ -159,17 +169,17 @@ class Invoice {
       amountPaid: money('amount_paid'),
       amountCredited: money('amount_credited'),
       planName: text('plan_name'),
-      payerName: text('payer_name'),
+      payerName: payer?['name'] as String?,
       serviceFrom: _date(json['service_from']),
       serviceTo: _date(json['service_to']),
       issueOn: _date(json['issue_on']),
       dueOn: _date(json['due_on']),
       terms: text('terms'),
-      taxName: text('tax_name'),
-      taxRate: json['tax_rate'] == null ? null : _amount(json['tax_rate']),
-      taxAmount: money('tax_amount'),
-      taxInclusive: json['tax_inclusive'] == true,
-      taxIsSample: json['tax_is_sample'] == true,
+      taxName: tax?['name'] as String?,
+      taxRate: tax?['rate'] == null ? null : _amount(tax!['rate']),
+      taxAmount: tax?['amount'] == null ? null : _amount(tax!['amount']),
+      taxInclusive: tax?['inclusive'] == true,
+      taxIsSample: tax?['is_sample'] == true,
       lines: [
         for (final l in (json['lines'] as List?) ?? const [])
           InvoiceLine.fromJson(l as Map<String, dynamic>),
@@ -198,6 +208,8 @@ class Invoice {
   final String? planName;
   final String? payerName;
   final DateTime? serviceFrom;
+
+  /// Exclusive: the service period ends the day before. See [serviceLastDay].
   final DateTime? serviceTo;
   final DateTime? issueOn;
   final DateTime? dueOn;
@@ -214,6 +226,11 @@ class Invoice {
   final List<InvoiceLine> lines;
   final List<InvoicePayment> payments;
   final List<CreditNote> creditNotes;
+
+  /// The last day of service, as people read a period.
+  DateTime? get serviceLastDay => serviceTo == null
+      ? null
+      : DateTime(serviceTo!.year, serviceTo!.month, serviceTo!.day - 1);
 
   bool get settled =>
       status == InvoiceStatus.paid || status == InvoiceStatus.voided;
@@ -238,9 +255,7 @@ class InvoicesRepository {
       final body = (await _api.get(
         '/v1/me/invoices/${Uri.encodeComponent(id)}',
       )).body;
-      return Invoice.fromJson(
-        (body['invoice'] ?? body) as Map<String, dynamic>,
-      );
+      return Invoice.fromJson(body['invoice'] as Map<String, dynamic>);
     } on ApiFailure catch (failure) {
       throw failure.status == 404
           ? failure.withMessage(

@@ -23,9 +23,9 @@ BadgeTone invoiceTone(InvoiceStatus s) => switch (s) {
   _ => BadgeTone.primary,
 };
 
-String? _period(Invoice i) => i.serviceFrom == null || i.serviceTo == null
+String? _period(Invoice i) => i.serviceFrom == null || i.serviceLastDay == null
     ? null
-    : '${_on(i.serviceFrom!)} to ${_on(i.serviceTo!)}';
+    : '${_on(i.serviceFrom!)} to ${_on(i.serviceLastDay!)}';
 
 /// The payer's renewal invoices: read-only. Paying is not offered in the app.
 class InvoicesScreen extends StatefulWidget {
