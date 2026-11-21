@@ -72,6 +72,8 @@ class AppointmentCard extends StatelessWidget {
               '${a.typeLabel}${who == null ? '' : ' with $who'}',
               style: text.bodyMedium,
             ),
+            if (a.serviceLabel != null)
+              Text(a.serviceLabel!, style: text.bodyMedium),
             Text(when, style: text.bodyMedium),
             if (waiting != null)
               Padding(
@@ -250,7 +252,17 @@ class _ReceivedAppointmentsScreenState
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Viewing Appointments')),
+      appBar: AppBar(
+        title: const Text('Viewing Appointments'),
+        actions: [
+          IconButton(
+            key: const Key('open-availability'),
+            tooltip: 'Availability and consultations',
+            icon: const Icon(Icons.event_available_outlined),
+            onPressed: () => context.push(Routes.availability),
+          ),
+        ],
+      ),
       body: FutureBuilder<AppointmentPage>(
         future: _page,
         builder: (context, snapshot) {
@@ -728,6 +740,12 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           '${a.typeLabel} · ${a.reference}',
           style: text.bodyMedium?.copyWith(color: c.muted),
         ),
+        if (a.serviceLabel != null)
+          Text(
+            a.serviceLabel!,
+            key: const Key('appointment-service'),
+            style: text.bodyLarge,
+          ),
         const SizedBox(height: Space.x3),
         line(
           Icons.schedule,

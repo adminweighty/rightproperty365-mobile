@@ -25,6 +25,7 @@ class PropertyRequestDraft {
     required this.consentAccepted,
     required this.privacyVersion,
     this.preferredSlot,
+    this.serviceId,
   });
 
   final String listingId;
@@ -38,6 +39,10 @@ class PropertyRequestDraft {
   /// Any time zone; it is sent as UTC.
   final DateTime? preferredSlot;
 
+  /// The professional's consultation service, for a consultation request
+  /// (API 0.51.0).
+  final String? serviceId;
+
   Map<String, dynamic> toJson(String idempotencyKey) => {
     'listing_id': listingId,
     'request_type': requestType.wire,
@@ -45,6 +50,8 @@ class PropertyRequestDraft {
     'preferred_contact_method': contactMethod.wire,
     if (preferredSlot != null && requestType.allowsSlot)
       'preferred_slot_utc': preferredSlot!.toUtc().toIso8601String(),
+    if (serviceId != null && requestType == RequestType.consultationRequest)
+      'service_id': serviceId,
     'idempotency_key': idempotencyKey,
     'guest_contact': ?contact.toJson(),
     'consent': {'privacy_version': privacyVersion, 'accepted': consentAccepted},

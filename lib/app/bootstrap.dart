@@ -24,6 +24,7 @@ import '../features/analytics/analytics_repository.dart';
 import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/appointments/availability.dart';
 import '../features/auth/data/account_security.dart';
 import '../features/billing/invoices.dart';
 import '../features/listings/manage/my_listings.dart';
@@ -193,6 +194,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     myListings: MyListingsRepository(api),
     invoices: InvoicesRepository(api),
     security: AccountSecurityRepository(api),
+    availability: AvailabilityRepository(api),
     myAppointments: ApiMyAppointmentsRepository(api),
     receivedAppointments: ApiReceivedAppointmentsRepository(api),
     leads: ApiLeadRepository(api),

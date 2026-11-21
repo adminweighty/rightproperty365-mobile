@@ -1,4 +1,5 @@
 import '../../core/api/api_client.dart';
+import 'availability.dart' show ConsultationChannel;
 
 /// One entry of an appointment's history (`AppointmentTimelineEntry`).
 class AppointmentEvent {
@@ -89,11 +90,14 @@ class Appointment {
     this.contactPhone,
     this.contactMethod,
     this.assignedTo,
+    this.serviceName,
+    this.serviceChannel,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
     final listing = json['listing'] as Map<String, dynamic>?;
     final contact = json['contact'] as Map<String, dynamic>?;
+    final service = json['service'] as Map<String, dynamic>?;
     return Appointment(
       id: json['id'] as String,
       reference: json['reference'] as String,
@@ -129,6 +133,8 @@ class Appointment {
       contactMethod: json['preferred_contact_method'] as String?,
       assignedTo:
           (json['assigned_to'] as Map<String, dynamic>?)?['name'] as String?,
+      serviceName: service?['name'] as String?,
+      serviceChannel: service?['channel'] as String?,
     );
   }
 
@@ -179,6 +185,19 @@ class Appointment {
   final String? contactPhone;
   final String? contactMethod;
   final String? assignedTo;
+
+  /// The consultation service booked, as it was named then (API 0.51.0).
+  final String? serviceName;
+
+  /// IN_PERSON, VIDEO or PHONE.
+  final String? serviceChannel;
+
+  /// "Valuation chat (Video call)", or null without a service.
+  String? get serviceLabel => serviceName == null
+      ? null
+      : serviceChannel == null
+      ? serviceName
+      : '$serviceName (${ConsultationChannel.from(serviceChannel).label})';
 
   String get typeLabel => type == 'VIEWING' ? 'Viewing' : 'Consultation';
 

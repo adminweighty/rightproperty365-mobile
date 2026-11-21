@@ -11,6 +11,7 @@ import '../features/analytics/analytics_repository.dart';
 import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/appointments/availability.dart';
 import '../features/auth/data/account_security.dart';
 import '../features/billing/invoices.dart';
 import '../features/listings/manage/my_listings.dart';
@@ -65,6 +66,7 @@ class AppServices {
     required this.myListings,
     required this.invoices,
     required this.security,
+    required this.availability,
     required this.myAppointments,
     required this.receivedAppointments,
     required this.leads,
@@ -198,6 +200,10 @@ class AppServices {
 
   /// Password, signed-in devices and email changes (API 0.50.0).
   final AccountSecurityRepository security;
+
+  /// Offered times, the professional's availability and consultation
+  /// services (API 0.51.0).
+  final AvailabilityRepository availability;
   final MyAppointmentsRepository myAppointments;
 
   /// The professional side: appointments received and working a request.

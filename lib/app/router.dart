@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/activity/activity_screen.dart';
+import '../features/appointments/availability_screen.dart';
 import '../features/auth/presentation/account_security_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
@@ -66,6 +67,10 @@ abstract final class Routes {
   static const accountManagement = '/account-management';
   static const deleteAccount = '/account-management/delete';
   static const accountSecurity = '/account-management/security';
+
+  /// The professional's appointment availability and consultation services
+  /// (API 0.51.0).
+  static const availability = '/availability';
 
   /// The emailed link that confirms a new address (API 0.50.0).
   static String confirmEmailChange([String? token]) =>
@@ -724,6 +729,10 @@ GoRouter buildRouter() => GoRouter(
       path: '/reset-password',
       builder: (context, state) =>
           ResetPasswordScreen(token: state.uri.queryParameters['token']),
+    ),
+    GoRoute(
+      path: '/availability',
+      builder: (context, state) => const AvailabilityScreen(),
     ),
     GoRoute(
       path: '/confirm-email-change',

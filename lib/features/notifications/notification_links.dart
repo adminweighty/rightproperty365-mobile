@@ -62,6 +62,8 @@ Future<LinkTarget> resolveNotificationLink(
       return InApp(Routes.lead(s[2]));
     case ('agent', 'requests', 2):
       return const InApp(Routes.inbox);
+    case ('agent', 'availability', _):
+      return const InApp(Routes.availability);
     case ('agent', 'appointments', _):
       return const InApp(Routes.receivedAppointments);
     case ('account', 'appointments', _):

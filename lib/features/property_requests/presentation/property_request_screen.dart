@@ -84,6 +84,12 @@ class PropertyRequestForm extends StatelessWidget {
       defaultMessage:
           'Hello, I am interested in ${listing.reference}. Please send me more details.',
       showRequestType: true,
+      loadSlots: ({required consultation, serviceId}) =>
+          services.availability.slotsForListing(
+            listingId: listing.id,
+            consultation: consultation,
+            serviceId: serviceId,
+          ),
       onSubmit: (input) async {
         onContact?.call();
         final receipt = await services.propertyRequests.submit(
@@ -91,6 +97,7 @@ class PropertyRequestForm extends StatelessWidget {
             listingId: listing.id,
             requestType: input.requestType,
             preferredSlot: input.preferredSlot,
+            serviceId: input.serviceId,
             message: input.message,
             contactMethod: input.contactMethod,
             contact: input.contact,

@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/widgets/searchable_select.dart';
+import '../../appointments/slot_picker.dart';
 import '../../property_requests/data/property_request.dart';
 import '../data/enquiry.dart';
 
@@ -21,6 +22,7 @@ class EnquiryInput {
     this.requestType = RequestType.enquiry,
     this.preferredSlot,
     this.service,
+    this.serviceId,
   });
 
   final String message;
@@ -30,6 +32,9 @@ class EnquiryInput {
   final RequestType requestType;
   final DateTime? preferredSlot;
   final String? service;
+
+  /// A consultation service chosen from the professional's list.
+  final String? serviceId;
 }
 
 /// The one form through which a customer contacts an advertiser or a
@@ -49,6 +54,7 @@ class EnquiryForm extends StatefulWidget {
     this.showRequestType = false,
     this.services = const [],
     this.submitLabel = 'Send request',
+    this.loadSlots,
   });
 
   final String title;
@@ -68,6 +74,11 @@ class EnquiryForm extends StatefulWidget {
   final List<String> services;
   final String submitLabel;
 
+  /// The professional's offered times, when the form books a viewing or a
+  /// consultation (API 0.51.0). Without it, or when none are set, any
+  /// preferred time may be asked for.
+  final SlotLoader? loadSlots;
+
   @override
   State<EnquiryForm> createState() => _EnquiryFormState();
 }
@@ -82,6 +93,7 @@ class _EnquiryFormState extends State<EnquiryForm> {
   RequestType _type = RequestType.enquiry;
   ContactMethod _method = ContactMethod.email;
   String? _service;
+  String? _serviceId;
   DateTime? _slot;
   bool _consent = false;
   bool _consentMissing = false;
@@ -147,6 +159,7 @@ class _EnquiryFormState extends State<EnquiryForm> {
       requestType: _type,
       preferredSlot: _slot,
       service: _service,
+      serviceId: _type == RequestType.consultationRequest ? _serviceId : null,
       message: _message.text,
       contactMethod: _method,
       contact: EnquiryContact(
@@ -185,6 +198,35 @@ class _EnquiryFormState extends State<EnquiryForm> {
     );
   }
 
+  /// Any date and time, when no offered times exist.
+  Widget _freeTime(AppColors c) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      OutlinedButton.icon(
+        key: const Key('free-time'),
+        onPressed: _pickSlot,
+        icon: const Icon(Icons.event_outlined),
+        label: Text(
+          _slot == null
+              ? 'Choose a preferred date and time (optional)'
+              : DateFormat('EEE d MMM y, HH:mm').format(_slot!.toLocal()),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: Space.x1, left: Space.x3),
+        child: Text(
+          _apiError('preferred_slot_utc', 'The preferred time') ?? 'In your local time. They will confirm it or suggest another time.',
+          style: TextStyle(
+            fontSize: 14,
+            color: _failure?.fields['preferred_slot_utc'] == null
+                ? c.muted
+                : c.danger,
+          ),
+        ),
+      ),
+    ],
+  );
+
   Widget _buildForm(BuildContext context, String? signedInName) {
     final signedIn = signedInName != null;
     final c = context.colors;
@@ -209,33 +251,27 @@ class _EnquiryFormState extends State<EnquiryForm> {
                   SelectOption(type, type.label),
               ],
               onChanged: (value) => setState(() {
-                _type = value ?? RequestType.enquiry;
-                if (!_type.allowsSlot) _slot = null;
+                final next = value ?? RequestType.enquiry;
+                // A time offered for a viewing is not one for a consultation.
+                if (next != _type) _slot = null;
+                _type = next;
               }),
             ),
-            if (_type.allowsSlot) ...[
+            if (_type.allowsSlot && widget.loadSlots != null) ...[
               gap,
-              OutlinedButton.icon(
-                onPressed: _pickSlot,
-                icon: const Icon(Icons.event_outlined),
-                label: Text(
-                  _slot == null
-                      ? 'Choose a preferred date and time (optional)'
-                      : DateFormat('EEE d MMM y, HH:mm').format(_slot!),
-                ),
+              SlotPicker(
+                load: widget.loadSlots!,
+                consultation: _type == RequestType.consultationRequest,
+                selected: _slot,
+                onSelected: (slot) => setState(() => _slot = slot),
+                serviceId: _serviceId,
+                onService: (id) => setState(() => _serviceId = id),
+                error: _apiError('preferred_slot_utc', 'The chosen time'),
+                fallback: _freeTime(c),
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: Space.x1, left: Space.x3),
-                child: Text(
-                  _apiError('preferred_slot_utc', 'The preferred time') ?? 'In your local time. They will confirm it or suggest another time.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _failure?.fields['preferred_slot_utc'] == null
-                        ? c.muted
-                        : c.danger,
-                  ),
-                ),
-              ),
+            ] else if (_type.allowsSlot) ...[
+              gap,
+              _freeTime(c),
             ],
             gap,
           ],
