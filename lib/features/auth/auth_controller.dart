@@ -118,6 +118,14 @@ class AuthController extends ChangeNotifier {
     await _forget();
   }
 
+  /// The account changed elsewhere (a confirmed email change): the signed-in
+  /// person sees it at once. Ignored for another account or when signed out.
+  void userChanged(User user) {
+    if (_user?.id != user.id) return;
+    _user = user;
+    notifyListeners();
+  }
+
   Future<void> _forget() async {
     _api.bearerToken = null;
     await _tokens.clear();

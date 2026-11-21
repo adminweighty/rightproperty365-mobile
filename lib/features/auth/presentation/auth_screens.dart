@@ -271,7 +271,9 @@ class _SignedIn extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.manage_accounts_outlined),
           title: const Text('Account Management'),
-          subtitle: const Text('Password and deleting your account'),
+          subtitle: const Text(
+            'Password, email, signed-in devices and deleting your account',
+          ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push(Routes.accountManagement),
         ),

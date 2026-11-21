@@ -24,6 +24,7 @@ import '../features/analytics/analytics_repository.dart';
 import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
+import '../features/auth/data/account_security.dart';
 import '../features/billing/invoices.dart';
 import '../features/listings/manage/my_listings.dart';
 import '../features/contacts/contacts_repository.dart';
@@ -76,6 +77,9 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     connectivity: connectivity,
   );
   connectivity.probe = api.ping;
+  api.userAgent =
+      'RightProperty365/${AppConfig.appVersion} '
+      '(${defaultTargetPlatform == TargetPlatform.iOS ? 'iOS' : 'Android'})';
   api.acceptLanguage = () =>
       acceptLanguageHeader(PlatformDispatcher.instance.locales);
   final auth = AuthController(
@@ -188,6 +192,7 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     myRequests: ApiMyRequestsRepository(api),
     myListings: MyListingsRepository(api),
     invoices: InvoicesRepository(api),
+    security: AccountSecurityRepository(api),
     myAppointments: ApiMyAppointmentsRepository(api),
     receivedAppointments: ApiReceivedAppointmentsRepository(api),
     leads: ApiLeadRepository(api),

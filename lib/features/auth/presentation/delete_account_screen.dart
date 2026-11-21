@@ -21,10 +21,21 @@ class AccountManagementScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(Space.x4),
         children: [
+          ListTile(
+            key: const Key('open-account-security'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.lock_outline),
+            title: const Text('Password, email and devices'),
+            subtitle: const Text(
+              'Change your password or email, and sign out other devices',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(Routes.accountSecurity),
+          ),
+          const SizedBox(height: Space.x2),
           Text(
-            'Your name, email address and password are changed on the website for now. '
-            'Use "Forgot password" on the sign-in screen to set a new password.',
-            style: text.bodyLarge,
+            'Your name is changed on the website for now.',
+            style: text.bodyMedium,
           ),
           const SizedBox(height: Space.x6),
           ListTile(

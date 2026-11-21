@@ -115,6 +115,14 @@ class ApiClient {
   /// auth controller; null when signed out.
   String? bearerToken;
 
+  /// Sent as `User-Agent`, so the account's list of signed-in devices
+  /// names this app (API 0.50.0), for example
+  /// "RightProperty365/1.0.0 (Android)".
+  String? userAgent;
+
+  Map<String, String> get _agentHeader =>
+      userAgent == null ? const {} : {'User-Agent': userAgent!};
+
   /// The phone's languages for `Accept-Language` (API 0.43.0); the API
   /// answers in English when it has nothing better.
   String Function()? acceptLanguage;
@@ -201,6 +209,7 @@ class ApiClient {
     final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$path'))
       ..headers.addAll({
         'Accept': 'application/json',
+        ..._agentHeader,
         ..._languageHeader,
         if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',
       })
@@ -258,6 +267,7 @@ class ApiClient {
     final request = http.Request(method, Uri.parse('$_baseUrl$path'))
       ..headers.addAll({
         'Accept': accept,
+        ..._agentHeader,
         ..._languageHeader,
         if (body != null) 'Content-Type': 'application/json',
         if (bearerToken != null) 'Authorization': 'Bearer $bearerToken',

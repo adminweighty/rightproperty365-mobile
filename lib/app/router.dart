@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/activity/activity_screen.dart';
+import '../features/auth/presentation/account_security_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
 import '../features/ledger/books_screens.dart';
@@ -64,6 +65,11 @@ abstract final class Routes {
   static const joinTeam = '/invitations';
   static const accountManagement = '/account-management';
   static const deleteAccount = '/account-management/delete';
+  static const accountSecurity = '/account-management/security';
+
+  /// The emailed link that confirms a new address (API 0.50.0).
+  static String confirmEmailChange([String? token]) =>
+      _withToken('/confirm-email-change', token);
   static const receivedAppointments = '/appointments';
   static const statistics = '/statistics';
   static const contacts = '/contacts';
@@ -640,6 +646,10 @@ GoRouter buildRouter() => GoRouter(
           path: 'delete',
           builder: (context, state) => const DeleteAccountScreen(),
         ),
+        GoRoute(
+          path: 'security',
+          builder: (context, state) => const AccountSecurityScreen(),
+        ),
       ],
     ),
     GoRoute(
@@ -714,6 +724,11 @@ GoRouter buildRouter() => GoRouter(
       path: '/reset-password',
       builder: (context, state) =>
           ResetPasswordScreen(token: state.uri.queryParameters['token']),
+    ),
+    GoRoute(
+      path: '/confirm-email-change',
+      builder: (context, state) =>
+          ConfirmEmailChangeScreen(token: state.uri.queryParameters['token']),
     ),
   ],
 );

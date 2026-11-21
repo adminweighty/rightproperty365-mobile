@@ -129,6 +129,8 @@ Future<LinkTarget> resolveNotificationLink(
       return const InApp(Routes.mySignature);
     case ('account', 'delete', _):
       return const InApp(Routes.deleteAccount);
+    case ('account', 'security', _):
+      return const InApp(Routes.accountSecurity);
     // Listing review and expiry notices (API 0.45.0). Creating a listing and
     // its calendar stay on the website.
     case ('agent', 'listings', 2):

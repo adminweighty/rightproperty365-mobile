@@ -19,6 +19,7 @@ import 'package:rightproperty365/features/applications/applications_repository.d
 import 'package:rightproperty365/features/analytics/analytics_tracker.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:rightproperty365/features/activity/my_requests_repository.dart';
+import 'package:rightproperty365/features/auth/data/account_security.dart';
 import 'package:rightproperty365/features/billing/invoices.dart';
 import 'package:rightproperty365/features/listings/manage/my_listings.dart';
 import 'package:rightproperty365/features/contacts/contacts_repository.dart';
@@ -417,6 +418,7 @@ class TestServices {
       myRequests: ApiMyRequestsRepository(workApi),
       myListings: MyListingsRepository(workApi),
       invoices: InvoicesRepository(workApi),
+      security: AccountSecurityRepository(workApi),
       myAppointments: ApiMyAppointmentsRepository(workApi),
       receivedAppointments: ApiReceivedAppointmentsRepository(workApi),
       leads: ApiLeadRepository(workApi),
