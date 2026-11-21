@@ -134,10 +134,25 @@ class _Detail extends StatelessWidget {
                   runSpacing: Space.x2,
                   children: [
                     AppBadge(listing.deal.label, tone: BadgeTone.primary),
+                    if (listing.placementLabel case final label?)
+                      AppBadge(
+                        label,
+                        key: const Key('listing-placement'),
+                        tone: BadgeTone.accent,
+                      ),
                     AppBadge(listing.category.label),
                     AppBadge(listing.propertyType),
                   ],
                 ),
+                if (listing.placementDisclosure case final disclosure?)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Space.x2),
+                    child: Text(
+                      disclosure,
+                      key: const Key('listing-placement-disclosure'),
+                      style: text.bodyMedium?.copyWith(color: c.muted),
+                    ),
+                  ),
                 if (closed != null) ...[
                   const SizedBox(height: Space.x4),
                   Container(

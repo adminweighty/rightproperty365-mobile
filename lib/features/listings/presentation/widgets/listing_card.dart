@@ -217,9 +217,13 @@ class ListingCard extends StatelessWidget {
                 child: Row(
                   children: [
                     AppBadge(listing.deal.label, tone: BadgeTone.onPhoto),
-                    if (listing.featured) ...[
+                    if (listing.placementLabel case final label?) ...[
                       const SizedBox(width: 6),
-                      const AppBadge('Featured', tone: BadgeTone.accent),
+                      AppBadge(
+                        label,
+                        key: Key('placement-${listing.id}'),
+                        tone: BadgeTone.accent,
+                      ),
                     ],
                   ],
                 ),

@@ -98,6 +98,8 @@ class Listing {
     this.position,
     this.hasVideo = false,
     this.closedState,
+    this.placementKind,
+    this.apiPlacementLabel,
   });
 
   /// From the API's public `Listing` (search results and the listing
@@ -133,6 +135,7 @@ class Listing {
       networkUrl = chosen.startsWith('http') ? chosen : '$apiBase$chosen';
     }
     final category = (json['category'] as Map<String, dynamic>?)?['code'];
+    final placement = json['placement'] as Map<String, dynamic>?;
     return Listing(
       id: json['id'] as String,
       slug: json['slug'] as String,
@@ -182,7 +185,9 @@ class Listing {
             : AdvertiserKind.privateSeller,
         verified: advertiser['verified'] == true,
       ),
-      featured: json['featured'] == true,
+      featured: json['featured'] == true || placement != null,
+      placementKind: placement?['kind'] as String?,
+      apiPlacementLabel: placement?['label'] as String?,
       position: ListingLocation.fromJson(json['location']),
       hasVideo: json['has_video'] == true,
       closedState: switch (json['closed_state']) {
@@ -271,6 +276,28 @@ class Listing {
   /// 0.48.0): the page says so and offers no contact. Null otherwise.
   final String? closedState;
 
+  /// FEATURED or SPONSORED while a paid placement runs (API 0.53.0); null
+  /// otherwise, also for the sample's featured listings.
+  final String? placementKind;
+
+  /// The API's badge wording for the placement.
+  final String? apiPlacementLabel;
+
+  /// The badge: the API's label ("Featured", "Sponsored"), "Featured" for
+  /// a featured listing without one, null when not featured.
+  String? get placementLabel => !featured
+      ? null
+      : apiPlacementLabel ??
+            (placementKind == 'SPONSORED' ? 'Sponsored' : 'Featured');
+
+  /// Said next to the badge on the listing page when the advertiser paid for
+  /// the placement.
+  String? get placementDisclosure => switch (placementKind) {
+    'SPONSORED' => 'Sponsored: the advertiser paid for this placement.',
+    'FEATURED' => 'Featured: the advertiser paid to show this listing first.',
+    _ => null,
+  };
+
   /// The same listing placed at [where] (a bundled listing, located by the
   /// API).
   Listing withLocation(ListingLocation where) => Listing(
@@ -301,6 +328,8 @@ class Listing {
     position: where,
     hasVideo: hasVideo,
     closedState: closedState,
+    placementKind: placementKind,
+    apiPlacementLabel: apiPlacementLabel,
   );
 
   String get location => '$suburb, $city';
@@ -314,6 +343,7 @@ class Listing {
 
   /// One sentence for screen readers, so a card reads as a single item.
   String get spokenSummary => [
+    ?placementLabel,
     deal.label,
     title,
     location,

@@ -425,7 +425,7 @@ class _HeroState extends State<_Hero> {
                   index: 3,
                   child: Semantics(
                     button: true,
-                    label: 'Featured: ${listing.spokenSummary}',
+                    label: listing.spokenSummary,
                     excludeSemantics: true,
                     child: InkWell(
                       onTap: () => widget.onOpen(listing),
@@ -446,7 +446,8 @@ class _HeroState extends State<_Hero> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Featured · ${listing.location}',
+                                      '${listing.placementLabel ?? 'New'} · '
+                                      '${listing.location}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: c.onBrand,
