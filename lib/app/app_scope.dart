@@ -15,6 +15,7 @@ import '../features/appointments/availability.dart';
 import '../features/listings/data/listing_reports.dart';
 import '../features/saved/saved_searches.dart';
 import '../features/auth/data/account_security.dart';
+import '../features/auth/data/data_export.dart';
 import '../features/billing/invoices.dart';
 import '../features/listings/manage/my_listings.dart';
 import '../features/contacts/contacts_repository.dart';
@@ -71,6 +72,8 @@ class AppServices {
     required this.availability,
     required this.savedSearches,
     required this.listingReports,
+    required this.dataExport,
+    required this.saveFile,
     required this.myAppointments,
     required this.receivedAppointments,
     required this.leads,
@@ -214,6 +217,18 @@ class AppServices {
 
   /// Reporting a listing to the moderators (API 0.54.0).
   final ListingReportsRepository listingReports;
+
+  /// A copy of the person's own data (API 0.55.0).
+  final DataExportRepository dataExport;
+
+  /// Hands a downloaded file to the phone's "save as" screen; false when
+  /// the person cancelled.
+  final Future<bool> Function({
+    required String name,
+    required Uint8List bytes,
+    required String mimeType,
+  })
+  saveFile;
   final MyAppointmentsRepository myAppointments;
 
   /// The professional side: appointments received and working a request.

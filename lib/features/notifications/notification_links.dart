@@ -145,6 +145,8 @@ Future<LinkTarget> resolveNotificationLink(
       return const InApp(Routes.savedSearches);
     case ('account', 'saved-searches', _):
       return const InApp(Routes.savedSearches);
+    case ('account', 'data-export', _):
+      return const InApp(Routes.dataExport);
     case ('account', 'security', _):
       return const InApp(Routes.accountSecurity);
     // Listing review and expiry notices (API 0.45.0). Creating a listing and

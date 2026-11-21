@@ -23,6 +23,7 @@ import 'package:rightproperty365/features/appointments/availability.dart';
 import 'package:rightproperty365/features/listings/data/listing_reports.dart';
 import 'package:rightproperty365/features/saved/saved_searches.dart';
 import 'package:rightproperty365/features/auth/data/account_security.dart';
+import 'package:rightproperty365/features/auth/data/data_export.dart';
 import 'package:rightproperty365/features/billing/invoices.dart';
 import 'package:rightproperty365/features/listings/manage/my_listings.dart';
 import 'package:rightproperty365/features/contacts/contacts_repository.dart';
@@ -425,6 +426,11 @@ class TestServices {
       availability: AvailabilityRepository(workApi),
       savedSearches: SavedSearchesRepository(workApi),
       listingReports: ListingReportsRepository(workApi),
+      dataExport: DataExportRepository(workApi),
+      saveFile: ({required name, required bytes, required mimeType}) async {
+        savedFiles.add((name: name, bytes: bytes, mimeType: mimeType));
+        return saveAccepted;
+      },
       myAppointments: ApiMyAppointmentsRepository(workApi),
       receivedAppointments: ApiReceivedAppointmentsRepository(workApi),
       leads: ApiLeadRepository(workApi),
@@ -464,6 +470,10 @@ class TestServices {
     auth: auth,
   );
   Uint8List? pickedImage;
+
+  /// Files handed to the "save as" screen, and whether it saves them.
+  final savedFiles = <({String name, Uint8List bytes, String mimeType})>[];
+  bool saveAccepted = true;
 
   final listings = sampleListings();
   late final ApiListingSearch listingSearch;

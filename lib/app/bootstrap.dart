@@ -28,6 +28,7 @@ import '../features/appointments/availability.dart';
 import '../features/listings/data/listing_reports.dart';
 import '../features/saved/saved_searches.dart';
 import '../features/auth/data/account_security.dart';
+import '../features/auth/data/data_export.dart';
 import '../features/billing/invoices.dart';
 import '../features/listings/manage/my_listings.dart';
 import '../features/contacts/contacts_repository.dart';
@@ -199,6 +200,8 @@ Future<AppServices> bootstrap({AssetBundle? bundle}) async {
     availability: AvailabilityRepository(api),
     savedSearches: SavedSearchesRepository(api),
     listingReports: ListingReportsRepository(api),
+    dataExport: DataExportRepository(api),
+    saveFile: _saveFile,
     myAppointments: ApiMyAppointmentsRepository(api),
     receivedAppointments: ApiReceivedAppointmentsRepository(api),
     leads: ApiLeadRepository(api),
@@ -234,6 +237,19 @@ Future<ChosenFile?> _pickApplicationFile({
   if (files.isEmpty) return null;
   return (bytes: await files.first.readAsBytes(), name: files.first.name);
 }
+
+/// The system "save as" screen; false when the person cancelled.
+Future<bool> _saveFile({
+  required String name,
+  required Uint8List bytes,
+  required String mimeType,
+}) async =>
+    await FilePicker.saveFile(
+      fileName: name,
+      bytes: bytes,
+      mimeType: mimeType,
+    ) !=
+    null;
 
 /// A photo of a signature, shrunk to the API's 2000 x 1000 pixel limit.
 Future<Uint8List?> _pickSignatureImage() async {

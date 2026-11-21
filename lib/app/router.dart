@@ -4,6 +4,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/appointments/availability_screen.dart';
 import '../features/saved/saved_searches_screen.dart';
 import '../features/auth/presentation/account_security_screen.dart';
+import '../features/auth/presentation/data_export_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
 import '../features/ledger/books_screens.dart';
@@ -68,6 +69,7 @@ abstract final class Routes {
   static const accountManagement = '/account-management';
   static const deleteAccount = '/account-management/delete';
   static const accountSecurity = '/account-management/security';
+  static const dataExport = '/account-management/data-export';
 
   /// The professional's appointment availability and consultation services
   /// (API 0.51.0).
@@ -658,6 +660,10 @@ GoRouter buildRouter() => GoRouter(
         GoRoute(
           path: 'security',
           builder: (context, state) => const AccountSecurityScreen(),
+        ),
+        GoRoute(
+          path: 'data-export',
+          builder: (context, state) => const DataExportScreen(),
         ),
       ],
     ),

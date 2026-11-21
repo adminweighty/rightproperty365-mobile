@@ -32,6 +32,17 @@ class AccountManagementScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(Routes.accountSecurity),
           ),
+          ListTile(
+            key: const Key('open-data-export'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.download_outlined),
+            title: const Text('Download your data'),
+            subtitle: const Text(
+              'A copy of what RightProperty365 holds about you',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(Routes.dataExport),
+          ),
           const SizedBox(height: Space.x2),
           Text(
             'Your name is changed on the website for now.',
@@ -162,6 +173,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             'leases, the audit trail, and enquiries you sent, which stay with the people you sent '
             'them to.',
             style: text.bodyMedium?.copyWith(color: c.muted),
+          ),
+          TextButton.icon(
+            key: const Key('delete-open-data-export'),
+            onPressed: () => context.push(Routes.dataExport),
+            icon: const Icon(Icons.download_outlined),
+            label: const Text('Download a copy of your data first'),
           ),
           const SizedBox(height: Space.x5),
           TextField(
