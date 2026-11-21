@@ -12,6 +12,7 @@ import '../features/applications/applications_repository.dart';
 import '../features/analytics/analytics_tracker.dart';
 import '../features/activity/my_requests_repository.dart';
 import '../features/appointments/availability.dart';
+import '../features/listings/data/listing_reports.dart';
 import '../features/saved/saved_searches.dart';
 import '../features/auth/data/account_security.dart';
 import '../features/billing/invoices.dart';
@@ -69,6 +70,7 @@ class AppServices {
     required this.security,
     required this.availability,
     required this.savedSearches,
+    required this.listingReports,
     required this.myAppointments,
     required this.receivedAppointments,
     required this.leads,
@@ -209,6 +211,9 @@ class AppServices {
 
   /// Saved searches and their alerts (API 0.52.0).
   final SavedSearchesRepository savedSearches;
+
+  /// Reporting a listing to the moderators (API 0.54.0).
+  final ListingReportsRepository listingReports;
   final MyAppointmentsRepository myAppointments;
 
   /// The professional side: appointments received and working a request.

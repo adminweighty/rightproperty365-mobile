@@ -19,6 +19,7 @@ import '../../analytics/analytics_tracker.dart';
 import '../../directory/data/profile.dart';
 import '../../directory/presentation/widgets/profile_widgets.dart';
 import '../data/listing.dart';
+import 'report_listing.dart';
 import 'widgets/listing_card.dart';
 
 class ListingDetailScreen extends StatefulWidget {
@@ -264,6 +265,16 @@ class _Detail extends StatelessWidget {
                   'Listed ${DateFormat('d MMMM y').format(listing.publishedAt.toLocal())}'
                   ' · Reference ${listing.reference}',
                   style: text.bodySmall,
+                ),
+                const SizedBox(height: Space.x2),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('report-listing'),
+                    onPressed: () => reportListing(context, listing.slug),
+                    icon: const Icon(Icons.flag_outlined),
+                    label: const Text('Report this listing'),
+                  ),
                 ),
               ],
             ),
