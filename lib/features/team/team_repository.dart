@@ -1,5 +1,6 @@
 import '../../core/api/api_client.dart';
 import '../../core/api/idempotency.dart';
+import '../../core/branch.dart';
 
 /// Wording for team roles when the API does not send a label.
 String teamRoleLabel(String role) => switch (role) {
@@ -28,6 +29,7 @@ class TeamMember {
     required this.status,
     required this.statusLabel,
     this.jobTitle,
+    this.branch,
     this.joinedAt,
     this.openLeads = 0,
     this.isYou = false,
@@ -45,6 +47,7 @@ class TeamMember {
     status: json['status'] as String? ?? 'ACTIVE',
     statusLabel: json['status_label'] as String? ?? '',
     jobTitle: json['job_title'] as String?,
+    branch: branchName(json['branch']),
     joinedAt: switch (json['joined_at']) {
       final String at => DateTime.tryParse(at),
       _ => null,
@@ -68,6 +71,10 @@ class TeamMember {
   final String status;
   final String statusLabel;
   final String? jobTitle;
+
+  /// The branch the member is pinned to; null sees the whole organisation
+  /// (API 0.57.0). Pinning is done on the website.
+  final String? branch;
   final DateTime? joinedAt;
 
   /// Open requests assigned to the member.

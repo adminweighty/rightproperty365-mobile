@@ -870,6 +870,8 @@ class _LedgerEntryScreenState extends State<LedgerEntryScreen> {
               if (e.reference != null) Text('Reference ${e.reference}'),
               if (e.contactName != null) Text('Contact: ${e.contactName}'),
               if (e.listingTitle != null) Text('Property: ${e.listingTitle}'),
+              if (e.branch != null)
+                Text('Branch: ${e.branch}', key: const Key('entry-branch')),
               if (e.authorName != null) Text('Recorded by ${e.authorName}'),
               const SizedBox(height: Space.x2),
               Align(

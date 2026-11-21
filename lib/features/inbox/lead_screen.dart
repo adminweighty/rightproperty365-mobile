@@ -106,6 +106,12 @@ class _LeadScreenState extends State<LeadScreen> {
           '${e.kind} · ${e.reference}',
           style: text.bodyMedium?.copyWith(color: c.muted),
         ),
+        if (e.branch != null)
+          Text(
+            'Branch: ${e.branch}',
+            key: const Key('lead-branch'),
+            style: text.bodyMedium,
+          ),
         const SizedBox(height: Space.x3),
         Text(e.message, style: text.bodyLarge),
         const SizedBox(height: Space.x3),

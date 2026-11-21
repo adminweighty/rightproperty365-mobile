@@ -1,4 +1,5 @@
 import '../../core/api/api_client.dart';
+import '../../core/branch.dart';
 import '../../core/terminology.dart';
 import '../property_requests/data/property_request.dart';
 
@@ -25,6 +26,7 @@ class ReceivedEnquiry {
     this.repliedAt,
     this.assignedTo,
     this.awaitingReply = false,
+    this.branch,
   });
 
   /// From GET /v1/agent/property-requests (`OrganisationPropertyRequest`).
@@ -42,6 +44,7 @@ class ReceivedEnquiry {
       assignedTo:
           (json['assigned_to'] as Map<String, dynamic>?)?['name'] as String?,
       awaitingReply: json['awaiting_reply'] == true,
+      branch: branchName(json['branch']),
       status: json['status'] as String,
       stageLabel: json['stage_label'] as String?,
       message: json['message'] as String,
@@ -94,6 +97,9 @@ class ReceivedEnquiry {
 
   /// The team member the request is assigned to; null in the agency inbox.
   final String? assignedTo;
+
+  /// Property requests: the branch of the listing it came from (API 0.57.0).
+  final String? branch;
 
   /// Property requests: the customer wrote last (API 0.46.0).
   final bool awaitingReply;

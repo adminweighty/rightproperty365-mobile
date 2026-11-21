@@ -1,5 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../api/api_client.dart' show branchForbiddenMessage;
+import '../branch.dart';
+
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/tokens.dart';
 
@@ -22,6 +25,14 @@ class AsyncView<T> extends StatelessWidget {
     return FutureBuilder<T>(
       future: future,
       builder: (context, snapshot) {
+        if (isBranchForbidden(snapshot.error)) {
+          return const MessageView(
+            key: Key('branch-forbidden'),
+            icon: Icons.lock_outline,
+            title: 'Another branch',
+            body: branchForbiddenMessage,
+          );
+        }
         if (snapshot.hasError) {
           return MessageView(
             icon: Icons.cloud_off_outlined,

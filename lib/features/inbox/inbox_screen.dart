@@ -192,6 +192,12 @@ class _EnquiryCard extends StatelessWidget {
               ],
             ),
             Text('${enquiry.kind} · $received', style: text.bodyMedium),
+            if (enquiry.branch != null)
+              Text(
+                'Branch: ${enquiry.branch}',
+                key: Key('enquiry-branch-${enquiry.reference}'),
+                style: text.bodyMedium,
+              ),
             if (enquiry.awaitingReply)
               Padding(
                 padding: const EdgeInsets.only(top: Space.x2),

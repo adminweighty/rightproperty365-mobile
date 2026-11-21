@@ -1,5 +1,6 @@
 import '../../core/api/api_client.dart';
 import '../../core/api/scan.dart';
+import '../../core/branch.dart';
 import '../applications/applications_repository.dart'
     show ChosenFile, fileContentType;
 
@@ -34,6 +35,7 @@ class LedgerEntry {
     this.cash = true,
     this.reconciledNote,
     this.reconciledBy,
+    this.branch,
     this.attachmentCount = 0,
     this.noteCount = 0,
     this.canReverse = false,
@@ -76,6 +78,7 @@ class LedgerEntry {
       reconciledNote: reconciliation?['note'] as String?,
       reconciledBy:
           (reconciliation?['by'] as Map<String, dynamic>?)?['name'] as String?,
+      branch: branchName(json['branch']),
       attachmentCount: json['attachment_count'] as int? ?? 0,
       noteCount: json['note_count'] as int? ?? 0,
       canReverse: can['reverse'] == true,
@@ -120,6 +123,10 @@ class LedgerEntry {
   final bool cash;
   final String? reconciledNote;
   final String? reconciledBy;
+
+  /// The branch named on the entry (API 0.57.0: an organisation's branch;
+  /// a personal book's free text).
+  final String? branch;
   final int attachmentCount;
   final int noteCount;
   final bool canReverse;

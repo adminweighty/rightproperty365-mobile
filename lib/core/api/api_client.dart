@@ -82,6 +82,12 @@ class ApiFailure implements Exception {
   String toString() => 'ApiFailure($status, $code)';
 }
 
+/// API 0.57.0: the item belongs to another branch of the organisation.
+const branchForbiddenCode = 'BRANCH_FORBIDDEN';
+const branchForbiddenMessage =
+    'This belongs to another branch of your organisation, so you cannot open '
+    'it. Ask an owner or manager if you need it.';
+
 class ApiResponse {
   const ApiResponse(this.status, this.body, {this.savedAt});
   final int status;
@@ -135,6 +141,9 @@ class ApiClient {
   }
 
   static const _timeout = Duration(seconds: 20);
+
+  /// Plain wording for codes the app words the same everywhere.
+  static const _messages = {branchForbiddenCode: branchForbiddenMessage};
   static const _fallbackMessage =
       'Something went wrong on our side. Please try again.';
 
@@ -315,6 +324,7 @@ class ApiClient {
           (response.statusCode == 409
               ? null
               : scanFailureMessages[details['code']]) ??
+          _messages[details['code']] ??
           details['message'] as String? ??
           _fallbackMessage,
       fields: fields is Map

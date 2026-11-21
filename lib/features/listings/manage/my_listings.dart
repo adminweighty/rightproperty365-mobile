@@ -1,4 +1,5 @@
 import '../../../core/api/api_client.dart';
+import '../../../core/branch.dart';
 
 /// Where a published listing is in its publication period (API 0.45.0,
 /// `expiry` on the managed listing and on list rows).
@@ -133,6 +134,7 @@ class MyListing {
     this.city,
     this.expiry,
     this.canEdit = true,
+    this.branch,
   });
 
   factory MyListing.fromJson(Map<String, dynamic> json) => MyListing(
@@ -148,6 +150,7 @@ class MyListing {
     },
     expiry: ListingExpiry.fromJson(json['expiry']),
     canEdit: json['can_edit'] != false,
+    branch: branchName(json['branch']),
   );
 
   final String id;
@@ -156,6 +159,9 @@ class MyListing {
   final String title;
   final String status;
   final String? city;
+
+  /// The organisation branch it is tied to (API 0.57.0).
+  final String? branch;
   final ListingExpiry? expiry;
   final bool canEdit;
 
@@ -176,6 +182,7 @@ class ManagedListing {
     required this.actions,
     this.expiry,
     this.publishedAt,
+    this.branch,
   });
 
   factory ManagedListing.fromJson(Map<String, dynamic> json) {
@@ -195,6 +202,7 @@ class ManagedListing {
       },
       expiry: ListingExpiry.fromJson(json['expiry']),
       publishedAt: DateTime.tryParse(json['published_at'] as String? ?? ''),
+      branch: branchName(json['branch']),
     );
   }
 
@@ -218,6 +226,9 @@ class ManagedListing {
   ];
   final ListingExpiry? expiry;
   final DateTime? publishedAt;
+
+  /// The organisation branch it is tied to (API 0.57.0).
+  final String? branch;
 
   bool get canRelist => actions.contains('relist');
 

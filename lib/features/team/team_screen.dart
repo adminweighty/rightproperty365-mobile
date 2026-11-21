@@ -325,7 +325,11 @@ class _MemberCard extends StatelessWidget {
                     style: text.titleMedium,
                   ),
                   Text(
-                    [member.roleLabel, ?member.jobTitle].join(' · '),
+                    [
+                      member.roleLabel,
+                      ?member.jobTitle,
+                      if (member.branch != null) 'Branch: ${member.branch}',
+                    ].join(' · '),
                     style: text.bodyMedium,
                   ),
                   const SizedBox(height: Space.x2),

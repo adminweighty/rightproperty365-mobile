@@ -186,6 +186,7 @@ class MyListingCard extends StatelessWidget {
         status,
         ?warning,
         ?line,
+        if (listing.branch != null) 'Branch ${listing.branch}',
         listing.reference,
       ].join('. '),
       child: Padding(
@@ -203,6 +204,12 @@ class MyListingCard extends StatelessWidget {
             ),
             if (listing.city != null)
               Text(listing.city!, style: text.bodyMedium),
+            if (listing.branch != null)
+              Text(
+                'Branch: ${listing.branch}',
+                key: Key('my-listing-branch-${listing.id}'),
+                style: text.bodyMedium,
+              ),
             if (warning != null) ...[
               const SizedBox(height: Space.x2),
               AppBadge(
@@ -377,6 +384,12 @@ class _MyListingScreenState extends State<MyListingScreen> {
           ],
         ),
         Text(l.reference, style: text.bodyMedium?.copyWith(color: c.muted)),
+        if (l.branch != null)
+          Text(
+            'Branch: ${l.branch}',
+            key: const Key('listing-branch'),
+            style: text.bodyMedium,
+          ),
         const SizedBox(height: Space.x4),
         if (stateNote != null) ...[
           _Callout(
