@@ -6,6 +6,7 @@ import '../../core/api/api_client.dart';
 import '../../core/config.dart';
 import '../contacts/contacts_repository.dart' show ContactBook;
 import '../contacts/contacts_screens.dart' show contactBooks;
+import '../saved/saved_searches_screen.dart' show savedSearchRoute;
 
 /// Where a notification's link leads.
 sealed class LinkTarget {
@@ -131,6 +132,19 @@ Future<LinkTarget> resolveNotificationLink(
       return const InApp(Routes.mySignature);
     case ('account', 'delete', _):
       return const InApp(Routes.deleteAccount);
+    // Saved search alerts (API 0.52.0) open the search they are about.
+    case ('account', 'saved-searches', 3):
+      try {
+        final all = await services.savedSearches.list();
+        for (final saved in all) {
+          if (saved.id == s[2]) return InApp(savedSearchRoute(saved));
+        }
+      } on ApiFailure {
+        // Offline or signed out: the list says why.
+      }
+      return const InApp(Routes.savedSearches);
+    case ('account', 'saved-searches', _):
+      return const InApp(Routes.savedSearches);
     case ('account', 'security', _):
       return const InApp(Routes.accountSecurity);
     // Listing review and expiry notices (API 0.45.0). Creating a listing and

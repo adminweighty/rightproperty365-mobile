@@ -325,9 +325,40 @@ class Listing {
 
 class ListingFilters {
   const ListingFilters({this.deal, this.category, this.query = ''});
+
+  /// From `GET /v1/listings` parameters (a saved search's query); others
+  /// are ignored.
+  factory ListingFilters.fromApiQuery(Map<String, String> query) =>
+      ListingFilters(
+        query: query['q'] ?? '',
+        deal: switch (query['deal']) {
+          'rent' => DealType.rent,
+          'sale' => DealType.sale,
+          _ => null,
+        },
+        category: switch (query['category']) {
+          'residential' => ListingCategory.residential,
+          'commercial' => ListingCategory.commercial,
+          'land' => ListingCategory.land,
+          'short-stay' => ListingCategory.shortStay,
+          _ => null,
+        },
+      );
+
   final DealType? deal;
   final ListingCategory? category;
   final String query;
+
+  /// As `GET /v1/listings` takes them.
+  Map<String, String> get apiQuery => {
+    if (query.trim().isNotEmpty) 'q': query.trim(),
+    'deal': ?deal?.name,
+    'category': ?switch (category) {
+      null => null,
+      ListingCategory.shortStay => 'short-stay',
+      final c => c.name,
+    },
+  };
 
   bool matches(Listing listing) {
     final term = query.trim().toLowerCase();

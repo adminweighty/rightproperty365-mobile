@@ -54,15 +54,7 @@ class ApiListingSearch {
   /// The API's maximum page size for listing search.
   static const pageSize = 48;
 
-  Map<String, String> _filters(ListingFilters filters) => {
-    if (filters.query.trim().isNotEmpty) 'q': filters.query.trim(),
-    'deal': ?filters.deal?.name,
-    'category': ?switch (filters.category) {
-      null => null,
-      ListingCategory.shortStay => 'short-stay',
-      final c => c.name,
-    },
-  };
+  Map<String, String> _filters(ListingFilters filters) => filters.apiQuery;
 
   /// Listings with a location matching [filters]: inside [bounds] when
   /// given, otherwise all of them (the first map view).

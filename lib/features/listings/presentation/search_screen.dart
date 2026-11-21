@@ -9,6 +9,7 @@ import '../../../core/widgets/brand.dart';
 import '../../analytics/analytics_tracker.dart';
 import '../../analytics/impressions.dart';
 import '../data/listing.dart';
+import '../../saved/saved_searches_screen.dart' show saveSearch;
 import 'map_search_view.dart';
 import 'widgets/listing_card.dart';
 
@@ -85,7 +86,17 @@ class _SearchScreenState extends State<SearchScreen> {
         if (showMap || c != ListingCategory.shortStay) c,
     ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
+      appBar: AppBar(
+        title: const Text('Search'),
+        actions: [
+          IconButton(
+            key: const Key('save-search'),
+            tooltip: 'Save this search',
+            icon: const Icon(Icons.bookmark_add_outlined),
+            onPressed: () => saveSearch(context, _filters),
+          ),
+        ],
+      ),
       body: ImpressionScope(
         child: Column(
           children: [

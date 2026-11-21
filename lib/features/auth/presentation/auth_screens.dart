@@ -267,6 +267,15 @@ class _SignedIn extends StatelessWidget {
         const SectionHeading('Settings'),
         const SizedBox(height: Space.x2),
         ListTile(
+          key: const Key('open-saved-searches'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.saved_search),
+          title: const Text('Saved searches'),
+          subtitle: const Text('Alerts when new listings match'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.savedSearches),
+        ),
+        ListTile(
           key: const Key('open-account-management'),
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.manage_accounts_outlined),

@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/activity/activity_screen.dart';
 import '../features/appointments/availability_screen.dart';
+import '../features/saved/saved_searches_screen.dart';
 import '../features/auth/presentation/account_security_screen.dart';
 import '../features/activity/my_request_screen.dart';
 import '../features/analytics/statistics_screen.dart';
@@ -71,6 +72,9 @@ abstract final class Routes {
   /// The professional's appointment availability and consultation services
   /// (API 0.51.0).
   static const availability = '/availability';
+
+  /// Saved searches and their alerts (API 0.52.0).
+  static const savedSearches = '/saved-searches';
 
   /// The emailed link that confirms a new address (API 0.50.0).
   static String confirmEmailChange([String? token]) =>
@@ -729,6 +733,10 @@ GoRouter buildRouter() => GoRouter(
       path: '/reset-password',
       builder: (context, state) =>
           ResetPasswordScreen(token: state.uri.queryParameters['token']),
+    ),
+    GoRoute(
+      path: '/saved-searches',
+      builder: (context, state) => const SavedSearchesScreen(),
     ),
     GoRoute(
       path: '/availability',
